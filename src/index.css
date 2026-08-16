@@ -2,12 +2,10 @@
 
 @layer base {
   :root {
-    --font-syne: 'Syne', -apple-system, BlinkMacSystemFont, sans-serif;
-    --font-space: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
-    --font-inter: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --text-font-family: 'Orbitron', -apple-system, sans-serif;
+    --uncover-left: 100%;
   }
 
-  /* Global reset and scrollbar kill */
   * {
     box-sizing: border-box;
     margin: 0;
@@ -23,19 +21,105 @@
   html, body {
     width: 100%;
     height: 100%;
+    margin: 0;
+    padding: 0;
     overflow: hidden;
-    background-color: #000000;
-    color: #ffffff;
+    background-color: #040406;
+    color: #e2e2e8;
+    font-family: 'Space Grotesk', -apple-system, sans-serif;
     user-select: none;
     -webkit-user-select: none;
     -webkit-tap-highlight-color: transparent;
   }
 }
 
-.font-syne {
-  font-family: 'Syne', sans-serif;
+/* Fullscreen Viewport Container */
+#heroContainer {
+  container-type: inline-size;
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  background-color: #000000;
+  overflow: hidden;
 }
 
-.font-space {
-  font-family: 'Space Grotesk', sans-serif;
+/* Uncover Mask Wrapper for dynamic reveal */
+.uncover-content-wrapper {
+  clip-path: inset(0 0 0 var(--uncover-left));
+  will-change: clip-path;
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 3cqw;
+}
+
+/* Base Metallic Typography */
+.verse-text-base {
+  font-family: var(--text-font-family);
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  color: transparent;
+  background: linear-gradient(
+    175deg, 
+    #4a4a58 0%, 
+    #2a2a34 30%, 
+    #17171f 65%, 
+    #0d0d12 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.95));
+  position: relative;
+  display: block;
+  white-space: nowrap;
+  font-size: 15cqw;
+  line-height: 1;
+}
+
+/* SPECULAR RIM GLOW */
+.verse-text-rim-glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  font-family: var(--text-font-family);
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  color: transparent;
+  white-space: nowrap;
+  pointer-events: none;
+  font-size: 15cqw;
+  line-height: 1;
+  mix-blend-mode: screen;
+  transition: -webkit-text-stroke 0.3s ease;
+}
+
+/* State 1 loading rim glow class */
+.rim-glow-state-1 {
+  -webkit-text-stroke: 2px rgba(255, 230, 170, 1);
+  background: linear-gradient(265deg, rgba(255, 255, 255, 2.2) 0%, rgba(210, 220, 240, 0.65) 30%, transparent 90%);
+  -webkit-background-clip: text; 
+  background-clip: text;
+  filter: drop-shadow(2px -2px 1px rgba(255, 245, 210, 0.9)) drop-shadow(0 0 14px rgba(255, 175, 60, 0.55));
+}
+
+/* State 3 loaded rim glow class */
+.rim-glow-state-3 {
+  -webkit-text-stroke: 0.1px rgba(255, 230, 170, 1);
+  background: linear-gradient(265deg, rgba(255, 255, 255, 1.9) 0%, rgba(210, 220, 240, 0.65) 30%, transparent 90%);
+  -webkit-background-clip: text; 
+  background-clip: text;
+  filter: drop-shadow(2px -2px 1px rgba(255, 245, 210, 0.9)) drop-shadow(0 0 14px rgba(255, 175, 60, 0.55));
+}
+
+/* Subtle grid overlay */
+.bg-grid-pattern {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 40px 40px;
 }
