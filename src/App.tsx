@@ -1,14 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { WwdcTextEffect, FlowDirection } from './components/WwdcTextEffect';
-import { Sparkles, Sliders, MousePointer } from 'lucide-react';
+import { Sparkles, Sliders } from 'lucide-react';
+
+type TextMode = 'fixed' | 'interactive' | 'sweep';
 
 export const App: React.FC = () => {
-  const [selectedText, setSelectedText] = useState<string>('WWDC26');
-  const [direction, setDirection] = useState<FlowDirection>('right-to-left');
+  // Text Effect State
+  const [selectedText, setSelectedText] = useState<string>("'Verse");
+  const [direction, setDirection] = useState<FlowDirection>('left-to-right');
+  const [textMode, setTextMode] = useState<TextMode>('fixed');
+  const [lightPosition, setLightPosition] = useState<number>(18); // Default 18% for L2R
   const [bloomStrength, setBloomStrength] = useState<number>(1.0);
   const [chromaticIntensity, setChromaticIntensity] = useState<number>(1.0);
-  const [hoverGlintStrength, setHoverGlintStrength] = useState<number>(1.0);
-  const [enableHover, setEnableHover] = useState<boolean>(true);
+  const [oppositeGlowStrength, setOppositeGlowStrength] = useState<number>(1.0);
+
+  // UI Panel Visibility
   const [showControls, setShowControls] = useState<boolean>(true);
 
   // Synchronize text direction when changing presets
@@ -16,19 +22,39 @@ export const App: React.FC = () => {
     setSelectedText(t);
     if (t === "'Verse" || t === "D'Verse") {
       setDirection('left-to-right');
+      setLightPosition(18);
     } else {
       setDirection('right-to-left');
+      setLightPosition(82);
     }
   };
+
+  // Automated ambient sweep for text
+  useEffect(() => {
+    if (textMode !== 'sweep') return;
+
+    let animId: number;
+    let startTime = performance.now();
+
+    const sweepLoop = (now: number) => {
+      const elapsed = (now - startTime) / 1000;
+      const pos = 50 + 35 * Math.sin(elapsed * 1.2);
+      setLightPosition(pos);
+      animId = requestAnimationFrame(sweepLoop);
+    };
+
+    animId = requestAnimationFrame(sweepLoop);
+    return () => cancelAnimationFrame(animId);
+  }, [textMode]);
 
   return (
     <main className="relative w-screen h-screen bg-black overflow-hidden flex flex-col items-center justify-between select-none">
       
-      {/* Background Pure Obsidian Void */}
+      {/* Background Subtle Vignette */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: 'radial-gradient(circle at 50% 50%, #060608 0%, #000000 90%)',
+          background: 'radial-gradient(circle at 50% 50%, #08080c 0%, #000000 90%)',
         }}
       />
 
@@ -44,15 +70,15 @@ export const App: React.FC = () => {
             <span className="font-bold text-sm tracking-wide text-white flex items-center gap-1.5">
               <span>D&apos;VERSE</span>
               <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/10 text-zinc-300">
-                OPTICAL LAB
+                OPTICAL ENGINE
               </span>
             </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs text-zinc-300 font-mono">
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs text-zinc-300 font-mono">
           <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-          <span>MACHINED SPECULAR TYPOGRAPHY</span>
+          <span>SPECULAR TYPOGRAPHY V2</span>
         </div>
       </header>
 
@@ -63,10 +89,11 @@ export const App: React.FC = () => {
         <WwdcTextEffect
           text={selectedText}
           direction={direction}
-          bloomStrength={bloomStrength}
+          lightPosition={lightPosition}
+          interactive={textMode === 'interactive'}
           chromaticIntensity={chromaticIntensity}
-          hoverGlintStrength={hoverGlintStrength}
-          enableHover={enableHover}
+          bloomStrength={bloomStrength}
+          oppositeGlowStrength={oppositeGlowStrength}
         />
       </div>
 
@@ -91,11 +118,11 @@ export const App: React.FC = () => {
             <div className="flex items-center gap-2">
               <span className="font-mono text-zinc-500 font-semibold uppercase text-[10px]">PRESET:</span>
               <div className="flex items-center gap-1 bg-black/40 p-1 rounded-2xl border border-white/5">
-                {['WWDC26', "'Verse", "D'Verse"].map((t) => (
+                {["'Verse", "D'Verse", "WWDC26"].map((t) => (
                   <button
                     key={t}
                     onClick={() => handleSelectText(t)}
-                    className={`px-3.5 py-1.5 rounded-xl font-medium transition-all cursor-pointer ${
+                    className={`px-3 py-1.5 rounded-xl font-medium transition-all cursor-pointer ${
                       selectedText === t
                         ? 'bg-white text-black shadow-md font-bold'
                         : 'text-zinc-400 hover:text-white'
@@ -114,7 +141,10 @@ export const App: React.FC = () => {
               <span className="font-mono text-zinc-500 font-semibold uppercase text-[10px]">FLOW:</span>
               <div className="flex items-center gap-1 bg-black/40 p-1 rounded-2xl border border-white/5">
                 <button
-                  onClick={() => setDirection('left-to-right')}
+                  onClick={() => {
+                    setDirection('left-to-right');
+                    setLightPosition(18);
+                  }}
                   className={`px-2.5 py-1.5 rounded-xl font-medium transition-all cursor-pointer ${
                     direction === 'left-to-right'
                       ? 'bg-white/20 text-white border border-white/30 font-semibold'
@@ -124,7 +154,10 @@ export const App: React.FC = () => {
                   Left &rarr; Right
                 </button>
                 <button
-                  onClick={() => setDirection('right-to-left')}
+                  onClick={() => {
+                    setDirection('right-to-left');
+                    setLightPosition(82);
+                  }}
                   className={`px-2.5 py-1.5 rounded-xl font-medium transition-all cursor-pointer ${
                     direction === 'right-to-left'
                       ? 'bg-white/20 text-white border border-white/30 font-semibold'
@@ -138,20 +171,50 @@ export const App: React.FC = () => {
 
             <div className="hidden sm:block w-[1px] h-6 bg-white/10" />
 
-            {/* Interactive Hover Catchlight Toggle */}
+            {/* Modes */}
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => setEnableHover(!enableHover)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-medium transition-all cursor-pointer border ${
-                  enableHover
-                    ? 'bg-amber-400/20 text-amber-300 border-amber-400/40 font-semibold'
-                    : 'bg-black/40 text-zinc-500 border-white/5'
-                }`}
-              >
-                <MousePointer className="w-3 h-3" />
-                <span>Hover Glint</span>
-              </button>
+              <span className="font-mono text-zinc-500 font-semibold uppercase text-[10px]">MODE:</span>
+              <div className="flex items-center gap-1 bg-black/40 p-1 rounded-2xl border border-white/5">
+                {[
+                  { id: 'fixed', label: 'Fixed Light' },
+                  { id: 'interactive', label: 'Hover Glint' },
+                  { id: 'sweep', label: 'Auto Sweep' },
+                ].map((m) => (
+                  <button
+                    key={m.id}
+                    onClick={() => {
+                      setTextMode(m.id as TextMode);
+                      if (m.id === 'fixed') setLightPosition(direction === 'left-to-right' ? 18 : 82);
+                    }}
+                    className={`px-2.5 py-1.5 rounded-xl font-medium transition-all cursor-pointer ${
+                      textMode === m.id
+                        ? 'bg-white/20 text-white border border-white/30 font-semibold'
+                        : 'text-zinc-400 hover:text-white'
+                    }`}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
             </div>
+
+            {/* Light Position Slider */}
+            {textMode === 'fixed' && (
+              <>
+                <div className="hidden sm:block w-[1px] h-6 bg-white/10" />
+                <div className="flex items-center gap-2.5">
+                  <span className="font-mono text-zinc-500 text-[10px]">POS:</span>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={lightPosition}
+                    onChange={(e) => setLightPosition(parseFloat(e.target.value))}
+                    className="w-20 accent-white h-1 bg-zinc-800 rounded-lg cursor-pointer"
+                  />
+                </div>
+              </>
+            )}
 
             <div className="hidden sm:block w-[1px] h-6 bg-white/10" />
 
@@ -183,20 +246,18 @@ export const App: React.FC = () => {
                 />
               </div>
 
-              {enableHover && (
-                <div className="flex items-center gap-1.5">
-                  <span className="font-mono text-amber-400 text-[10px]">GLINT:</span>
-                  <input
-                    type="range"
-                    min="0.3"
-                    max="2.0"
-                    step="0.1"
-                    value={hoverGlintStrength}
-                    onChange={(e) => setHoverGlintStrength(parseFloat(e.target.value))}
-                    className="w-14 accent-amber-400 h-1 bg-zinc-800 rounded-lg cursor-pointer"
-                  />
-                </div>
-              )}
+              <div className="flex items-center gap-1.5">
+                <span className="font-mono text-sky-400 text-[10px]">BACK RIM:</span>
+                <input
+                  type="range"
+                  min="0.0"
+                  max="2.0"
+                  step="0.1"
+                  value={oppositeGlowStrength}
+                  onChange={(e) => setOppositeGlowStrength(parseFloat(e.target.value))}
+                  className="w-14 accent-sky-400 h-1 bg-zinc-800 rounded-lg cursor-pointer"
+                />
+              </div>
             </div>
 
           </div>
