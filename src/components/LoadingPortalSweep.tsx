@@ -40,7 +40,6 @@ export const LoadingPortalSweep: React.FC<LoadingPortalSweepProps> = ({
       const t = Math.min(1, elapsed / duration);
 
       // Physics Easing: Accelerates from the edge, decelerates smoothly into resting position
-      // Custom ease-out cubic/quintic curve
       const eased = 1 - Math.pow(1 - t, 3.5);
       
       setAnimProgress(eased);
@@ -58,11 +57,7 @@ export const LoadingPortalSweep: React.FC<LoadingPortalSweepProps> = ({
   }, [isPlaying, onComplete, onProgressUpdate]);
 
   // Calculate coordinates of the moving sweep light
-  // For Left-to-Right: starts at -10vw, sweeps across to the rest position at 18vw / 18%
-  // During the sweep peak (at t = 0.55), it sweeps all the way across to 80% to illuminate the text, then pulls back and settles at 18%!
-  
   let currentXPercent = 18;
-  let sweepOpacity = 1.0;
   let sweepScale = 1.0;
 
   if (isPlaying) {
@@ -99,70 +94,58 @@ export const LoadingPortalSweep: React.FC<LoadingPortalSweepProps> = ({
     sweepScale = 1.0;
   }
 
+  // Only render during the active intro sweep animation (once settled, the text's own atmospheric bloom handles resting glow)
+  if (!isPlaying) return null;
+
   return (
     <div className="absolute inset-0 pointer-events-none overflow-hidden z-20">
       
       {/* ========================================================================= */}
-      {/* 1. VOLUMETRIC PORTAL LIGHT BEAM WITH CHROMATIC DISPERSION SIGNATURE       */}
+      {/* 1. ORGANIC VOLUMETRIC PORTAL BEAM (No hard rectangles / zero clipping)    */}
       {/* ========================================================================= */}
       
       {/* Layer A: Golden Amber Outer Halo Ring */}
       <div
-        className="absolute rounded-full pointer-events-none transition-transform duration-75"
+        className="absolute rounded-full pointer-events-none"
         style={{
           left: `${currentXPercent}%`,
           top: '50%',
           transform: `translate(-50%, -50%) scale(${sweepScale * 1.15})`,
-          width: 'clamp(350px, 45vw, 750px)',
-          height: 'clamp(260px, 32vw, 550px)',
-          background: `radial-gradient(ellipse at center, rgba(255, 175, 50, ${0.28 * bloomStrength * chromaticIntensity}) 0%, rgba(255, 140, 30, ${0.16 * bloomStrength}) 40%, transparent 75%)`,
-          filter: `blur(${45 * bloomStrength}px)`,
-          opacity: sweepOpacity,
+          width: 'clamp(380px, 48vw, 800px)',
+          height: 'clamp(280px, 35vw, 580px)',
+          background: `radial-gradient(ellipse at center, rgba(255, 165, 45, ${0.32 * bloomStrength * chromaticIntensity}) 0%, rgba(255, 130, 25, ${0.18 * bloomStrength}) 40%, transparent 75%)`,
+          filter: `blur(${50 * bloomStrength}px)`,
+          opacity: 0.9,
         }}
       />
 
       {/* Layer B: Electric Sky-Cyan Optical Rim */}
       <div
-        className="absolute rounded-full pointer-events-none transition-transform duration-75"
+        className="absolute rounded-full pointer-events-none"
         style={{
-          left: `${currentXPercent + (isL2R ? 3 : -3)}%`,
+          left: `${currentXPercent + (isL2R ? 4 : -4)}%`,
           top: '50%',
           transform: `translate(-50%, -50%) scale(${sweepScale * 0.95})`,
-          width: 'clamp(300px, 38vw, 650px)',
-          height: 'clamp(220px, 28vw, 480px)',
-          background: `radial-gradient(ellipse at center, rgba(100, 190, 255, ${0.22 * chromaticIntensity}) 0%, rgba(70, 160, 255, ${0.12 * chromaticIntensity}) 45%, transparent 70%)`,
-          filter: `blur(${35 * bloomStrength}px)`,
-          opacity: sweepOpacity * 0.9,
+          width: 'clamp(320px, 40vw, 680px)',
+          height: 'clamp(240px, 30vw, 500px)',
+          background: `radial-gradient(ellipse at center, rgba(90, 180, 255, ${0.25 * chromaticIntensity}) 0%, rgba(60, 150, 255, ${0.12 * chromaticIntensity}) 45%, transparent 70%)`,
+          filter: `blur(${38 * bloomStrength}px)`,
+          opacity: 0.85,
         }}
       />
 
       {/* Layer C: Pure Incandescent Blinding White Core */}
       <div
-        className="absolute rounded-full pointer-events-none transition-transform duration-75"
+        className="absolute rounded-full pointer-events-none"
         style={{
           left: `${currentXPercent}%`,
           top: '50%',
           transform: `translate(-50%, -50%) scale(${sweepScale})`,
-          width: 'clamp(240px, 30vw, 520px)',
-          height: 'clamp(170px, 22vw, 380px)',
-          background: `radial-gradient(ellipse at center, rgba(255, 255, 255, ${0.65 * bloomStrength}) 0%, rgba(255, 245, 225, ${0.45 * bloomStrength}) 25%, rgba(255, 200, 100, ${0.15 * bloomStrength}) 55%, transparent 75%)`,
-          filter: `blur(${24 * bloomStrength}px)`,
-          opacity: sweepOpacity,
-        }}
-      />
-
-      {/* Layer D: Razor-Thin Edge Filament Glare (Horizontal Laser Glint) */}
-      <div
-        className="absolute pointer-events-none"
-        style={{
-          left: `${currentXPercent}%`,
-          top: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: 'clamp(180px, 22vw, 400px)',
-          height: '3px',
-          background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.95) 50%, transparent 100%)',
-          filter: `blur(1.5px) drop-shadow(0 0 8px #ffffff)`,
-          opacity: sweepOpacity * 0.85,
+          width: 'clamp(250px, 32vw, 540px)',
+          height: 'clamp(180px, 24vw, 400px)',
+          background: `radial-gradient(ellipse at center, rgba(255, 255, 255, ${0.65 * bloomStrength}) 0%, rgba(255, 242, 220, ${0.42 * bloomStrength}) 25%, rgba(255, 190, 80, ${0.14 * bloomStrength}) 55%, transparent 75%)`,
+          filter: `blur(${26 * bloomStrength}px)`,
+          opacity: 0.95,
         }}
       />
 
