@@ -8,6 +8,7 @@ export interface WwdcTextEffectProps {
   lightPosition?: number;
   bloomStrength?: number;
   chromaticIntensity?: number;
+  specularEdgeIntensity?: number;
   oppositeGlowStrength?: number;
 }
 
@@ -17,34 +18,37 @@ export const WwdcTextEffect: React.FC<WwdcTextEffectProps> = ({
   lightPosition,
   bloomStrength = 1.0,
   chromaticIntensity = 1.0,
-  oppositeGlowStrength = 1.0,
+  specularEdgeIntensity = 1.0,
 }) => {
   const isL2R = direction === 'left-to-right';
   
   // Default light position: 18% for L2R, 82% for R2L
   const p = lightPosition !== undefined ? lightPosition : isL2R ? 18 : 82;
 
-  // Directional gradient stops matching WWDC26 reference:
-  // Smooth transition from blinding white -> satin platinum -> brushed steel -> dark smoked glass
-  const darkStop = isL2R ? Math.min(100, p + 55) : Math.max(0, p - 55);
-  const midStop = isL2R ? Math.min(100, p + 26) : Math.max(0, p - 26);
-  const brightStop = isL2R ? Math.max(0, p + 10) : Math.min(100, p - 10);
-  const peakStop = p;
+  // Normalized coordinate (0 to 1) for SVG linearGradient
+  const peakPos = Math.max(0, Math.min(1, p / 100));
+  const brightOffset = isL2R ? 0.12 : -0.12;
+  const midOffset = isL2R ? 0.30 : -0.30;
+  const darkOffset = isL2R ? 0.58 : -0.58;
 
-  // Opposite side coordinate (for subtle ambient backlight)
-  const oppositePos = isL2R ? 88 : 12;
+  const brightPos = Math.max(0, Math.min(1, peakPos + brightOffset));
+  const midPos = Math.max(0, Math.min(1, peakPos + midOffset));
+  const darkPos = Math.max(0, Math.min(1, peakPos + darkOffset));
 
-  // Chromatic dispersion offsets on the glowing rim
-  const amberShiftX = isL2R ? -3.0 : 3.0;
-  const cyanShiftX = isL2R ? 2.0 : -2.0;
+  // Chromatic dispersion offsets in SVG coordinate units
+  const amberDx = isL2R ? -4.5 * chromaticIntensity : 4.5 * chromaticIntensity;
+  const cyanDx = isL2R ? 3.0 * chromaticIntensity : -3.0 * chromaticIntensity;
+
+  // Unique ID prefix
+  const uid = 'wwdc_3d_opt';
 
   return (
-    <div className="relative flex items-center justify-center select-none py-14 px-8">
+    <div className="relative flex items-center justify-center select-none w-full max-w-6xl px-4 py-8">
       
       {/* ========================================================================= */}
       {/* 1. ATMOSPHERIC VOLUMETRIC BLOOM (Centered at the Incandescent Light Core) */}
       {/* ========================================================================= */}
-      {/* Layer A: Golden Amber Outer Halo */}
+      {/* Outer Golden Amber Halo */}
       <div
         className="absolute pointer-events-none rounded-full"
         style={{
@@ -59,7 +63,7 @@ export const WwdcTextEffect: React.FC<WwdcTextEffectProps> = ({
           zIndex: 0,
         }}
       />
-      {/* Layer B: Blinding White Core Glow */}
+      {/* Pure White Core Bloom */}
       <div
         className="absolute pointer-events-none rounded-full"
         style={{
@@ -74,7 +78,7 @@ export const WwdcTextEffect: React.FC<WwdcTextEffectProps> = ({
           zIndex: 0,
         }}
       />
-      {/* Layer C: Electric Sky-Cyan Inner Halo */}
+      {/* Electric Sky-Cyan Inner Halo */}
       <div
         className="absolute pointer-events-none rounded-full"
         style={{
@@ -91,163 +95,207 @@ export const WwdcTextEffect: React.FC<WwdcTextEffectProps> = ({
       />
 
       {/* ========================================================================= */}
-      {/* 2. OPPOSITE-SIDE DIFFUSED AMBIENT SILHOUETTE GLOW                         */}
+      {/* 2. PURE VECTOR SVG 3D LIQUID GLASS & SPECULAR BEVEL ENGINE                */}
+      {/* Zero bounding-box glitches, ZERO overlapping wireframe lines!            */}
       {/* ========================================================================= */}
-      <div
-        className="absolute pointer-events-none rounded-full"
-        style={{
-          left: `${oppositePos}%`,
-          top: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: 'clamp(240px, 30vw, 500px)',
-          height: 'clamp(160px, 20vw, 360px)',
-          background: `radial-gradient(ellipse at center, rgba(200, 210, 235, ${0.09 * oppositeGlowStrength}) 0%, rgba(150, 165, 195, ${0.05 * oppositeGlowStrength}) 40%, transparent 75%)`,
-          filter: `blur(${40 * oppositeGlowStrength}px)`,
-          opacity: 0.8,
-          zIndex: 0,
-        }}
-      />
+      <svg
+        viewBox="0 0 1200 400"
+        className="w-full h-auto overflow-visible relative z-10"
+      >
+        <defs>
+          {/* Base Solid Smoked Titanium / Liquid-Glass Body Fill */}
+          <linearGradient id={`${uid}_baseFaceGrad`} x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#2c2d36" />
+            <stop offset="35%" stopColor="#1a1a20" />
+            <stop offset="70%" stopColor="#0e0f13" />
+            <stop offset="100%" stopColor="#050507" />
+          </linearGradient>
 
-      {/* Primary Typography Container */}
-      <div className="relative inline-block font-['Plus_Jakarta_Sans',sans-serif] font-black tracking-[-0.04em] text-[18vw] sm:text-[19vw] md:text-[20vw] lg:text-[21vw] leading-none z-10">
-        
-        {/* ======================================================================= */}
-        {/* 3. LAYER A: SOLID DARK SMOKED TITANIUM / LIQUID GLASS BODY (3D DEPTH)   */}
-        {/* Rich, solid face gradient with realistic vertical lighting and depth   */}
-        {/* ======================================================================= */}
-        <span
-          className="relative block font-extrabold"
-          style={{
-            background: 'linear-gradient(180deg, #30323a 0%, #1e1f26 35%, #101115 70%, #060608 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            filter: 'drop-shadow(0 15px 35px rgba(0, 0, 0, 0.98)) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.8))',
-          }}
+          {/* Directional Surface Illumination (Blinding White -> Satin Platinum -> Smoked Gray) */}
+          <linearGradient id={`${uid}_surfaceIllumGrad`} x1={isL2R ? '0%' : '100%'} y1="0%" x2={isL2R ? '100%' : '0%'} y2="0%">
+            <stop offset="0%" stopColor="#ffffff" stopOpacity="1" />
+            <stop offset={`${Math.min(100, Math.max(0, peakPos * 100))}%`} stopColor="#ffffff" stopOpacity="1" />
+            <stop offset={`${Math.min(100, Math.max(0, brightPos * 100))}%`} stopColor="#e0e4f0" stopOpacity="0.95" />
+            <stop offset={`${Math.min(100, Math.max(0, midPos * 100))}%`} stopColor="#555866" stopOpacity="0.75" />
+            <stop offset={`${Math.min(100, Math.max(0, darkPos * 100))}%`} stopColor="#1e1f26" stopOpacity="0.35" />
+            <stop offset="100%" stopColor="#08080a" stopOpacity="0" />
+          </linearGradient>
+
+          {/* 3D Specular Bevel Border Stroke (Outlines the entire perimeter with a crisp 3D rim) */}
+          <linearGradient id={`${uid}_rimSpecularStroke`} x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#8a90a4" stopOpacity={`${0.75 * specularEdgeIntensity}`} />
+            <stop offset="30%" stopColor="#585c6c" stopOpacity={`${0.5 * specularEdgeIntensity}`} />
+            <stop offset="70%" stopColor="#2e303a" stopOpacity={`${0.3 * specularEdgeIntensity}`} />
+            <stop offset="100%" stopColor="#14151a" stopOpacity={`${0.15 * specularEdgeIntensity}`} />
+          </linearGradient>
+
+          {/* Glowing Side Specular Rim (Illuminated edge glint) */}
+          <linearGradient id={`${uid}_illuminatedRimStroke`} x1={isL2R ? '0%' : '100%'} y1="0%" x2={isL2R ? '100%' : '0%'} y2="0%">
+            <stop offset="0%" stopColor="#ffffff" stopOpacity="0.95" />
+            <stop offset={`${Math.min(100, Math.max(0, peakPos * 100))}%`} stopColor="#ffffff" stopOpacity="0.9" />
+            <stop offset={`${Math.min(100, Math.max(0, brightPos * 100))}%`} stopColor="#d2d7ea" stopOpacity="0.7" />
+            <stop offset={`${Math.min(100, Math.max(0, midPos * 100))}%`} stopColor="#70768a" stopOpacity="0.4" />
+            <stop offset="100%" stopColor="#30323a" stopOpacity="0" />
+          </linearGradient>
+
+          {/* Prismatic Warm Amber Dispersion Gradient */}
+          <linearGradient id={`${uid}_amberGrad`} x1={isL2R ? '0%' : '100%'} y1="0%" x2={isL2R ? '100%' : '0%'} y2="0%">
+            <stop offset="0%" stopColor="#ff9a24" stopOpacity="0.95" />
+            <stop offset={`${Math.min(100, Math.max(0, peakPos * 100))}%`} stopColor="#ffbf48" stopOpacity="0.9" />
+            <stop offset={`${Math.min(100, Math.max(0, brightPos * 100))}%`} stopColor="#ff9020" stopOpacity="0.3" />
+            <stop offset="100%" stopColor="#ff8010" stopOpacity="0" />
+          </linearGradient>
+
+          {/* Prismatic Cool Sky-Cyan Dispersion Gradient */}
+          <linearGradient id={`${uid}_cyanGrad`} x1={isL2R ? '0%' : '100%'} y1="0%" x2={isL2R ? '100%' : '0%'} y2="0%">
+            <stop offset="0%" stopColor="#48a8ff" stopOpacity="0" />
+            <stop offset={`${Math.min(100, Math.max(0, peakPos * 100))}%`} stopColor="#68b8ff" stopOpacity="0.35" />
+            <stop offset={`${Math.min(100, Math.max(0, brightPos * 100))}%`} stopColor="#3898ff" stopOpacity="0.8" />
+            <stop offset="100%" stopColor="#2080ff" stopOpacity="0" />
+          </linearGradient>
+
+          {/* SVG Gaussian Bloom Filters */}
+          <filter id={`${uid}_amberGlow`} x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur stdDeviation={3.5 * chromaticIntensity} result="blur" />
+            <feColorMatrix type="matrix" values="1 0 0 0 1   0 0.6 0 0 0.6   0 0.1 0 0 0.1  0 0 0 1.2 0" />
+          </filter>
+
+          <filter id={`${uid}_cyanGlow`} x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur stdDeviation={3.0 * chromaticIntensity} result="blur" />
+            <feColorMatrix type="matrix" values="0.2 0 0 0 0.2   0.6 0 0 0 0.6   1 0 0 0 1  0 0 0 1.1 0" />
+          </filter>
+
+          <filter id={`${uid}_coreBloom`} x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation={4 * bloomStrength} result="blur1" />
+            <feGaussianBlur in="SourceGraphic" stdDeviation={14 * bloomStrength} result="blur2" />
+            <feGaussianBlur in="SourceGraphic" stdDeviation={30 * bloomStrength} result="blur3" />
+            <feMerge>
+              <feMergeNode in="blur3" />
+              <feMergeNode in="blur2" />
+              <feMergeNode in="blur1" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+
+          {/* 3D Depth Shadow Filter for physical realism */}
+          <filter id={`${uid}_depthShadow`} x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0" dy="16" stdDeviation="20" floodColor="#000000" floodOpacity="0.95" />
+            <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor="#000000" floodOpacity="0.8" />
+          </filter>
+        </defs>
+
+        {/* Global Text Style Group */}
+        <g
+          textAnchor="middle"
+          dominantBaseline="central"
+          fontFamily="'Plus Jakarta Sans', -apple-system, sans-serif"
+          fontWeight="900"
+          fontSize="240"
+          letterSpacing="-0.04em"
         >
-          {text}
-        </span>
+          {/* =================================================================== */}
+          {/* LAYER 1: BASE 3D SOLID SMOKED GRAPHITE FACE + 3D BEVEL RIM STROKE   */}
+          {/* Uses paint-order="stroke fill" so the solid face covers the inside  */}
+          {/* of the stroke, leaving ONLY the clean outer 1.5px bevel edge!       */}
+          {/* =================================================================== */}
+          <text
+            x="600"
+            y="200"
+            fill={`url(#${uid}_baseFaceGrad)`}
+            stroke={`url(#${uid}_rimSpecularStroke)`}
+            strokeWidth="3.0"
+            paintOrder="stroke fill"
+            filter={`url(#${uid}_depthShadow)`}
+          >
+            {text}
+          </text>
 
-        {/* ======================================================================= */}
-        {/* 4. LAYER B: 3D TOP-BEVEL SPECULAR CATCHLIGHT (Gives 3D Liquid-Glass Rim)*/}
-        {/* Subtle, smooth top-edge highlight that illuminates the upper chamfer   */}
-        {/* without ANY hollow wireframes or overlapping crossbar lines!           */}
-        {/* ======================================================================= */}
-        <span
-          aria-hidden="true"
-          className="absolute inset-0 block font-extrabold pointer-events-none"
-          style={{
-            background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.35) 0%, rgba(190, 200, 220, 0.15) 18%, rgba(120, 130, 150, 0.04) 40%, transparent 65%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            mixBlendMode: 'screen',
-            opacity: 0.9,
-          }}
-        >
-          {text}
-        </span>
+          {/* =================================================================== */}
+          {/* LAYER 2: ILLUMINATED SPECULAR RIM HIGHLIGHT STROKE                  */}
+          {/* Boosts the outer bevel brightness on the illuminated side           */}
+          {/* =================================================================== */}
+          <text
+            x="600"
+            y="200"
+            fill="none"
+            stroke={`url(#${uid}_illuminatedRimStroke)`}
+            strokeWidth="2.2"
+            paintOrder="stroke fill"
+            style={{ mixBlendMode: 'screen' }}
+          >
+            {text}
+          </text>
 
-        {/* ======================================================================= */}
-        {/* 5. LAYER C: DIRECTIONAL ILLUMINATION (Smooth Bright-to-Gray Surface)   */}
-        {/* Satin platinum silver -> brushed gunmetal -> smoked glass transition   */}
-        {/* ======================================================================= */}
-        <span
-          aria-hidden="true"
-          className="absolute inset-0 block font-extrabold pointer-events-none"
-          style={{
-            background: isL2R
-              ? `linear-gradient(to right, #ffffff 0%, #ffffff ${peakStop}%, #dce0eb ${brightStop}%, #525562 ${midStop}%, #16171c ${darkStop}%, transparent 100%)`
-              : `linear-gradient(to right, transparent 0%, #16171c ${darkStop}%, #525562 ${midStop}%, #dce0eb ${brightStop}%, #ffffff ${peakStop}%, #ffffff 100%)`,
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            mixBlendMode: 'screen',
-            opacity: 0.96,
-          }}
-        >
-          {text}
-        </span>
+          {/* =================================================================== */}
+          {/* LAYER 3: DIRECTIONAL SURFACE ILLUMINATION (Satin to Platinum White) */}
+          {/* =================================================================== */}
+          <text
+            x="600"
+            y="200"
+            fill={`url(#${uid}_surfaceIllumGrad)`}
+            style={{ mixBlendMode: 'screen' }}
+          >
+            {text}
+          </text>
 
-        {/* ======================================================================= */}
-        {/* 6. LAYER D: WARM AMBER CHROMATIC FRINGE (Outer Glowing Dispersive Rim) */}
-        {/* ======================================================================= */}
-        <span
-          aria-hidden="true"
-          className="absolute inset-0 block font-extrabold pointer-events-none"
-          style={{
-            transform: `translateX(${amberShiftX * chromaticIntensity}px) translateY(0.5px)`,
-            background: isL2R
-              ? `linear-gradient(to right, rgba(255, 155, 45, 0.95) 0%, rgba(255, 192, 75, 0.9) ${peakStop}%, rgba(255, 180, 65, 0.25) ${brightStop}%, transparent ${midStop}%, transparent 100%)`
-              : `linear-gradient(to right, transparent 0%, transparent ${midStop}%, rgba(255, 180, 65, 0.25) ${brightStop}%, rgba(255, 192, 75, 0.9) ${peakStop}%, rgba(255, 155, 45, 0.95) 100%)`,
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            mixBlendMode: 'screen',
-            filter: `blur(${2.0 * chromaticIntensity}px) drop-shadow(${amberShiftX * 1.5 * chromaticIntensity}px 0 ${9 * chromaticIntensity}px rgba(255, 160, 50, 0.9))`,
-            opacity: 0.92,
-          }}
-        >
-          {text}
-        </span>
+          {/* =================================================================== */}
+          {/* LAYER 4: PRISMATIC WARM AMBER FRINGE (Outer Dispersive Glowing Rim) */}
+          {/* =================================================================== */}
+          <text
+            x={600 + amberDx}
+            y="200"
+            fill={`url(#${uid}_amberGrad)`}
+            filter={`url(#${uid}_amberGlow)`}
+            style={{ mixBlendMode: 'screen' }}
+            opacity={0.92}
+          >
+            {text}
+          </text>
 
-        {/* ======================================================================= */}
-        {/* 7. LAYER E: COOL SKY-CYAN CHROMATIC FRINGE (Inner Dispersive Edge)     */}
-        {/* ======================================================================= */}
-        <span
-          aria-hidden="true"
-          className="absolute inset-0 block font-extrabold pointer-events-none"
-          style={{
-            transform: `translateX(${cyanShiftX * chromaticIntensity}px) translateY(-0.5px)`,
-            background: isL2R
-              ? `linear-gradient(to right, transparent 0%, rgba(190, 235, 255, 0.3) ${peakStop}%, rgba(135, 215, 255, 0.75) ${brightStop}%, transparent ${midStop}%, transparent 100%)`
-              : `linear-gradient(to right, transparent 0%, transparent ${midStop}%, rgba(135, 215, 255, 0.75) ${brightStop}%, rgba(190, 235, 255, 0.3) ${peakStop}%, transparent 100%)`,
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            mixBlendMode: 'screen',
-            filter: `blur(${1.6 * chromaticIntensity}px) drop-shadow(${cyanShiftX * 1.5 * chromaticIntensity}px 0 ${7 * chromaticIntensity}px rgba(90, 185, 255, 0.82))`,
-            opacity: 0.84,
-          }}
-        >
-          {text}
-        </span>
+          {/* =================================================================== */}
+          {/* LAYER 5: PRISMATIC COOL SKY-CYAN FRINGE (Inner Edge Dispersion)     */}
+          {/* =================================================================== */}
+          <text
+            x={600 + cyanDx}
+            y="200"
+            fill={`url(#${uid}_cyanGrad)`}
+            filter={`url(#${uid}_cyanGlow)`}
+            style={{ mixBlendMode: 'screen' }}
+            opacity={0.86}
+          >
+            {text}
+          </text>
 
-        {/* ======================================================================= */}
-        {/* 8. LAYER F: BLINDING INCANDESCENT CORE & MULTI-STAGE BLOOM             */}
-        {/* ======================================================================= */}
-        <span
-          aria-hidden="true"
-          className="absolute inset-0 block font-extrabold pointer-events-none"
-          style={{
-            background: isL2R
-              ? `linear-gradient(to right, #ffffff 0%, #ffffff ${peakStop}%, rgba(255, 255, 255, 0.45) ${brightStop}%, transparent ${midStop}%, transparent 100%)`
-              : `linear-gradient(to right, transparent 0%, transparent ${midStop}%, rgba(255, 255, 255, 0.45) ${brightStop}%, #ffffff ${peakStop}%, #ffffff 100%)`,
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            mixBlendMode: 'screen',
-            filter: `drop-shadow(0 0 ${4 * bloomStrength}px #ffffff) drop-shadow(0 0 ${16 * bloomStrength}px rgba(255, 255, 255, 0.95)) drop-shadow(0 0 ${36 * bloomStrength}px rgba(240, 245, 255, 0.6))`,
-            opacity: 1.0,
-          }}
-        >
-          {text}
-        </span>
+          {/* =================================================================== */}
+          {/* LAYER 6: BLINDING INCANDESCENT WHITE CORE & MULTI-STAGE BLOOM       */}
+          {/* =================================================================== */}
+          <text
+            x="600"
+            y="200"
+            fill={`url(#${uid}_surfaceIllumGrad)`}
+            filter={`url(#${uid}_coreBloom)`}
+            style={{ mixBlendMode: 'screen' }}
+            opacity={1.0}
+          >
+            {text}
+          </text>
 
-        {/* ======================================================================= */}
-        {/* 9. LAYER G: RAZOR APEX FILAMENT (Machined Specular White Glint)        */}
-        {/* ======================================================================= */}
-        <span
-          aria-hidden="true"
-          className="absolute inset-0 block font-extrabold pointer-events-none"
-          style={{
-            background: isL2R
-              ? `linear-gradient(to right, #ffffff 0%, #ffffff ${peakStop}%, rgba(255,255,255,0.7) ${peakStop + 2}%, transparent ${brightStop}%, transparent 100%)`
-              : `linear-gradient(to right, transparent 0%, transparent ${brightStop}%, rgba(255,255,255,0.7) ${peakStop - 2}%, #ffffff ${peakStop}%, #ffffff 100%)`,
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            mixBlendMode: 'screen',
-            filter: 'drop-shadow(0 0 2px #ffffff)',
-          }}
-        >
-          {text}
-        </span>
-
-      </div>
+          {/* =================================================================== */}
+          {/* LAYER 7: RAZOR APEX FILAMENT (Machined Specular White Glint)        */}
+          {/* =================================================================== */}
+          <text
+            x="600"
+            y="200"
+            fill="none"
+            stroke="#ffffff"
+            strokeWidth="0.8"
+            opacity="0.8"
+            style={{ mixBlendMode: 'screen' }}
+          >
+            {text}
+          </text>
+        </g>
+      </svg>
     </div>
   );
 };

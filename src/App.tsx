@@ -11,17 +11,18 @@ export const App: React.FC = () => {
   // Navigation View
   const [activeView, setActiveView] = useState<ActiveView>('text-effect');
 
-  // Text Effect State (Locked to commit df455d3a0bcc94a36bb962cb8225275a6d02b0c4)
+  // Text Effect State
   const [selectedText, setSelectedText] = useState<string>("'Verse");
   const [direction, setDirection] = useState<FlowDirection>('left-to-right');
   const [textMode, setTextMode] = useState<TextMode>('fixed');
   const [lightPosition, setLightPosition] = useState<number>(18);
   const [bloomStrength, setBloomStrength] = useState<number>(1.0);
   const [chromaticIntensity, setChromaticIntensity] = useState<number>(1.0);
+  const [specularEdgeIntensity, setSpecularEdgeIntensity] = useState<number>(1.3);
   const [oppositeGlowStrength, setOppositeGlowStrength] = useState<number>(1.0);
   const [showControls, setShowControls] = useState<boolean>(true);
 
-  // Canvas Engine State (Locked to the user's provided HTML engine)
+  // Canvas Engine State
   const [uncoverLeft, setUncoverLeft] = useState<number>(100);
   const [engineState, setEngineState] = useState<1 | 2 | 3>(1);
   const engineRef = useRef<CanvasFluidLightEngineHandle>(null);
@@ -79,13 +80,13 @@ export const App: React.FC = () => {
             <span className="font-bold text-sm tracking-wide text-white flex items-center gap-1.5 font-['Space_Grotesk']">
               <span>D&apos;VERSE</span>
               <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/10 text-amber-300">
-                LAB SANDBOX
+                OPTICAL 3D ENGINE
               </span>
             </span>
           </div>
         </div>
 
-        {/* View Switcher: Text Effect vs Canvas Loading Engine vs Side-by-Side */}
+        {/* View Switcher */}
         <div className="flex items-center gap-1 p-1 rounded-2xl glass-dock border border-white/10 text-xs">
           <button
             onClick={() => setActiveView('text-effect')}
@@ -96,7 +97,7 @@ export const App: React.FC = () => {
             }`}
           >
             <Sparkles className="w-3.5 h-3.5" />
-            <span>1. Locked Text Effect</span>
+            <span>1. 3D Specular Text</span>
           </button>
 
           <button
@@ -108,7 +109,7 @@ export const App: React.FC = () => {
             }`}
           >
             <Activity className="w-3.5 h-3.5" />
-            <span>2. Locked Canvas Loading & Swipe</span>
+            <span>2. Canvas Loading Orbit</span>
           </button>
 
           <button
@@ -125,8 +126,8 @@ export const App: React.FC = () => {
         </div>
 
         <div className="hidden lg:flex items-center gap-2 font-mono text-[11px] text-zinc-500">
-          <span>COMMIT:</span>
-          <span className="text-zinc-300 font-bold font-mono">df455d3</span>
+          <span>SPECULAR:</span>
+          <span className="text-amber-400 font-bold font-mono">3D BEVEL V3</span>
         </div>
       </div>
 
@@ -135,7 +136,7 @@ export const App: React.FC = () => {
       {/* ========================================================================= */}
       <div className="relative z-10 w-full flex-1 flex items-center justify-center p-4">
         
-        {/* VIEW 1: LOCKED TEXT EFFECT (COMMIT df455d3) */}
+        {/* VIEW 1: 3D SPECULAR TEXT EFFECT */}
         {activeView === 'text-effect' && (
           <div className="w-full flex items-center justify-center animate-in fade-in duration-300">
             <WwdcTextEffect
@@ -144,16 +145,16 @@ export const App: React.FC = () => {
               lightPosition={lightPosition}
               bloomStrength={bloomStrength}
               chromaticIntensity={chromaticIntensity}
+              specularEdgeIntensity={specularEdgeIntensity}
               oppositeGlowStrength={oppositeGlowStrength}
             />
           </div>
         )}
 
-        {/* VIEW 2: LOCKED CANVAS FLUID LOADING & SWIPE ENGINE (FROM HTML) */}
+        {/* VIEW 2: CANVAS FLUID LOADING ENGINE */}
         {activeView === 'loading-engine' && (
           <div className="relative w-full max-w-4xl aspect-video rounded-2xl bg-[#000000] border border-neutral-800/90 overflow-hidden shadow-2xl flex items-center justify-center animate-in fade-in duration-300">
             
-            {/* Canvas Fluid Light Engine (Perimeter Orbit + Center Sweep) */}
             <CanvasFluidLightEngine
               ref={engineRef}
               autoPlay={true}
@@ -179,7 +180,6 @@ export const App: React.FC = () => {
               </div>
             </div>
 
-            {/* Loading Badge & Trigger Controls */}
             <div className="absolute top-4 right-4 z-30 flex items-center gap-2">
               <span className="text-[11px] font-mono px-3 py-1 rounded-full bg-neutral-900/80 border border-neutral-700/80 text-amber-300">
                 {engineState === 1 ? '● Orbiting Perimeter' : engineState === 2 ? '● Sweeping Center' : '● Loaded State'}
@@ -193,7 +193,6 @@ export const App: React.FC = () => {
         {activeView === 'split-view' && (
           <div className="relative w-full max-w-5xl aspect-video rounded-2xl bg-[#000000] border border-neutral-800/90 overflow-hidden shadow-2xl flex items-center justify-center animate-in fade-in duration-300">
             
-            {/* Fluid Canvas Light Engine */}
             <CanvasFluidLightEngine
               ref={engineRef}
               autoPlay={true}
@@ -201,7 +200,6 @@ export const App: React.FC = () => {
               onStateChange={setEngineState}
             />
 
-            {/* Locked Text Effect inside Uncover Layer */}
             <div
               className="relative z-10 w-full h-full flex items-center justify-center"
               style={{
@@ -215,6 +213,7 @@ export const App: React.FC = () => {
                 lightPosition={lightPosition}
                 bloomStrength={bloomStrength}
                 chromaticIntensity={chromaticIntensity}
+                specularEdgeIntensity={specularEdgeIntensity}
                 oppositeGlowStrength={oppositeGlowStrength}
               />
             </div>
@@ -241,6 +240,8 @@ export const App: React.FC = () => {
           onSetBloomStrength={setBloomStrength}
           chromaticIntensity={chromaticIntensity}
           onSetChromaticIntensity={setChromaticIntensity}
+          specularEdgeIntensity={specularEdgeIntensity}
+          onSetSpecularEdgeIntensity={setSpecularEdgeIntensity}
           oppositeGlowStrength={oppositeGlowStrength}
           onSetOppositeGlowStrength={setOppositeGlowStrength}
           showControls={showControls}
