@@ -23,6 +23,7 @@ export const CanvasFluidLightEngine = forwardRef<CanvasFluidLightEngineHandle, C
       orbitProgressAcc: number;
       lastTime: number;
       isTransitioningToDock: boolean;
+      dockTargetReached: boolean;
       isMediaLoaded: boolean;
     }>({
       activeViewState: 1,
@@ -30,6 +31,7 @@ export const CanvasFluidLightEngine = forwardRef<CanvasFluidLightEngineHandle, C
       orbitProgressAcc: 0,
       lastTime: performance.now(),
       isTransitioningToDock: false,
+      dockTargetReached: false,
       isMediaLoaded: false,
     });
 
@@ -200,7 +202,7 @@ export const CanvasFluidLightEngine = forwardRef<CanvasFluidLightEngineHandle, C
         }
 
         // Perimeter Local Bending Phase
-        const R = 16;
+        const R = 24;
         const L_top = W - 2 * R;
         const L_arc = (Math.PI / 2) * R;
         const L_right = H - 2 * R;
@@ -280,6 +282,9 @@ export const CanvasFluidLightEngine = forwardRef<CanvasFluidLightEngineHandle, C
 
     // 4. Center Sweep Uncover Phase (State 2 -> State 3)
     const startCenterSweep = useCallback(() => {
+      stateRef.current.activeViewState = 2;
+      if (onStateChange) onStateChange(2);
+
       const sweepStartTime = performance.now();
       const sweepDuration = STATE_3_CFG.sweepDuration * 1000; // 1.4s
 
@@ -287,6 +292,7 @@ export const CanvasFluidLightEngine = forwardRef<CanvasFluidLightEngineHandle, C
         const sElapsed = time - sweepStartTime;
         const progress = Math.min(1, sElapsed / sweepDuration);
 
+        // Smooth cubic/quintic horizontal uncover easing
         const easeP =
           progress < 0.5
             ? 2 * progress * progress
@@ -318,11 +324,11 @@ export const CanvasFluidLightEngine = forwardRef<CanvasFluidLightEngineHandle, C
         if (progress < 1) {
           stateRef.current.animFrameId = requestAnimationFrame(sweepStep);
         } else {
-          // State 3: Final loaded resting state at left edge (X = 0%)
+          // State 3: Final loaded resting state at left edge
           stateRef.current.activeViewState = 3;
           if (onStateChange) onStateChange(3);
           if (onUncoverProgress) onUncoverProgress(0);
-          if (onBeamPositionUpdate) onBeamPositionUpdate(18, 50, 3); // Settled left glow position for 'Verse
+          if (onBeamPositionUpdate) onBeamPositionUpdate(18, 50, 3);
           renderCanvasBeam(STATE_3_CFG, 0, 0, 50);
         }
       };
@@ -341,20 +347,22 @@ export const CanvasFluidLightEngine = forwardRef<CanvasFluidLightEngineHandle, C
 
         const baseSpeed = 0.25 * SPEED_SCALE;
 
-        if (
-          stateRef.current.activeViewState === 1 ||
-          (stateRef.current.activeViewState === 2 && stateRef.current.isTransitioningToDock)
-        ) {
+        if (stateRef.current.activeViewState === 1 || stateRef.current.isTransitioningToDock) {
+          const prevP = ((stateRef.current.orbitProgressAcc % 1) + 1) % 1;
           const currentVelocity =
             baseSpeed * getVelocityFactor(stateRef.current.orbitProgressAcc, STATE_1_CFG.cornerSpeed);
           stateRef.current.orbitProgressAcc += currentVelocity * dt;
+          const nextP = ((stateRef.current.orbitProgressAcc % 1) + 1) % 1;
 
           // Check if transitioning to dock at Right Edge (Target Progress = 0.375)
           if (stateRef.current.isTransitioningToDock) {
-            const normP = ((stateRef.current.orbitProgressAcc % 1) + 1) % 1;
-            if (Math.abs(normP - 0.375) < 0.02 || (normP > 0.375 && normP < 0.42)) {
+            // Target is ~0.375 (Right Edge of container)
+            const target = 0.375;
+            const crossedTarget = (prevP <= target && nextP >= target) || (prevP > 0.8 && nextP < 0.4 && nextP >= target);
+
+            if (crossedTarget || Math.abs(nextP - target) < 0.05) {
               stateRef.current.isTransitioningToDock = false;
-              startCenterSweep(); // Launch 1.4s horizontal sweep
+              startCenterSweep(); // Launch 1.4s horizontal uncover sweep
               return;
             }
           }
@@ -367,16 +375,14 @@ export const CanvasFluidLightEngine = forwardRef<CanvasFluidLightEngineHandle, C
       stateRef.current.animFrameId = requestAnimationFrame(physicsStep);
     }, [renderCanvasBeam, startCenterSweep, STATE_1_CFG.cornerSpeed]);
 
-    // Trigger loading complete (initiates smooth velocity-matched docking transition)
+    // Trigger loading complete
     const triggerLoadingComplete = useCallback(() => {
       if (stateRef.current.isMediaLoaded) return;
       stateRef.current.isMediaLoaded = true;
-      stateRef.current.activeViewState = 2;
       stateRef.current.isTransitioningToDock = true;
-      if (onStateChange) onStateChange(2);
-    }, [onStateChange]);
+    }, []);
 
-    // Replay sequence
+    // Replay
     const replay = useCallback(() => {
       if (stateRef.current.animFrameId) cancelAnimationFrame(stateRef.current.animFrameId);
       stateRef.current.isMediaLoaded = false;
@@ -387,21 +393,10 @@ export const CanvasFluidLightEngine = forwardRef<CanvasFluidLightEngineHandle, C
 
       startPhysicsLoop();
 
-      // Listen for actual page/resource load, or provide graceful fast transition
-      const handleReady = () => {
-        // Ensure at least 1 full smooth orbit loop (~1.2s) so user sees the fluid corner-folding physics, then dock
-        setTimeout(() => {
-          triggerLoadingComplete();
-        }, 1200);
-      };
-
-      if (document.readyState === 'complete') {
-        handleReady();
-      } else {
-        window.addEventListener('load', handleReady, { once: true });
-        // Fallback safety timer
-        setTimeout(handleReady, 2000);
-      }
+      // Ensure a brief, smooth orbit (~800ms) so user experiences the corner folding physics, then dock and sweep!
+      setTimeout(() => {
+        triggerLoadingComplete();
+      }, 900);
     }, [startPhysicsLoop, triggerLoadingComplete, onStateChange, onUncoverProgress]);
 
     useImperativeHandle(
