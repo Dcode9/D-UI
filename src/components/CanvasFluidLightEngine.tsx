@@ -2,6 +2,7 @@ import { useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 
 
 export interface CanvasFluidLightEngineProps {
   onUncoverProgress?: (uncoverLeftPercent: number) => void;
+  onBeamPositionUpdate?: (xPercent: number, yPercent: number, state: 1 | 2 | 3) => void;
   onStateChange?: (state: 1 | 2 | 3) => void;
   autoPlay?: boolean;
 }
@@ -12,7 +13,7 @@ export interface CanvasFluidLightEngineHandle {
 }
 
 export const CanvasFluidLightEngine = forwardRef<CanvasFluidLightEngineHandle, CanvasFluidLightEngineProps>(
-  ({ onUncoverProgress, onStateChange, autoPlay = true }, ref) => {
+  ({ onUncoverProgress, onBeamPositionUpdate, onStateChange, autoPlay = true }, ref) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -310,19 +311,24 @@ export const CanvasFluidLightEngine = forwardRef<CanvasFluidLightEngineHandle, C
           onUncoverProgress(currentX);
         }
 
+        if (onBeamPositionUpdate) {
+          onBeamPositionUpdate(currentX, currentY, 2);
+        }
+
         if (progress < 1) {
           stateRef.current.animFrameId = requestAnimationFrame(sweepStep);
         } else {
-          // State 3: Final loaded resting state at left edge
+          // State 3: Final loaded resting state at left edge (X = 0%)
           stateRef.current.activeViewState = 3;
           if (onStateChange) onStateChange(3);
           if (onUncoverProgress) onUncoverProgress(0);
+          if (onBeamPositionUpdate) onBeamPositionUpdate(18, 50, 3); // Settled left glow position for 'Verse
           renderCanvasBeam(STATE_3_CFG, 0, 0, 50);
         }
       };
 
       stateRef.current.animFrameId = requestAnimationFrame(sweepStep);
-    }, [renderCanvasBeam, onUncoverProgress, onStateChange, STATE_1_CFG, STATE_3_CFG]);
+    }, [renderCanvasBeam, onUncoverProgress, onBeamPositionUpdate, onStateChange, STATE_1_CFG, STATE_3_CFG]);
 
     // 5. Main Physics Loop
     const startPhysicsLoop = useCallback(() => {
@@ -361,7 +367,7 @@ export const CanvasFluidLightEngine = forwardRef<CanvasFluidLightEngineHandle, C
       stateRef.current.animFrameId = requestAnimationFrame(physicsStep);
     }, [renderCanvasBeam, startCenterSweep, STATE_1_CFG.cornerSpeed]);
 
-    // Trigger loading complete
+    // Trigger loading complete (initiates smooth velocity-matched docking transition)
     const triggerLoadingComplete = useCallback(() => {
       if (stateRef.current.isMediaLoaded) return;
       stateRef.current.isMediaLoaded = true;
@@ -370,7 +376,7 @@ export const CanvasFluidLightEngine = forwardRef<CanvasFluidLightEngineHandle, C
       if (onStateChange) onStateChange(2);
     }, [onStateChange]);
 
-    // Replay
+    // Replay sequence
     const replay = useCallback(() => {
       if (stateRef.current.animFrameId) cancelAnimationFrame(stateRef.current.animFrameId);
       stateRef.current.isMediaLoaded = false;
@@ -381,10 +387,21 @@ export const CanvasFluidLightEngine = forwardRef<CanvasFluidLightEngineHandle, C
 
       startPhysicsLoop();
 
-      // Automatically trigger loading completion after 1.8s orbit
-      setTimeout(() => {
-        triggerLoadingComplete();
-      }, 1800);
+      // Listen for actual page/resource load, or provide graceful fast transition
+      const handleReady = () => {
+        // Ensure at least 1 full smooth orbit loop (~1.2s) so user sees the fluid corner-folding physics, then dock
+        setTimeout(() => {
+          triggerLoadingComplete();
+        }, 1200);
+      };
+
+      if (document.readyState === 'complete') {
+        handleReady();
+      } else {
+        window.addEventListener('load', handleReady, { once: true });
+        // Fallback safety timer
+        setTimeout(handleReady, 2000);
+      }
     }, [startPhysicsLoop, triggerLoadingComplete, onStateChange, onUncoverProgress]);
 
     useImperativeHandle(
@@ -416,7 +433,7 @@ export const CanvasFluidLightEngine = forwardRef<CanvasFluidLightEngineHandle, C
       return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    // Init
+    // Initial Execution
     useEffect(() => {
       if (autoPlay) {
         replay();

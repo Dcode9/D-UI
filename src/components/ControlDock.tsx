@@ -17,8 +17,6 @@ interface ControlDockProps {
   onSetBloomStrength: (v: number) => void;
   chromaticIntensity: number;
   onSetChromaticIntensity: (v: number) => void;
-  specularEdgeIntensity: number;
-  onSetSpecularEdgeIntensity: (v: number) => void;
   oppositeGlowStrength: number;
   onSetOppositeGlowStrength: (v: number) => void;
   showControls: boolean;
@@ -38,8 +36,6 @@ export const ControlDock: React.FC<ControlDockProps> = ({
   onSetBloomStrength,
   chromaticIntensity,
   onSetChromaticIntensity,
-  specularEdgeIntensity,
-  onSetSpecularEdgeIntensity,
   oppositeGlowStrength,
   onSetOppositeGlowStrength,
   showControls,
@@ -166,20 +162,6 @@ export const ControlDock: React.FC<ControlDockProps> = ({
           {/* Fine Tuning Sliders */}
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5">
-              <span className="font-mono text-zinc-400 text-[10px]">3D BEVEL:</span>
-              <input
-                type="range"
-                min="0.2"
-                max="2.5"
-                step="0.1"
-                value={specularEdgeIntensity}
-                onChange={(e) => onSetSpecularEdgeIntensity(parseFloat(e.target.value))}
-                className="w-14 accent-white h-1 bg-zinc-800 rounded-lg cursor-pointer"
-                title="3D Specular Bevel Border Intensity"
-              />
-            </div>
-
-            <div className="flex items-center gap-1.5">
               <span className="font-mono text-zinc-500 text-[10px]">BLOOM:</span>
               <input
                 type="range"
@@ -193,7 +175,7 @@ export const ControlDock: React.FC<ControlDockProps> = ({
             </div>
 
             <div className="flex items-center gap-1.5">
-              <span className="font-mono text-amber-400 text-[10px]">PRISM:</span>
+              <span className="font-mono text-zinc-500 text-[10px]">PRISM:</span>
               <input
                 type="range"
                 min="0.2"
@@ -201,7 +183,7 @@ export const ControlDock: React.FC<ControlDockProps> = ({
                 step="0.1"
                 value={chromaticIntensity}
                 onChange={(e) => onSetChromaticIntensity(parseFloat(e.target.value))}
-                className="w-14 accent-amber-400 h-1 bg-zinc-800 rounded-lg cursor-pointer"
+                className="w-14 accent-white h-1 bg-zinc-800 rounded-lg cursor-pointer"
               />
             </div>
 

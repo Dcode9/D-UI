@@ -1,33 +1,28 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { WwdcTextEffect, FlowDirection } from './components/WwdcTextEffect';
 import { ControlDock } from './components/ControlDock';
 import { CanvasFluidLightEngine, CanvasFluidLightEngineHandle } from './components/CanvasFluidLightEngine';
-import { Sparkles, Activity, RotateCcw, Layers } from 'lucide-react';
+import { RotateCcw } from 'lucide-react';
 
 type TextMode = 'fixed' | 'sweep';
-type ActiveView = 'text-effect' | 'loading-engine' | 'split-view';
 
 export const App: React.FC = () => {
-  // Navigation View
-  const [activeView, setActiveView] = useState<ActiveView>('text-effect');
-
-  // Text Effect State
+  // Text Effect State (Locked to commit df455d3a0bcc94a36bb962cb8225275a6d02b0c4)
   const [selectedText, setSelectedText] = useState<string>("'Verse");
   const [direction, setDirection] = useState<FlowDirection>('left-to-right');
   const [textMode, setTextMode] = useState<TextMode>('fixed');
   const [lightPosition, setLightPosition] = useState<number>(18);
   const [bloomStrength, setBloomStrength] = useState<number>(1.0);
   const [chromaticIntensity, setChromaticIntensity] = useState<number>(1.0);
-  const [specularEdgeIntensity, setSpecularEdgeIntensity] = useState<number>(1.3);
   const [oppositeGlowStrength, setOppositeGlowStrength] = useState<number>(1.0);
   const [showControls, setShowControls] = useState<boolean>(true);
 
-  // Canvas Engine State
+  // Dynamic Parallel Sweep & Loading State
   const [uncoverLeft, setUncoverLeft] = useState<number>(100);
   const [engineState, setEngineState] = useState<1 | 2 | 3>(1);
   const engineRef = useRef<CanvasFluidLightEngineHandle>(null);
 
-  // Sync direction when changing text presets
+  // Synchronize direction when changing text presets
   const handleSelectText = (t: string) => {
     setSelectedText(t);
     if (t === "'Verse" || t === "D'Verse") {
@@ -39,9 +34,24 @@ export const App: React.FC = () => {
     }
   };
 
-  // Ambient sweep mode for text effect
+  // Parallel Beam Tracking: As the sweep light travels across during State 2,
+  // the text effect's lightPosition follows in exact parallel lockstep!
+  const handleBeamPositionUpdate = useCallback(
+    (xPercent: number, _yPercent: number, state: 1 | 2 | 3) => {
+      if (state === 2) {
+        // Parallel track text illumination with sweeping light beam
+        setLightPosition(xPercent);
+      } else if (state === 3) {
+        // Settled left glow position for 'Verse
+        setLightPosition(direction === 'left-to-right' ? 18 : 82);
+      }
+    },
+    [direction]
+  );
+
+  // Ambient sweep mode for text effect when manually enabled
   useEffect(() => {
-    if (textMode !== 'sweep') return;
+    if (textMode !== 'sweep' || engineState !== 3) return;
 
     let animId: number;
     let startTime = performance.now();
@@ -55,7 +65,7 @@ export const App: React.FC = () => {
 
     animId = requestAnimationFrame(sweepLoop);
     return () => cancelAnimationFrame(animId);
-  }, [textMode]);
+  }, [textMode, engineState]);
 
   return (
     <main className="relative w-screen h-screen bg-[#040406] overflow-hidden flex flex-col items-center justify-between select-none text-[#e2e2e8]">
@@ -69,9 +79,9 @@ export const App: React.FC = () => {
       />
 
       {/* ========================================================================= */}
-      {/* TOP HEADER & VIEW MODE SELECTOR                                           */}
+      {/* TOP NAVIGATION HEADER                                                     */}
       {/* ========================================================================= */}
-      <div className="relative z-30 w-full max-w-6xl px-6 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <header className="relative z-30 pt-6 px-6 flex items-center justify-between w-full max-w-6xl">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center font-black text-sm text-white shadow-lg">
             D
@@ -80,184 +90,106 @@ export const App: React.FC = () => {
             <span className="font-bold text-sm tracking-wide text-white flex items-center gap-1.5 font-['Space_Grotesk']">
               <span>D&apos;VERSE</span>
               <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/10 text-amber-300">
-                OPTICAL 3D ENGINE
+                PORTAL ENGINE
               </span>
             </span>
           </div>
         </div>
 
-        {/* View Switcher */}
-        <div className="flex items-center gap-1 p-1 rounded-2xl glass-dock border border-white/10 text-xs">
-          <button
-            onClick={() => setActiveView('text-effect')}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl font-medium transition-all cursor-pointer ${
-              activeView === 'text-effect'
-                ? 'bg-white text-black font-bold shadow-md'
-                : 'text-zinc-400 hover:text-white'
-            }`}
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>1. 3D Specular Text</span>
-          </button>
+        {/* Status Indicator & Replay Button */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-neutral-900/80 border border-neutral-800 text-xs font-mono text-zinc-300">
+            <span
+              className={`w-2 h-2 rounded-full ${
+                engineState === 1
+                  ? 'bg-amber-400 animate-ping'
+                  : engineState === 2
+                  ? 'bg-cyan-400 animate-pulse'
+                  : 'bg-emerald-400'
+              }`}
+            />
+            <span className="text-[11px]">
+              {engineState === 1
+                ? 'LOADING ORBIT'
+                : engineState === 2
+                ? 'PARALLEL SWEEP'
+                : 'PORTAL READY'}
+            </span>
+          </div>
 
           <button
-            onClick={() => setActiveView('loading-engine')}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl font-medium transition-all cursor-pointer ${
-              activeView === 'loading-engine'
-                ? 'bg-amber-400 text-black font-bold shadow-md'
-                : 'text-zinc-400 hover:text-white'
-            }`}
+            onClick={() => engineRef.current?.replay()}
+            className="px-3.5 py-1 rounded-full text-xs font-mono text-amber-300 bg-amber-950/30 border border-amber-500/30 hover:bg-amber-900/40 transition-all flex items-center gap-1.5 cursor-pointer shadow-lg hover:scale-105"
+            title="Replay Loading & Parallel Sweep Animation"
           >
-            <Activity className="w-3.5 h-3.5" />
-            <span>2. Canvas Loading Orbit</span>
-          </button>
-
-          <button
-            onClick={() => setActiveView('split-view')}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl font-medium transition-all cursor-pointer ${
-              activeView === 'split-view'
-                ? 'bg-cyan-400 text-black font-bold shadow-md'
-                : 'text-zinc-400 hover:text-white'
-            }`}
-          >
-            <Layers className="w-3.5 h-3.5" />
-            <span>Preview Both</span>
+            <RotateCcw className="w-3 h-3" />
+            <span>REPLAY INTRO</span>
           </button>
         </div>
-
-        <div className="hidden lg:flex items-center gap-2 font-mono text-[11px] text-zinc-500">
-          <span>SPECULAR:</span>
-          <span className="text-amber-400 font-bold font-mono">3D BEVEL V3</span>
-        </div>
-      </div>
+      </header>
 
       {/* ========================================================================= */}
-      {/* MAIN VIEWPORT DISPLAY AREA                                                */}
+      {/* MAIN VIEWPORT DISPLAY AREA (UNIFIED CANVAS FLUID ENGINE + TEXT ILLUMINATION)*/}
       {/* ========================================================================= */}
       <div className="relative z-10 w-full flex-1 flex items-center justify-center p-4">
         
-        {/* VIEW 1: 3D SPECULAR TEXT EFFECT */}
-        {activeView === 'text-effect' && (
-          <div className="w-full flex items-center justify-center animate-in fade-in duration-300">
+        <div
+          id="sandboxViewport"
+          className="relative w-full max-w-5xl aspect-video rounded-2xl bg-[#000000] border border-neutral-800/90 overflow-hidden shadow-2xl flex items-center justify-center select-none"
+        >
+          {/* HIGH-DPI CANVAS LIGHT ENGINE (Fluid Corner Folding + Horizontal Sweep) */}
+          <CanvasFluidLightEngine
+            ref={engineRef}
+            autoPlay={true}
+            onUncoverProgress={setUncoverLeft}
+            onBeamPositionUpdate={handleBeamPositionUpdate}
+            onStateChange={setEngineState}
+          />
+
+          {/* DYNAMIC UNCOVER WRAPPER (Reveals text in lockstep with the sweeping light beam) */}
+          <div
+            className="relative z-10 w-full h-full flex items-center justify-center"
+            style={{
+              clipPath: `inset(0 0 0 ${uncoverLeft}%)`,
+              willChange: 'clip-path',
+            }}
+          >
+            {/* LOCKED TEXT EFFECT (COMMIT df455d3) WITH PARALLEL BEAM GLOW TRACKING */}
             <WwdcTextEffect
               text={selectedText}
               direction={direction}
               lightPosition={lightPosition}
               bloomStrength={bloomStrength}
               chromaticIntensity={chromaticIntensity}
-              specularEdgeIntensity={specularEdgeIntensity}
               oppositeGlowStrength={oppositeGlowStrength}
             />
           </div>
-        )}
 
-        {/* VIEW 2: CANVAS FLUID LOADING ENGINE */}
-        {activeView === 'loading-engine' && (
-          <div className="relative w-full max-w-4xl aspect-video rounded-2xl bg-[#000000] border border-neutral-800/90 overflow-hidden shadow-2xl flex items-center justify-center animate-in fade-in duration-300">
-            
-            <CanvasFluidLightEngine
-              ref={engineRef}
-              autoPlay={true}
-              onUncoverProgress={setUncoverLeft}
-              onStateChange={setEngineState}
-            />
-
-            {/* Uncover Mask Reveal Area */}
-            <div
-              className="relative z-10 w-full h-full flex flex-col items-center justify-center"
-              style={{
-                clipPath: `inset(0 0 0 ${uncoverLeft}%)`,
-                willChange: 'clip-path',
-              }}
-            >
-              <div className="text-center">
-                <span className="font-['Orbitron'] font-black text-6xl tracking-wider text-white">
-                  &apos;VERSE
-                </span>
-                <p className="text-xs font-mono text-neutral-400 mt-2 tracking-widest uppercase">
-                  State: {engineState === 1 ? '1 / Loading Orbit' : engineState === 2 ? '2 / Docking & Sweep' : '3 / Settled Resting Beam'}
-                </p>
-              </div>
-            </div>
-
-            <div className="absolute top-4 right-4 z-30 flex items-center gap-2">
-              <span className="text-[11px] font-mono px-3 py-1 rounded-full bg-neutral-900/80 border border-neutral-700/80 text-amber-300">
-                {engineState === 1 ? '● Orbiting Perimeter' : engineState === 2 ? '● Sweeping Center' : '● Loaded State'}
-              </span>
-            </div>
-
-          </div>
-        )}
-
-        {/* VIEW 3: SPLIT / COMBINED SANDBOX PREVIEW */}
-        {activeView === 'split-view' && (
-          <div className="relative w-full max-w-5xl aspect-video rounded-2xl bg-[#000000] border border-neutral-800/90 overflow-hidden shadow-2xl flex items-center justify-center animate-in fade-in duration-300">
-            
-            <CanvasFluidLightEngine
-              ref={engineRef}
-              autoPlay={true}
-              onUncoverProgress={setUncoverLeft}
-              onStateChange={setEngineState}
-            />
-
-            <div
-              className="relative z-10 w-full h-full flex items-center justify-center"
-              style={{
-                clipPath: `inset(0 0 0 ${uncoverLeft}%)`,
-                willChange: 'clip-path',
-              }}
-            >
-              <WwdcTextEffect
-                text={selectedText}
-                direction={direction}
-                lightPosition={lightPosition}
-                bloomStrength={bloomStrength}
-                chromaticIntensity={chromaticIntensity}
-                specularEdgeIntensity={specularEdgeIntensity}
-                oppositeGlowStrength={oppositeGlowStrength}
-              />
-            </div>
-
-          </div>
-        )}
+        </div>
 
       </div>
 
       {/* ========================================================================= */}
-      {/* BOTTOM CONTROLS DOCK                                                      */}
+      {/* FLOATING CONTROLS DOCK                                                    */}
       {/* ========================================================================= */}
-      {activeView === 'text-effect' ? (
-        <ControlDock
-          selectedText={selectedText}
-          onSelectText={handleSelectText}
-          direction={direction}
-          onSetDirection={setDirection}
-          onSetLightPosition={setLightPosition}
-          textMode={textMode}
-          onSetTextMode={setTextMode}
-          lightPosition={lightPosition}
-          bloomStrength={bloomStrength}
-          onSetBloomStrength={setBloomStrength}
-          chromaticIntensity={chromaticIntensity}
-          onSetChromaticIntensity={setChromaticIntensity}
-          specularEdgeIntensity={specularEdgeIntensity}
-          onSetSpecularEdgeIntensity={setSpecularEdgeIntensity}
-          oppositeGlowStrength={oppositeGlowStrength}
-          onSetOppositeGlowStrength={setOppositeGlowStrength}
-          showControls={showControls}
-          onToggleControls={() => setShowControls(!showControls)}
-        />
-      ) : (
-        <div className="relative z-30 pb-8 flex items-center gap-3">
-          <button
-            onClick={() => engineRef.current?.replay()}
-            className="text-xs font-mono tracking-widest text-amber-400 hover:text-amber-300 bg-amber-950/40 border border-amber-500/40 px-5 py-2.5 rounded-full backdrop-blur-md transition-all cursor-pointer flex items-center gap-2 shadow-xl hover:bg-amber-900/50 hover:scale-105"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span>REPLAY LOADING & SWIPE ANIMATION</span>
-          </button>
-        </div>
-      )}
+      <ControlDock
+        selectedText={selectedText}
+        onSelectText={handleSelectText}
+        direction={direction}
+        onSetDirection={setDirection}
+        onSetLightPosition={setLightPosition}
+        textMode={textMode}
+        onSetTextMode={setTextMode}
+        lightPosition={lightPosition}
+        bloomStrength={bloomStrength}
+        onSetBloomStrength={setBloomStrength}
+        chromaticIntensity={chromaticIntensity}
+        onSetChromaticIntensity={setChromaticIntensity}
+        oppositeGlowStrength={oppositeGlowStrength}
+        onSetOppositeGlowStrength={setOppositeGlowStrength}
+        showControls={showControls}
+        onToggleControls={() => setShowControls(!showControls)}
+      />
 
     </main>
   );
