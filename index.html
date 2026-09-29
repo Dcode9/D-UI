@@ -4,16 +4,41 @@
     <meta charset="UTF-8" />
     <link rel="icon" href="https://raw.githubusercontent.com/Dcode9/D-verse/main/D_Ai_Logo.ico" type="image/x-icon" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <meta name="theme-color" content="#000000" />
+    <meta name="theme-color" content="#040406" />
     <meta name="description" content="WWDC Optical Text Effect - D'Verse Portal" />
     <title>D'Verse // Optical Typography</title>
+
+    <!-- CRITICAL INLINE STYLES: Guaranteed instant frame-0 dark paint with zero blocking -->
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #040406;
+        color: #e2e2e8;
+        overflow: hidden;
+      }
+      #root {
+        width: 100%;
+        height: 100%;
+      }
+    </style>
     
-    <!-- Google Fonts: Inter, Plus Jakarta Sans, Orbitron, Space Grotesk -->
+    <!-- Non-blocking Google Fonts with preconnect -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Orbitron:wght@700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800;900&family=Space+Grotesk:wght@500;700&display=swap"
+      media="print"
+      onload="this.media='all'"
+    />
+    <noscript>
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800;900&family=Space+Grotesk:wght@500;700&display=swap" />
+    </noscript>
   </head>
-  <body class="bg-black text-white overflow-hidden antialiased m-0 p-0 w-screen h-screen">
+  <body class="bg-[#040406] text-white overflow-hidden antialiased m-0 p-0 w-screen h-screen">
     <div id="root" class="w-full h-full"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

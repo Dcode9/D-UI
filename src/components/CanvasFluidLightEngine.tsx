@@ -1,432 +1,470 @@
-import { useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
+import { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 
 export interface CanvasFluidLightEngineProps {
-  onUncoverProgress?: (uncoverLeftPercent: number) => void;
-  onBeamPositionUpdate?: (xPercent: number, yPercent: number, state: 1 | 2 | 3) => void;
   onStateChange?: (state: 1 | 2 | 3) => void;
+  targetElementRef?: React.RefObject<HTMLElement | null>;
   autoPlay?: boolean;
 }
 
 export interface CanvasFluidLightEngineHandle {
-  triggerLoadingComplete: () => void;
+  setPageReady: () => void;
   replay: () => void;
+  getState: () => 1 | 2 | 3;
 }
 
 export const CanvasFluidLightEngine = forwardRef<CanvasFluidLightEngineHandle, CanvasFluidLightEngineProps>(
-  ({ onUncoverProgress, onBeamPositionUpdate, onStateChange, autoPlay = true }, ref) => {
-    const containerRef = useRef<HTMLDivElement>(null);
+  ({ onStateChange, targetElementRef, autoPlay = true }, ref) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-
-    // Keep stable refs to callbacks so component never re-attaches animation loop on parent state updates
-    const onUncoverProgressRef = useRef(onUncoverProgress);
-    const onBeamPositionUpdateRef = useRef(onBeamPositionUpdate);
     const onStateChangeRef = useRef(onStateChange);
 
     useEffect(() => {
-      onUncoverProgressRef.current = onUncoverProgress;
-      onBeamPositionUpdateRef.current = onBeamPositionUpdate;
       onStateChangeRef.current = onStateChange;
     });
 
     const stateRef = useRef<{
-      activeViewState: 1 | 2 | 3;
+      activeViewState: 1 | 2 | 3; // 1 = Perimeter Orbit, 2 = Center Sweep, 3 = Settled
       animFrameId: number | null;
-      orbitProgressAcc: number;
+      orbitDistance: number; // in pixels along perimeter
+      orbitStartTime: number;
       lastTime: number;
-      isTransitioningToDock: boolean;
-      dockStartTime: number;
-      isMediaLoaded: boolean;
+      isPageReady: boolean;
+      sweepStartTime: number;
+      settledGlowPos: number; // percent
     }>({
       activeViewState: 1,
       animFrameId: null,
-      orbitProgressAcc: 0,
+      orbitDistance: 0,
+      orbitStartTime: performance.now(),
       lastTime: performance.now(),
-      isTransitioningToDock: false,
-      dockStartTime: 0,
-      isMediaLoaded: false,
+      isPageReady: false,
+      sweepStartTime: 0,
+      settledGlowPos: 18,
     });
 
-    const SPEED_SCALE = 0.8;
+    // Configuration constants
+    const CORNER_RADIUS = 28;
+    const SWEEP_DURATION_MS = 1450; // 1.45s buttery smooth horizontal sweep
 
-    const STATE_1_CFG = {
-      spread: 6, // 6vw
-      originLen: 69, // 69vw
-      blur: 71, // 71px
-      brightness: 2.2, // 2.2
-      stroke: 2.0, // 2px
-      cornerSpeed: 1.3, // 1.3x corner ramp boost
-    };
-
-    const STATE_3_CFG = {
-      spread: 73, // 73vw
-      originLen: 63, // 63vw
-      blur: 80, // 80px
-      brightness: 1.9, // 1.9
-      stroke: 0.1, // 0.1px
-      sweepDuration: 1.4, // 1.4s
-    };
-
-    // Perimeter Node Geometry & Local Bending Mathematics
-    const getPerimeterNode = useCallback((dist: number, W: number, H: number, R: number) => {
-      const L_top = W - 2 * R;
+    // 1. Precise Perimeter Geometry starting from the MIDDLE OF THE LEFT EDGE
+    const getPerimeterPoint = (dist: number, W: number, H: number, R: number) => {
+      const L_V = Math.max(10, H - 2 * R);
+      const L_H = Math.max(10, W - 2 * R);
       const L_arc = (Math.PI / 2) * R;
-      const L_right = H - 2 * R;
-      const L_bot = W - 2 * R;
-      const L_left = H - 2 * R;
+      const P = 2 * L_V + 2 * L_H + 4 * L_arc;
 
-      const P = 2 * L_top + 4 * L_arc + 2 * L_right;
       let d = ((dist % P) + P) % P;
 
-      // 1. Top Edge
-      if (d < L_top) {
-        const t = d / L_top;
-        return { x: R + t * L_top, y: 0, nx: 0, ny: 1, angle: 0 };
-      }
-      d -= L_top;
-
-      // 2. Top-Right Corner Arc (Local Folding Down)
-      if (d < L_arc) {
-        const a = -Math.PI / 2 + (d / L_arc) * (Math.PI / 2);
-        const cx = W - R, cy = R;
+      // Segment 1: Upper half of Left Edge (going UP from (0, H/2) to (0, R))
+      const seg1 = L_V / 2;
+      if (d < seg1) {
+        const t = d / seg1;
         return {
-          x: cx + R * Math.cos(a),
-          y: cy + R * Math.sin(a),
-          nx: -Math.cos(a),
-          ny: -Math.sin(a),
-          angle: a + Math.PI / 2,
+          x: 0,
+          y: H / 2 - t * (H / 2 - R),
+          nx: 1,
+          ny: 0,
+          angle: -Math.PI / 2,
+        };
+      }
+      d -= seg1;
+
+      // Segment 2: Top-Left Corner Arc (from (0, R) to (R, 0))
+      if (d < L_arc) {
+        const u = d / L_arc;
+        const a = Math.PI - u * (Math.PI / 2); // pi -> pi/2
+        return {
+          x: R + R * Math.cos(a),
+          y: R - R * Math.sin(a),
+          nx: Math.cos(a + Math.PI),
+          ny: Math.sin(a),
+          angle: -Math.PI / 2 + u * (Math.PI / 2),
         };
       }
       d -= L_arc;
 
-      // 3. Right Edge
-      if (d < L_right) {
-        const t = d / L_right;
-        return { x: W, y: R + t * L_right, nx: -1, ny: 0, angle: Math.PI / 2 };
-      }
-      d -= L_right;
-
-      // 4. Bottom-Right Corner Arc
-      if (d < L_arc) {
-        const a = (d / L_arc) * (Math.PI / 2);
-        const cx = W - R, cy = H - R;
+      // Segment 3: Top Edge (going RIGHT from (R, 0) to (W - R, 0))
+      if (d < L_H) {
+        const t = d / L_H;
         return {
-          x: cx + R * Math.cos(a),
-          y: cy + R * Math.sin(a),
+          x: R + t * L_H,
+          y: 0,
+          nx: 0,
+          ny: 1,
+          angle: 0,
+        };
+      }
+      d -= L_H;
+
+      // Segment 4: Top-Right Corner Arc (from (W - R, 0) to (W, R))
+      if (d < L_arc) {
+        const u = d / L_arc;
+        const a = Math.PI / 2 - u * (Math.PI / 2); // pi/2 -> 0
+        return {
+          x: W - R + R * Math.cos(a),
+          y: R - R * Math.sin(a),
           nx: -Math.cos(a),
-          ny: -Math.sin(a),
-          angle: a + Math.PI / 2,
+          ny: Math.sin(a),
+          angle: u * (Math.PI / 2),
         };
       }
       d -= L_arc;
 
-      // 5. Bottom Edge
-      if (d < L_bot) {
-        const t = d / L_bot;
-        return { x: W - R - t * L_bot, y: H, nx: 0, ny: -1, angle: Math.PI };
-      }
-      d -= L_bot;
-
-      // 6. Bottom-Left Corner Arc
-      if (d < L_arc) {
-        const a = Math.PI / 2 + (d / L_arc) * (Math.PI / 2);
-        const cx = R, cy = H - R;
+      // Segment 5: Right Edge (going DOWN from (W, R) to (W, H - R))
+      // Notice: Middle of Right Edge is at d = L_V / 2!
+      if (d < L_V) {
+        const t = d / L_V;
         return {
-          x: cx + R * Math.cos(a),
-          y: cy + R * Math.sin(a),
+          x: W,
+          y: R + t * L_V,
+          nx: -1,
+          ny: 0,
+          angle: Math.PI / 2,
+        };
+      }
+      d -= L_V;
+
+      // Segment 6: Bottom-Right Corner Arc (from (W, H - R) to (W - R, H))
+      if (d < L_arc) {
+        const u = d / L_arc;
+        const a = 0 - u * (Math.PI / 2); // 0 -> -pi/2
+        return {
+          x: W - R + R * Math.cos(a),
+          y: H - R - R * Math.sin(a),
           nx: -Math.cos(a),
           ny: -Math.sin(a),
-          angle: a + Math.PI / 2,
+          angle: Math.PI / 2 + u * (Math.PI / 2),
         };
       }
       d -= L_arc;
 
-      // 7. Left Edge
-      if (d < L_left) {
-        const t = d / L_left;
-        return { x: 0, y: H - R - t * L_left, nx: 1, ny: 0, angle: (3 * Math.PI) / 2 };
+      // Segment 7: Bottom Edge (going LEFT from (W - R, H) to (R, H))
+      if (d < L_H) {
+        const t = d / L_H;
+        return {
+          x: W - R - t * L_H,
+          y: H,
+          nx: 0,
+          ny: -1,
+          angle: Math.PI,
+        };
       }
-      d -= L_left;
+      d -= L_H;
 
-      // 8. Top-Left Corner Arc
-      const a = Math.PI + (d / L_arc) * (Math.PI / 2);
-      const cx = R, cy = R;
+      // Segment 8: Bottom-Left Corner Arc (from (R, H) to (0, H - R))
+      if (d < L_arc) {
+        const u = d / L_arc;
+        const a = -Math.PI / 2 - u * (Math.PI / 2); // -pi/2 -> -pi
+        return {
+          x: R + R * Math.cos(a),
+          y: H - R - R * Math.sin(a),
+          nx: Math.cos(a + Math.PI),
+          ny: -Math.sin(a),
+          angle: Math.PI + u * (Math.PI / 2),
+        };
+      }
+      d -= L_arc;
+
+      // Segment 9: Lower half of Left Edge (going UP from (0, H - R) to (0, H/2))
+      const t = d / (L_V / 2);
       return {
-        x: cx + R * Math.cos(a),
-        y: cy + R * Math.sin(a),
-        nx: -Math.cos(a),
-        ny: -Math.sin(a),
-        angle: a + Math.PI / 2,
+        x: 0,
+        y: H - R - t * (H / 2 - R),
+        nx: 1,
+        ny: 0,
+        angle: -Math.PI / 2,
       };
-    }, []);
-
-    // Velocity Ramping Factor
-    const getVelocityFactor = (progress: number, cornerBoost: number) => {
-      const p = ((progress % 1) + 1) % 1;
-      const modulation = Math.cos(p * Math.PI * 8);
-      return 1.0 + (cornerBoost - 1.0) * 0.5 * (1 + modulation);
     };
 
-    // Canvas Beam Render Pipeline
-    const renderCanvasBeam = useCallback(
-      (
-        cfg: { spread: number; originLen: number; blur: number; brightness: number; stroke?: number },
-        currentCenterProgress: number,
-        customX: number | null = null,
-        customY: number | null = null
-      ) => {
-        const canvas = canvasRef.current;
-        const container = containerRef.current;
-        if (!canvas || !container) return;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
+    // 2. High-Fidelity Volumetric Glow Renderer (Zero Boundary Cutoffs, 100% Fades to Null)
+    const drawVolumetricBeam = (
+      ctx: CanvasRenderingContext2D,
+      px: number,
+      py: number,
+      beamW: number,
+      beamH: number,
+      intensity: number = 1.0
+    ) => {
+      ctx.save();
+      ctx.globalCompositeOperation = 'screen';
 
-        const rect = container.getBoundingClientRect();
-        const W = rect.width;
-        const H = rect.height;
+      // Layer 1: Wide Diffuse Atmospheric Halo (Fades completely to 0 null well before edge)
+      const maxRadius = Math.max(beamW, beamH) * 1.8;
+      const diffuseGrad = ctx.createRadialGradient(px, py, 0, px, py, maxRadius);
+      diffuseGrad.addColorStop(0, `rgba(255, 175, 55, ${0.4 * intensity})`);
+      diffuseGrad.addColorStop(0.18, `rgba(255, 135, 30, ${0.22 * intensity})`);
+      diffuseGrad.addColorStop(0.35, `rgba(90, 160, 255, ${0.1 * intensity})`);
+      diffuseGrad.addColorStop(0.55, `rgba(30, 80, 200, ${0.025 * intensity})`);
+      diffuseGrad.addColorStop(0.75, `rgba(10, 30, 100, ${0.003 * intensity})`);
+      diffuseGrad.addColorStop(0.9, 'rgba(0, 0, 0, 0)');
+      diffuseGrad.addColorStop(1, 'rgba(0, 0, 0, 0)'); // Strict null falloff
 
-        ctx.clearRect(0, 0, W, H);
+      ctx.fillStyle = diffuseGrad;
+      ctx.beginPath();
+      ctx.arc(px, py, maxRadius, 0, Math.PI * 2);
+      ctx.fill();
 
-        // Center Sweep Horizontal Phase
-        if (customX !== null && customY !== null) {
-          const px = (customX / 100) * W;
-          const py = (customY / 100) * H;
-          const beamW = (cfg.originLen / 100) * W;
-          const beamH = (cfg.spread / 100) * W;
+      // Layer 2: Electric Cyan Core Corona
+      const cyanRadius = maxRadius * 0.55;
+      const cyanGrad = ctx.createRadialGradient(px, py, 0, px, py, cyanRadius);
+      cyanGrad.addColorStop(0, `rgba(220, 245, 255, ${0.6 * intensity})`);
+      cyanGrad.addColorStop(0.25, `rgba(90, 190, 255, ${0.28 * intensity})`);
+      cyanGrad.addColorStop(0.5, `rgba(40, 140, 255, ${0.05 * intensity})`);
+      cyanGrad.addColorStop(0.8, 'rgba(0, 0, 0, 0)');
+      cyanGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
 
-          ctx.save();
-          ctx.filter = `blur(${cfg.blur}px)`;
-          ctx.globalCompositeOperation = 'screen';
+      ctx.fillStyle = cyanGrad;
+      ctx.beginPath();
+      ctx.arc(px, py, cyanRadius, 0, Math.PI * 2);
+      ctx.fill();
 
-          const grad = ctx.createRadialGradient(px, py, 0, px, py, Math.max(beamW, beamH) * 0.6);
-          const b = Math.min(4, Math.max(0.2, cfg.brightness));
-          grad.addColorStop(0, `rgba(255, 255, 255, ${Math.min(1, 0.95 * b)})`);
-          grad.addColorStop(0.3, `rgba(210, 220, 240, ${Math.min(1, 0.65 * b)})`);
-          grad.addColorStop(0.65, `rgba(140, 160, 200, ${Math.min(1, 0.3 * b)})`);
-          grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      // Layer 3: Blinding Incandescent White Core Filament
+      const coreRadius = maxRadius * 0.25;
+      const coreGrad = ctx.createRadialGradient(px, py, 0, px, py, coreRadius);
+      coreGrad.addColorStop(0, `rgba(255, 255, 255, ${0.98 * intensity})`);
+      coreGrad.addColorStop(0.3, `rgba(255, 250, 240, ${0.8 * intensity})`);
+      coreGrad.addColorStop(0.6, `rgba(230, 240, 255, ${0.2 * intensity})`);
+      coreGrad.addColorStop(0.85, 'rgba(0, 0, 0, 0)');
+      coreGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
 
-          ctx.fillStyle = grad;
-          ctx.beginPath();
-          ctx.ellipse(px, py, beamW / 2, beamH / 2, Math.PI / 2, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.restore();
-          return;
-        }
+      ctx.fillStyle = coreGrad;
+      ctx.beginPath();
+      ctx.arc(px, py, coreRadius, 0, Math.PI * 2);
+      ctx.fill();
 
-        // Perimeter Local Bending Phase
-        const R = 24;
-        const L_top = W - 2 * R;
-        const L_arc = (Math.PI / 2) * R;
-        const L_right = H - 2 * R;
-        const P = 2 * L_top + 4 * L_arc + 2 * L_right;
+      ctx.restore();
+    };
 
-        const beamLength = (cfg.originLen / 100) * P * 0.35;
-        const centerDist = currentCenterProgress * P;
-        const startDist = centerDist - beamLength / 2;
+    // 3. Fluid Perimeter Ribbon Render (40-node local bending geometry)
+    const drawPerimeterRibbon = (
+      ctx: CanvasRenderingContext2D,
+      W: number,
+      H: number,
+      R: number,
+      centerDist: number
+    ) => {
+      const beamLen = Math.min(W, H) * 0.65;
+      const startDist = centerDist - beamLen / 2;
+      const N = 40;
 
-        const N = 40; // 40 Nodes along beam ribbon
-        const innerPoints = [];
-        const outerPoints = [];
+      const innerPoints: { x: number; y: number }[] = [];
+      const outerPoints: { x: number; y: number }[] = [];
 
-        for (let i = 0; i < N; i++) {
-          const t = i / (N - 1);
-          const nodeDist = startDist + t * beamLength;
-          const node = getPerimeterNode(nodeDist, W, H, R);
+      for (let i = 0; i < N; i++) {
+        const t = i / (N - 1);
+        const nodeDist = startDist + t * beamLen;
+        const node = getPerimeterPoint(nodeDist, W, H, R);
 
-          const envelope = Math.sin(t * Math.PI);
-          const spreadPx = (cfg.spread / 100) * W * 0.45 * envelope;
+        // Sinusoidal bell-curve envelope for natural tapered fluid tail
+        const envelope = Math.sin(t * Math.PI);
+        const spread = 45 * envelope;
 
-          innerPoints.push({
-            x: node.x + node.nx * spreadPx,
-            y: node.y + node.ny * spreadPx,
-          });
-          outerPoints.push({
-            x: node.x - node.nx * (spreadPx * 0.15),
-            y: node.y - node.ny * (spreadPx * 0.15),
-          });
-        }
+        innerPoints.push({
+          x: node.x + node.nx * spread,
+          y: node.y + node.ny * spread,
+        });
+        outerPoints.push({
+          x: node.x - node.nx * (spread * 0.15),
+          y: node.y - node.ny * (spread * 0.15),
+        });
+      }
 
-        ctx.save();
-        ctx.filter = `blur(${cfg.blur}px)`;
-        ctx.globalCompositeOperation = 'screen';
+      ctx.save();
+      ctx.globalCompositeOperation = 'screen';
 
-        ctx.beginPath();
-        ctx.moveTo(outerPoints[0].x, outerPoints[0].y);
-        for (let i = 1; i < N; i++) ctx.lineTo(outerPoints[i].x, outerPoints[i].y);
-        for (let i = N - 1; i >= 0; i--) ctx.lineTo(innerPoints[i].x, innerPoints[i].y);
-        ctx.closePath();
+      // Multi-layer diffuse fluid fill
+      ctx.beginPath();
+      ctx.moveTo(outerPoints[0].x, outerPoints[0].y);
+      for (let i = 1; i < N; i++) ctx.lineTo(outerPoints[i].x, outerPoints[i].y);
+      for (let i = N - 1; i >= 0; i--) ctx.lineTo(innerPoints[i].x, innerPoints[i].y);
+      ctx.closePath();
 
-        const centerNode = getPerimeterNode(centerDist, W, H, R);
-        const b = Math.min(4, Math.max(0.2, cfg.brightness));
-        const grad = ctx.createRadialGradient(
-          centerNode.x,
-          centerNode.y,
-          0,
-          centerNode.x,
-          centerNode.y,
-          beamLength * 0.75
-        );
-        grad.addColorStop(0, `rgba(255, 255, 255, ${Math.min(1, 0.95 * b)})`);
-        grad.addColorStop(0.35, `rgba(210, 220, 240, ${Math.min(1, 0.65 * b)})`);
-        grad.addColorStop(0.7, `rgba(140, 160, 200, ${Math.min(1, 0.3 * b)})`);
-        grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      const centerNode = getPerimeterPoint(centerDist, W, H, R);
+      const grad = ctx.createRadialGradient(
+        centerNode.x,
+        centerNode.y,
+        0,
+        centerNode.x,
+        centerNode.y,
+        beamLen * 0.7
+      );
+      grad.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
+      grad.addColorStop(0.2, 'rgba(255, 200, 90, 0.65)');
+      grad.addColorStop(0.5, 'rgba(100, 180, 255, 0.25)');
+      grad.addColorStop(0.8, 'rgba(40, 100, 220, 0.05)');
+      grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
 
-        ctx.fillStyle = grad;
-        ctx.fill();
+      ctx.fillStyle = grad;
+      ctx.fill();
 
-        // Spotlight Core Ribbon
-        ctx.beginPath();
-        ctx.moveTo(outerPoints[0].x, outerPoints[0].y);
-        for (let i = 1; i < N; i++) ctx.lineTo(outerPoints[i].x, outerPoints[i].y);
-        for (let i = N - 1; i >= 0; i--) {
-          const coreX = (outerPoints[i].x + innerPoints[i].x) / 2;
-          const coreY = (outerPoints[i].y + innerPoints[i].y) / 2;
-          ctx.lineTo(coreX, coreY);
-        }
-        ctx.closePath();
-        ctx.fillStyle = `rgba(255, 255, 255, ${Math.min(1, 0.8 * b)})`;
-        ctx.fill();
+      // Razor white core ribbon
+      ctx.beginPath();
+      ctx.moveTo(outerPoints[0].x, outerPoints[0].y);
+      for (let i = 1; i < N; i++) ctx.lineTo(outerPoints[i].x, outerPoints[i].y);
+      for (let i = N - 1; i >= 0; i--) {
+        const cx = (outerPoints[i].x + innerPoints[i].x) / 2;
+        const cy = (outerPoints[i].y + innerPoints[i].y) / 2;
+        ctx.lineTo(cx, cy);
+      }
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+      ctx.fill();
 
-        ctx.restore();
-      },
-      [getPerimeterNode]
-    );
+      ctx.restore();
+    };
 
-    // Center Sweep Uncover Phase (State 2 -> State 3)
-    const startCenterSweep = useCallback(() => {
-      stateRef.current.activeViewState = 2;
-      onStateChangeRef.current?.(2);
+    // 4. Main Unified Physics & Animation Loop (Zero React Re-render Lag)
+    const runLoop = () => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
 
-      const sweepStartTime = performance.now();
-      const sweepDuration = STATE_3_CFG.sweepDuration * 1000; // 1.4s
+      const now = performance.now();
+      const lastTime = stateRef.current.lastTime;
+      stateRef.current.lastTime = now;
 
-      const sweepStep = (time: number) => {
-        const sElapsed = time - sweepStartTime;
-        const progress = Math.min(1, sElapsed / sweepDuration);
+      const W = canvas.width / (window.devicePixelRatio || 1);
+      const H = canvas.height / (window.devicePixelRatio || 1);
+      const R = CORNER_RADIUS;
 
-        // Smooth cubic/quintic horizontal uncover easing
-        const easeP =
-          progress < 0.5
-            ? 2 * progress * progress
-            : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+      const L_V = Math.max(10, H - 2 * R);
+      const L_H = Math.max(10, W - 2 * R);
+      const L_arc = (Math.PI / 2) * R;
+      const P = 2 * L_V + 2 * L_H + 4 * L_arc;
 
-        const currentX = 100 - easeP * 100;
-        const currentY = 50;
+      ctx.clearRect(0, 0, W, H);
 
-        const curSpread = STATE_1_CFG.spread + easeP * (STATE_3_CFG.spread - STATE_1_CFG.spread);
-        const curOriginLen = STATE_1_CFG.originLen + easeP * (STATE_3_CFG.originLen - STATE_1_CFG.originLen);
-        const curBlur = STATE_1_CFG.blur + easeP * (STATE_3_CFG.blur - STATE_1_CFG.blur);
-        const curBrightness = STATE_1_CFG.brightness + easeP * (STATE_3_CFG.brightness - STATE_1_CFG.brightness);
+      // =========================================================================
+      // STATE 1: PERIMETER LOADING ORBIT (Starts on LEFT middle, travels to RIGHT)
+      // =========================================================================
+      if (stateRef.current.activeViewState === 1) {
+        const orbitPeriod = 4.2; // 4.2s for full orbit (~2.1s from Left to Right edge)
+        const prevElapsed = Math.max(0, (lastTime - stateRef.current.orbitStartTime) / 1000);
+        const currElapsed = Math.max(0, (now - stateRef.current.orbitStartTime) / 1000);
 
-        renderCanvasBeam(
-          { spread: curSpread, originLen: curOriginLen, blur: curBlur, brightness: curBrightness },
-          0,
-          currentX,
-          currentY
-        );
+        const prevCycle = (prevElapsed / orbitPeriod) % 1;
+        const currCycle = (currElapsed / orbitPeriod) % 1;
+        const currDist = currCycle * P;
+        stateRef.current.orbitDistance = currDist;
 
-        onUncoverProgressRef.current?.(currentX);
-        onBeamPositionUpdateRef.current?.(currentX, currentY, 2);
+        // Check if beam crosses the Right Edge (at 50% of the orbit)
+        const crossedRightEdge =
+          (prevCycle < 0.5 && currCycle >= 0.5) ||
+          (currElapsed >= orbitPeriod * 0.5 && prevElapsed < orbitPeriod * 0.5);
 
-        if (progress < 1) {
-          stateRef.current.animFrameId = requestAnimationFrame(sweepStep);
+        // ONLY transition to sweep if ALL components are fully loaded!
+        if (crossedRightEdge && stateRef.current.isPageReady) {
+          stateRef.current.activeViewState = 2;
+          stateRef.current.sweepStartTime = now;
+          onStateChangeRef.current?.(2);
         } else {
-          // State 3: Final loaded resting state at left edge
+          drawPerimeterRibbon(ctx, W, H, R, currDist);
+        }
+      }
+
+      // =========================================================================
+      // STATE 2: BUTTERY SMOOTH HORIZONTAL CENTER SWEEP (Right -> Left)
+      // =========================================================================
+      if (stateRef.current.activeViewState === 2) {
+        const elapsed = now - stateRef.current.sweepStartTime;
+        const rawProgress = Math.min(1, elapsed / SWEEP_DURATION_MS);
+
+        // Quintic smoothstep for ultra-fluid, zero-jerk acceleration & deceleration
+        const ease =
+          rawProgress < 0.5
+            ? 16 * Math.pow(rawProgress, 5)
+            : 1 - Math.pow(-2 * rawProgress + 2, 5) / 2;
+
+        const currentXPct = 100 - ease * 100; // 100% -> 0%
+        const px = (currentXPct / 100) * W;
+        const py = H / 2;
+
+        // Draw sweeping volumetric searchlight across viewport (BEHIND = TEXT, FRONT = GLOW)
+        const beamW = Math.max(300, W * 0.5);
+        const beamH = Math.max(300, H * 0.6);
+        drawVolumetricBeam(ctx, px, py, beamW, beamH, 1.25);
+
+        // Update target text container directly on DOM for 120fps buttery smoothness
+        if (targetElementRef?.current) {
+          const el = targetElementRef.current;
+          el.style.opacity = '1';
+          el.style.setProperty('--uncover-pct', `${currentXPct}%`);
+          el.style.setProperty('--light-pos', `${currentXPct}%`);
+        }
+
+        if (rawProgress >= 1) {
           stateRef.current.activeViewState = 3;
           onStateChangeRef.current?.(3);
-          onUncoverProgressRef.current?.(0);
-          onBeamPositionUpdateRef.current?.(18, 50, 3);
-          renderCanvasBeam(STATE_3_CFG, 0, 0, 50);
         }
-      };
+      }
 
-      stateRef.current.animFrameId = requestAnimationFrame(sweepStep);
-    }, [renderCanvasBeam, STATE_1_CFG.originLen, STATE_1_CFG.spread, STATE_1_CFG.blur, STATE_1_CFG.brightness, STATE_3_CFG.sweepDuration, STATE_3_CFG.spread, STATE_3_CFG.originLen, STATE_3_CFG.blur, STATE_3_CFG.brightness]);
+      // =========================================================================
+      // STATE 3: SETTLED PORTAL RESTING ILLUMINATION
+      // =========================================================================
+      if (stateRef.current.activeViewState === 3) {
+        let px = (stateRef.current.settledGlowPos / 100) * W;
+        let py = H / 2;
 
-    // Main Physics Loop
-    const startPhysicsLoop = useCallback(() => {
-      if (stateRef.current.animFrameId) cancelAnimationFrame(stateRef.current.animFrameId);
-      stateRef.current.lastTime = performance.now();
-
-      const physicsStep = (time: number) => {
-        const dt = Math.min(0.05, (time - stateRef.current.lastTime) / 1000);
-        stateRef.current.lastTime = time;
-
-        const baseSpeed = 0.25 * SPEED_SCALE;
-
-        if (stateRef.current.activeViewState === 1 || stateRef.current.isTransitioningToDock) {
-          const prevP = ((stateRef.current.orbitProgressAcc % 1) + 1) % 1;
-          const currentVelocity =
-            baseSpeed * getVelocityFactor(stateRef.current.orbitProgressAcc, STATE_1_CFG.cornerSpeed);
-          stateRef.current.orbitProgressAcc += currentVelocity * dt;
-          const nextP = ((stateRef.current.orbitProgressAcc % 1) + 1) % 1;
-
-          // Check if transitioning to dock at Right Edge (Target Progress ~0.375)
-          if (stateRef.current.isTransitioningToDock) {
-            const target = 0.375;
-            const crossedTarget = (prevP <= target && nextP >= target) || (prevP > 0.8 && nextP < 0.4 && nextP >= target);
-            const closeEnough = Math.abs(nextP - target) < 0.04;
-            const timeSinceDock = time - stateRef.current.dockStartTime;
-
-            // Guaranteed dock: when target is crossed or if timeout safety triggers (max 1.5s after dock request)
-            if (crossedTarget || closeEnough || timeSinceDock > 1500) {
-              stateRef.current.isTransitioningToDock = false;
-              startCenterSweep();
-              return;
-            }
-          }
-
-          renderCanvasBeam(STATE_1_CFG, stateRef.current.orbitProgressAcc);
-          stateRef.current.animFrameId = requestAnimationFrame(physicsStep);
+        const innerEl =
+          (targetElementRef?.current?.firstElementChild as HTMLElement) ||
+          targetElementRef?.current;
+        const textRect = innerEl?.getBoundingClientRect();
+        if (textRect) {
+          // Precisely align with the incandescent core of 'V in the text
+          px = textRect.left + (stateRef.current.settledGlowPos / 100) * textRect.width;
+          py = textRect.top + textRect.height * 0.48;
         }
-      };
 
-      stateRef.current.animFrameId = requestAnimationFrame(physicsStep);
-    }, [renderCanvasBeam, startCenterSweep, STATE_1_CFG.cornerSpeed]);
+        // Focused atmospheric aura with smooth zero-boundary null falloff
+        const beamW = 220;
+        const beamH = 280;
+        drawVolumetricBeam(ctx, px, py, beamW, beamH, 0.45);
 
-    // Trigger loading complete
-    const triggerLoadingComplete = useCallback(() => {
-      if (stateRef.current.isMediaLoaded) return;
-      stateRef.current.isMediaLoaded = true;
-      stateRef.current.isTransitioningToDock = true;
-      stateRef.current.dockStartTime = performance.now();
-    }, []);
+        if (targetElementRef?.current) {
+          const el = targetElementRef.current;
+          el.style.opacity = '1';
+          el.style.setProperty('--uncover-pct', '0%');
+          el.style.setProperty('--light-pos', `${stateRef.current.settledGlowPos}%`);
+        }
+      }
 
-    // Replay
-    const replay = useCallback(() => {
-      if (stateRef.current.animFrameId) cancelAnimationFrame(stateRef.current.animFrameId);
-      stateRef.current.isMediaLoaded = false;
-      stateRef.current.isTransitioningToDock = false;
-      stateRef.current.activeViewState = 1;
-      onStateChangeRef.current?.(1);
-      onUncoverProgressRef.current?.(100);
+      stateRef.current.animFrameId = requestAnimationFrame(runLoop);
+    };
 
-      startPhysicsLoop();
-
-      // Ensure at least 1.5s of loading orbit so the user sees the fluid corner-folding physics, then dock and sweep!
-      setTimeout(() => {
-        triggerLoadingComplete();
-      }, 1500);
-    }, [startPhysicsLoop, triggerLoadingComplete]);
-
+    // Public Imperative Handle
     useImperativeHandle(
       ref,
       () => ({
-        triggerLoadingComplete,
-        replay,
+        setPageReady: () => {
+          stateRef.current.isPageReady = true;
+        },
+        replay: () => {
+          stateRef.current.activeViewState = 1;
+          stateRef.current.orbitDistance = 0; // Starts from LEFT side
+          stateRef.current.orbitStartTime = performance.now();
+          stateRef.current.lastTime = performance.now();
+          stateRef.current.isPageReady = true; // On replay, page assets are already loaded
+          onStateChangeRef.current?.(1);
+
+          if (targetElementRef?.current) {
+            targetElementRef.current.style.opacity = '0';
+            targetElementRef.current.style.setProperty('--uncover-pct', '100%');
+            targetElementRef.current.style.setProperty('--light-pos', '100%');
+          }
+        },
+        getState: () => stateRef.current.activeViewState,
       }),
-      [triggerLoadingComplete, replay]
+      [targetElementRef]
     );
 
-    // Canvas DPI Resizer
+    // Canvas Resize Handler
     useEffect(() => {
       const handleResize = () => {
-        const container = containerRef.current;
         const canvas = canvasRef.current;
-        if (!container || !canvas) return;
-        const rect = container.getBoundingClientRect();
+        if (!canvas) return;
         const dpr = window.devicePixelRatio || 1;
-        canvas.width = rect.width * dpr;
-        canvas.height = rect.height * dpr;
+        canvas.width = window.innerWidth * dpr;
+        canvas.height = window.innerHeight * dpr;
         const ctx = canvas.getContext('2d');
         if (ctx) ctx.scale(dpr, dpr);
       };
@@ -437,11 +475,35 @@ export const CanvasFluidLightEngine = forwardRef<CanvasFluidLightEngineHandle, C
       return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    // Run ONLY ONCE on mount
+    // Lifecycle
     useEffect(() => {
       if (autoPlay) {
-        replay();
+        stateRef.current.activeViewState = 1;
+        stateRef.current.orbitDistance = 0; // Starts on LEFT side
+        stateRef.current.orbitStartTime = performance.now();
+        stateRef.current.lastTime = performance.now();
+
+        // Listen for genuine page & font load completion
+        const markReady = () => {
+          stateRef.current.isPageReady = true;
+        };
+
+        if (document.fonts?.ready) {
+          document.fonts.ready.then(markReady);
+        }
+
+        if (document.readyState === 'complete') {
+          markReady();
+        } else {
+          window.addEventListener('load', markReady, { once: true });
+          document.addEventListener('readystatechange', () => {
+            if (document.readyState === 'complete') markReady();
+          });
+        }
+
+        stateRef.current.animFrameId = requestAnimationFrame(runLoop);
       }
+
       return () => {
         if (stateRef.current.animFrameId) cancelAnimationFrame(stateRef.current.animFrameId);
       };
@@ -449,9 +511,11 @@ export const CanvasFluidLightEngine = forwardRef<CanvasFluidLightEngineHandle, C
     }, []);
 
     return (
-      <div ref={containerRef} className="absolute inset-0 w-full h-full pointer-events-none z-20">
-        <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none" />
-      </div>
+      <canvas
+        ref={canvasRef}
+        className="fixed inset-0 w-full h-full pointer-events-none z-20"
+        style={{ mixBlendMode: 'screen' }}
+      />
     );
   }
 );

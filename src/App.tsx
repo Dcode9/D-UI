@@ -1,42 +1,56 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { WwdcTextEffect } from './components/WwdcTextEffect';
 import { CanvasFluidLightEngine, CanvasFluidLightEngineHandle } from './components/CanvasFluidLightEngine';
 
 export const App: React.FC = () => {
-  // Real-time Text Illumination & Uncover Tracking
-  const [lightPosition, setLightPosition] = useState<number>(100);
-  const [uncoverLeft, setUncoverLeft] = useState<number>(100);
-  const [engineState, setEngineState] = useState<1 | 2 | 3>(1);
   const engineRef = useRef<CanvasFluidLightEngineHandle>(null);
+  const textWrapperRef = useRef<HTMLDivElement>(null);
+  const [engineState, setEngineState] = useState<1 | 2 | 3>(1);
+  const [lightPos, setLightPos] = useState<number>(100);
 
-  // Parallel Light Tracking: As the light beam sweeps across horizontally,
-  // the text effect's lightPosition follows in exact parallel lockstep!
-  const handleBeamPositionUpdate = useCallback((xPercent: number, _yPercent: number, state: 1 | 2 | 3) => {
-    if (state === 2) {
-      setLightPosition(xPercent);
-    } else if (state === 3) {
-      setLightPosition(18); // Left resting illumination for 'Verse
+  // Synchronize initial state & handle global click to replay
+  useEffect(() => {
+    if (textWrapperRef.current) {
+      textWrapperRef.current.style.setProperty('--uncover-pct', '100%');
+      textWrapperRef.current.style.setProperty('--light-pos', '100%');
     }
+
+    const handleGlobalClick = () => {
+      if (engineRef.current?.getState() === 3) {
+        engineRef.current.replay();
+      }
+    };
+
+    window.addEventListener('click', handleGlobalClick);
+    return () => window.removeEventListener('click', handleGlobalClick);
   }, []);
+
+  const handleStateChange = (state: 1 | 2 | 3) => {
+    setEngineState(state);
+    if (state === 3) {
+      setLightPos(18); // Left resting position
+    }
+  };
 
   return (
     <main
-      className="relative w-screen h-screen bg-[#040406] overflow-hidden flex items-center justify-center select-none text-[#e2e2e8]"
-      onClick={() => engineState === 3 && engineRef.current?.replay()}
+      className={`relative w-screen h-screen bg-[#040406] overflow-hidden flex items-center justify-center select-none text-[#e2e2e8] ${
+        engineState === 3 ? 'cursor-pointer' : 'cursor-default'
+      }`}
     >
       {/* Background Subtle Radial Vignette */}
       <div
-        className="absolute inset-0 pointer-events-none"
+        className="absolute inset-0 pointer-events-none z-0"
         style={{
           background: 'radial-gradient(circle at 50% 50%, #08080e 0%, #040406 95%)',
         }}
       />
 
-      {/* SVG Film Grain Filter (Maelie Lusson reference aesthetic) */}
+      {/* SVG Fine Film Grain Filter (Maelie Lusson aesthetic) */}
       <svg className="hidden" aria-hidden="true">
         <filter id="film-grain">
           <feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="3" stitchTiles="stitch" />
-          <feColorMatrix type="matrix" values="0 0 0 0 1   0 0 0 0 1   0 0 0 0 1  0 0 0 0.05 0" />
+          <feColorMatrix type="matrix" values="0 0 0 0 1   0 0 0 0 1   0 0 0 0 1  0 0 0 0.04 0" />
         </filter>
       </svg>
       <div
@@ -45,42 +59,49 @@ export const App: React.FC = () => {
       />
 
       {/* ========================================================================= */}
-      {/* 1. FULLSCREEN CANVAS FLUID LIGHT ENGINE                                   */}
-      {/* In State 1 (loading), this glowing animation is the ONLY thing visible!   */}
+      {/* 1. HERO TYPOGRAPHY CONTAINER (BEHIND THE GLOW AT z-10)                   */}
+      {/* Uses CSS mask-image with soft feathering driven directly by CSS variable  */}
+      {/* ========================================================================= */}
+      <div
+        ref={textWrapperRef}
+        className="relative z-10 w-full flex items-center justify-center px-4"
+        style={
+          {
+            '--uncover-pct': '100%',
+            '--light-pos': '100%',
+            maskImage:
+              engineState === 1
+                ? 'none'
+                : 'linear-gradient(to right, transparent 0%, transparent calc(var(--uncover-pct) - 4%), black calc(var(--uncover-pct) + 3%), black 100%)',
+            WebkitMaskImage:
+              engineState === 1
+                ? 'none'
+                : 'linear-gradient(to right, transparent 0%, transparent calc(var(--uncover-pct) - 4%), black calc(var(--uncover-pct) + 3%), black 100%)',
+            opacity: engineState === 1 ? 0 : 1,
+            willChange: 'mask-image, opacity',
+          } as React.CSSProperties
+        }
+      >
+        <WwdcTextEffect
+          text="'Verse"
+          direction="left-to-right"
+          lightPosition={engineState === 3 ? 18 : lightPos}
+          bloomStrength={1.0}
+          chromaticIntensity={1.0}
+          oppositeGlowStrength={1.0}
+        />
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 2. FULLSCREEN CANVAS FLUID LIGHT ENGINE (IN FRONT OF TEXT AT z-20)        */}
+      {/* Mix-blend-mode: screen ensures the blazing white light passes OVER text   */}
       {/* ========================================================================= */}
       <CanvasFluidLightEngine
         ref={engineRef}
         autoPlay={true}
-        onUncoverProgress={setUncoverLeft}
-        onBeamPositionUpdate={handleBeamPositionUpdate}
-        onStateChange={setEngineState}
+        targetElementRef={textWrapperRef}
+        onStateChange={handleStateChange}
       />
-
-      {/* ========================================================================= */}
-      {/* 2. HERO TYPOGRAPHY (UNCOVERED ONLY ONCE SWEEP BEGINS)                     */}
-      {/* Completely hidden during loading state (engineState === 1 / uncoverLeft === 100) */}
-      {/* ========================================================================= */}
-      {engineState !== 1 && (
-        <div className="relative z-10 w-full flex items-center justify-center px-4">
-          <div
-            className="relative w-full flex items-center justify-center"
-            style={{
-              clipPath: `inset(0 0 0 ${uncoverLeft}%)`,
-              willChange: 'clip-path',
-            }}
-          >
-            {/* LOCKED TEXT EFFECT (COMMIT df455d3) SYNCHRONIZED PARALLEL WITH THE SWEEP BEAM */}
-            <WwdcTextEffect
-              text="'Verse"
-              direction="left-to-right"
-              lightPosition={lightPosition}
-              bloomStrength={1.0}
-              chromaticIntensity={1.0}
-              oppositeGlowStrength={1.0}
-            />
-          </div>
-        </div>
-      )}
 
     </main>
   );
