@@ -158,10 +158,11 @@ export const WwdcTextEffect: React.FC<WwdcTextEffectProps> = ({
         {/* 3. LAYER A: BASE DARK BODY — Near-black with subtle warm undertone */}
         {/* ======================================================================= */}
         <span
-          className="relative block font-extrabold"
+          className="relative block font-extrabold bg-clip-text"
           style={{
-            background: 'linear-gradient(178deg, #2a2a30 0%, #18181c 30%, #0c0c0f 65%, #050506 100%)',
+            backgroundImage: 'linear-gradient(178deg, #2a2a30 0%, #18181c 30%, #0c0c0f 65%, #050506 100%)',
             WebkitBackgroundClip: 'text',
+            backgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             filter: 'drop-shadow(0 18px 35px rgba(0, 0, 0, 0.95))',
           }}
@@ -192,10 +193,11 @@ export const WwdcTextEffect: React.FC<WwdcTextEffectProps> = ({
         {/* ======================================================================= */}
         <span
           aria-hidden="true"
-          className="absolute inset-0 block font-extrabold pointer-events-none"
+          className="absolute inset-0 block font-extrabold pointer-events-none bg-clip-text"
           style={{
-            background: 'linear-gradient(180deg, rgba(180, 185, 200, 0.18) 0%, rgba(120, 125, 140, 0.06) 30%, transparent 55%)',
+            backgroundImage: 'linear-gradient(180deg, rgba(180, 185, 200, 0.18) 0%, rgba(120, 125, 140, 0.06) 30%, transparent 55%)',
             WebkitBackgroundClip: 'text',
+            backgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             mixBlendMode: 'screen',
             opacity: 0.85,
@@ -212,12 +214,13 @@ export const WwdcTextEffect: React.FC<WwdcTextEffectProps> = ({
         {/* ======================================================================= */}
         <span
           aria-hidden="true"
-          className="absolute inset-0 block font-extrabold pointer-events-none"
+          className="absolute inset-0 block font-extrabold pointer-events-none bg-clip-text"
           style={{
-            background: isL2R
+            backgroundImage: isL2R
               ? `linear-gradient(to right, #ffffff 0%, #ffffff ${peakStop}%, #d4d7e2 ${brightStop}%, #484b56 ${midStop}%, #121316 ${darkStop}%, transparent 100%)`
               : `linear-gradient(to right, transparent 0%, #121316 ${darkStop}%, #484b56 ${midStop}%, #d4d7e2 ${brightStop}%, #ffffff ${peakStop}%, #ffffff 100%)`,
             WebkitBackgroundClip: 'text',
+            backgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             mixBlendMode: 'screen',
             opacity: 0.95,
@@ -231,12 +234,13 @@ export const WwdcTextEffect: React.FC<WwdcTextEffectProps> = ({
         {/* ======================================================================= */}
         <span
           aria-hidden="true"
-          className="absolute inset-0 block font-extrabold pointer-events-none"
+          className="absolute inset-0 block font-extrabold pointer-events-none bg-clip-text"
           style={{
-            background: isL2R
+            backgroundImage: isL2R
               ? `linear-gradient(to left, rgba(200, 210, 230, ${0.25 * oppositeGlowStrength}) 0%, rgba(160, 170, 195, ${0.12 * oppositeGlowStrength}) 20%, transparent 50%)`
               : `linear-gradient(to right, rgba(200, 210, 230, ${0.25 * oppositeGlowStrength}) 0%, rgba(160, 170, 195, ${0.12 * oppositeGlowStrength}) 20%, transparent 50%)`,
             WebkitBackgroundClip: 'text',
+            backgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             mixBlendMode: 'screen',
             filter: `drop-shadow(0 0 ${6 * oppositeGlowStrength}px rgba(160, 180, 220, ${0.2 * oppositeGlowStrength}))`,
@@ -251,13 +255,14 @@ export const WwdcTextEffect: React.FC<WwdcTextEffectProps> = ({
         {/* ======================================================================= */}
         <span
           aria-hidden="true"
-          className="absolute inset-0 block font-extrabold pointer-events-none"
+          className="absolute inset-0 block font-extrabold pointer-events-none bg-clip-text"
           style={{
             transform: `translateX(${amberShiftX * chromaticIntensity}px) translateY(0.5px)`,
-            background: isL2R
+            backgroundImage: isL2R
               ? `linear-gradient(to right, rgba(255, 160, 50, 0.95) 0%, rgba(255, 190, 80, 0.9) ${peakStop}%, rgba(255, 180, 70, 0.25) ${brightStop}%, transparent ${midStop}%, transparent 100%)`
               : `linear-gradient(to right, transparent 0%, transparent ${midStop}%, rgba(255, 180, 70, 0.25) ${brightStop}%, rgba(255, 190, 80, 0.9) ${peakStop}%, rgba(255, 160, 50, 0.95) 100%)`,
             WebkitBackgroundClip: 'text',
+            backgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             mixBlendMode: 'screen',
             filter: `blur(${2.0 * chromaticIntensity}px) drop-shadow(${amberShiftX * 1.5 * chromaticIntensity}px 0 ${9 * chromaticIntensity}px rgba(255, 165, 55, 0.9))`,
@@ -272,13 +277,14 @@ export const WwdcTextEffect: React.FC<WwdcTextEffectProps> = ({
         {/* ======================================================================= */}
         <span
           aria-hidden="true"
-          className="absolute inset-0 block font-extrabold pointer-events-none"
+          className="absolute inset-0 block font-extrabold pointer-events-none bg-clip-text"
           style={{
             transform: `translateX(${cyanShiftX * chromaticIntensity}px) translateY(-0.5px)`,
-            background: isL2R
+            backgroundImage: isL2R
               ? `linear-gradient(to right, transparent 0%, rgba(190, 235, 255, 0.3) ${peakStop}%, rgba(140, 220, 255, 0.75) ${brightStop}%, transparent ${midStop}%, transparent 100%)`
               : `linear-gradient(to right, transparent 0%, transparent ${midStop}%, rgba(140, 220, 255, 0.75) ${brightStop}%, rgba(190, 235, 255, 0.3) ${peakStop}%, transparent 100%)`,
             WebkitBackgroundClip: 'text',
+            backgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             mixBlendMode: 'screen',
             filter: `blur(${1.6 * chromaticIntensity}px) drop-shadow(${cyanShiftX * 1.5 * chromaticIntensity}px 0 ${7 * chromaticIntensity}px rgba(100, 190, 255, 0.8))`,
@@ -293,12 +299,13 @@ export const WwdcTextEffect: React.FC<WwdcTextEffectProps> = ({
         {/* ======================================================================= */}
         <span
           aria-hidden="true"
-          className="absolute inset-0 block font-extrabold pointer-events-none"
+          className="absolute inset-0 block font-extrabold pointer-events-none bg-clip-text"
           style={{
-            background: isL2R
+            backgroundImage: isL2R
               ? `linear-gradient(to right, #ffffff 0%, #ffffff ${peakStop}%, rgba(255, 255, 255, 0.45) ${brightStop}%, transparent ${midStop}%, transparent 100%)`
               : `linear-gradient(to right, transparent 0%, transparent ${midStop}%, rgba(255, 255, 255, 0.45) ${brightStop}%, #ffffff ${peakStop}%, #ffffff 100%)`,
             WebkitBackgroundClip: 'text',
+            backgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             mixBlendMode: 'screen',
             filter: `drop-shadow(0 0 ${4 * bloomStrength}px #ffffff) drop-shadow(0 0 ${16 * bloomStrength}px rgba(255, 255, 255, 0.95)) drop-shadow(0 0 ${36 * bloomStrength}px rgba(240, 245, 255, 0.6))`,
@@ -313,13 +320,14 @@ export const WwdcTextEffect: React.FC<WwdcTextEffectProps> = ({
         {/* ======================================================================= */}
         <span
           aria-hidden="true"
-          className="absolute inset-0 block font-extrabold pointer-events-none"
+          className="absolute inset-0 block font-extrabold pointer-events-none bg-clip-text"
           style={{
             WebkitTextStroke: '0.8px transparent',
-            background: isL2R
+            backgroundImage: isL2R
               ? `linear-gradient(to right, #ffffff 0%, #ffffff ${peakStop}%, rgba(255,255,255,0.7) ${peakStop + 2}%, transparent ${brightStop}%, transparent 100%)`
               : `linear-gradient(to right, transparent 0%, transparent ${brightStop}%, rgba(255,255,255,0.7) ${peakStop - 2}%, #ffffff ${peakStop}%, #ffffff 100%)`,
             WebkitBackgroundClip: 'text',
+            backgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             mixBlendMode: 'screen',
             filter: 'drop-shadow(0 0 2px #ffffff)',

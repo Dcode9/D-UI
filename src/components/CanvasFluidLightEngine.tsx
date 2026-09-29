@@ -17,13 +17,24 @@ export const CanvasFluidLightEngine = forwardRef<CanvasFluidLightEngineHandle, C
     const containerRef = useRef<HTMLDivElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
+    // Keep stable refs to callbacks so component never re-attaches animation loop on parent state updates
+    const onUncoverProgressRef = useRef(onUncoverProgress);
+    const onBeamPositionUpdateRef = useRef(onBeamPositionUpdate);
+    const onStateChangeRef = useRef(onStateChange);
+
+    useEffect(() => {
+      onUncoverProgressRef.current = onUncoverProgress;
+      onBeamPositionUpdateRef.current = onBeamPositionUpdate;
+      onStateChangeRef.current = onStateChange;
+    });
+
     const stateRef = useRef<{
       activeViewState: 1 | 2 | 3;
       animFrameId: number | null;
       orbitProgressAcc: number;
       lastTime: number;
       isTransitioningToDock: boolean;
-      dockTargetReached: boolean;
+      dockStartTime: number;
       isMediaLoaded: boolean;
     }>({
       activeViewState: 1,
@@ -31,7 +42,7 @@ export const CanvasFluidLightEngine = forwardRef<CanvasFluidLightEngineHandle, C
       orbitProgressAcc: 0,
       lastTime: performance.now(),
       isTransitioningToDock: false,
-      dockTargetReached: false,
+      dockStartTime: 0,
       isMediaLoaded: false,
     });
 
@@ -55,7 +66,7 @@ export const CanvasFluidLightEngine = forwardRef<CanvasFluidLightEngineHandle, C
       sweepDuration: 1.4, // 1.4s
     };
 
-    // 1. Perimeter Node Geometry & Local Bending Mathematics
+    // Perimeter Node Geometry & Local Bending Mathematics
     const getPerimeterNode = useCallback((dist: number, W: number, H: number, R: number) => {
       const L_top = W - 2 * R;
       const L_arc = (Math.PI / 2) * R;
@@ -148,14 +159,14 @@ export const CanvasFluidLightEngine = forwardRef<CanvasFluidLightEngineHandle, C
       };
     }, []);
 
-    // 2. Velocity Ramping Factor
+    // Velocity Ramping Factor
     const getVelocityFactor = (progress: number, cornerBoost: number) => {
       const p = ((progress % 1) + 1) % 1;
       const modulation = Math.cos(p * Math.PI * 8);
       return 1.0 + (cornerBoost - 1.0) * 0.5 * (1 + modulation);
     };
 
-    // 3. Canvas Beam Render Pipeline
+    // Canvas Beam Render Pipeline
     const renderCanvasBeam = useCallback(
       (
         cfg: { spread: number; originLen: number; blur: number; brightness: number; stroke?: number },
@@ -280,10 +291,10 @@ export const CanvasFluidLightEngine = forwardRef<CanvasFluidLightEngineHandle, C
       [getPerimeterNode]
     );
 
-    // 4. Center Sweep Uncover Phase (State 2 -> State 3)
+    // Center Sweep Uncover Phase (State 2 -> State 3)
     const startCenterSweep = useCallback(() => {
       stateRef.current.activeViewState = 2;
-      if (onStateChange) onStateChange(2);
+      onStateChangeRef.current?.(2);
 
       const sweepStartTime = performance.now();
       const sweepDuration = STATE_3_CFG.sweepDuration * 1000; // 1.4s
@@ -313,36 +324,31 @@ export const CanvasFluidLightEngine = forwardRef<CanvasFluidLightEngineHandle, C
           currentY
         );
 
-        if (onUncoverProgress) {
-          onUncoverProgress(currentX);
-        }
-
-        if (onBeamPositionUpdate) {
-          onBeamPositionUpdate(currentX, currentY, 2);
-        }
+        onUncoverProgressRef.current?.(currentX);
+        onBeamPositionUpdateRef.current?.(currentX, currentY, 2);
 
         if (progress < 1) {
           stateRef.current.animFrameId = requestAnimationFrame(sweepStep);
         } else {
           // State 3: Final loaded resting state at left edge
           stateRef.current.activeViewState = 3;
-          if (onStateChange) onStateChange(3);
-          if (onUncoverProgress) onUncoverProgress(0);
-          if (onBeamPositionUpdate) onBeamPositionUpdate(18, 50, 3);
+          onStateChangeRef.current?.(3);
+          onUncoverProgressRef.current?.(0);
+          onBeamPositionUpdateRef.current?.(18, 50, 3);
           renderCanvasBeam(STATE_3_CFG, 0, 0, 50);
         }
       };
 
       stateRef.current.animFrameId = requestAnimationFrame(sweepStep);
-    }, [renderCanvasBeam, onUncoverProgress, onBeamPositionUpdate, onStateChange, STATE_1_CFG, STATE_3_CFG]);
+    }, [renderCanvasBeam, STATE_1_CFG.originLen, STATE_1_CFG.spread, STATE_1_CFG.blur, STATE_1_CFG.brightness, STATE_3_CFG.sweepDuration, STATE_3_CFG.spread, STATE_3_CFG.originLen, STATE_3_CFG.blur, STATE_3_CFG.brightness]);
 
-    // 5. Main Physics Loop
+    // Main Physics Loop
     const startPhysicsLoop = useCallback(() => {
       if (stateRef.current.animFrameId) cancelAnimationFrame(stateRef.current.animFrameId);
       stateRef.current.lastTime = performance.now();
 
       const physicsStep = (time: number) => {
-        const dt = (time - stateRef.current.lastTime) / 1000;
+        const dt = Math.min(0.05, (time - stateRef.current.lastTime) / 1000);
         stateRef.current.lastTime = time;
 
         const baseSpeed = 0.25 * SPEED_SCALE;
@@ -354,15 +360,17 @@ export const CanvasFluidLightEngine = forwardRef<CanvasFluidLightEngineHandle, C
           stateRef.current.orbitProgressAcc += currentVelocity * dt;
           const nextP = ((stateRef.current.orbitProgressAcc % 1) + 1) % 1;
 
-          // Check if transitioning to dock at Right Edge (Target Progress = 0.375)
+          // Check if transitioning to dock at Right Edge (Target Progress ~0.375)
           if (stateRef.current.isTransitioningToDock) {
-            // Target is ~0.375 (Right Edge of container)
             const target = 0.375;
             const crossedTarget = (prevP <= target && nextP >= target) || (prevP > 0.8 && nextP < 0.4 && nextP >= target);
+            const closeEnough = Math.abs(nextP - target) < 0.04;
+            const timeSinceDock = time - stateRef.current.dockStartTime;
 
-            if (crossedTarget || Math.abs(nextP - target) < 0.05) {
+            // Guaranteed dock: when target is crossed or if timeout safety triggers (max 1.5s after dock request)
+            if (crossedTarget || closeEnough || timeSinceDock > 1500) {
               stateRef.current.isTransitioningToDock = false;
-              startCenterSweep(); // Launch 1.4s horizontal uncover sweep
+              startCenterSweep();
               return;
             }
           }
@@ -380,6 +388,7 @@ export const CanvasFluidLightEngine = forwardRef<CanvasFluidLightEngineHandle, C
       if (stateRef.current.isMediaLoaded) return;
       stateRef.current.isMediaLoaded = true;
       stateRef.current.isTransitioningToDock = true;
+      stateRef.current.dockStartTime = performance.now();
     }, []);
 
     // Replay
@@ -388,16 +397,16 @@ export const CanvasFluidLightEngine = forwardRef<CanvasFluidLightEngineHandle, C
       stateRef.current.isMediaLoaded = false;
       stateRef.current.isTransitioningToDock = false;
       stateRef.current.activeViewState = 1;
-      if (onStateChange) onStateChange(1);
-      if (onUncoverProgress) onUncoverProgress(100);
+      onStateChangeRef.current?.(1);
+      onUncoverProgressRef.current?.(100);
 
       startPhysicsLoop();
 
-      // Ensure a brief, smooth orbit (~800ms) so user experiences the corner folding physics, then dock and sweep!
+      // Ensure at least 1.5s of loading orbit so the user sees the fluid corner-folding physics, then dock and sweep!
       setTimeout(() => {
         triggerLoadingComplete();
-      }, 900);
-    }, [startPhysicsLoop, triggerLoadingComplete, onStateChange, onUncoverProgress]);
+      }, 1500);
+    }, [startPhysicsLoop, triggerLoadingComplete]);
 
     useImperativeHandle(
       ref,
@@ -428,7 +437,7 @@ export const CanvasFluidLightEngine = forwardRef<CanvasFluidLightEngineHandle, C
       return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    // Initial Execution
+    // Run ONLY ONCE on mount
     useEffect(() => {
       if (autoPlay) {
         replay();
@@ -436,7 +445,8 @@ export const CanvasFluidLightEngine = forwardRef<CanvasFluidLightEngineHandle, C
       return () => {
         if (stateRef.current.animFrameId) cancelAnimationFrame(stateRef.current.animFrameId);
       };
-    }, [autoPlay, replay]);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     return (
       <div ref={containerRef} className="absolute inset-0 w-full h-full pointer-events-none z-20">
