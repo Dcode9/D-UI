@@ -6,13 +6,11 @@ export const App: React.FC = () => {
   const engineRef = useRef<CanvasFluidLightEngineHandle>(null);
   const textWrapperRef = useRef<HTMLDivElement>(null);
   const [engineState, setEngineState] = useState<1 | 2 | 3>(1);
-  const [lightPos, setLightPos] = useState<number>(100);
 
-  // Synchronize initial state & handle global click to replay
+  // Initialize uncover CSS variable and global click replay listener
   useEffect(() => {
     if (textWrapperRef.current) {
-      textWrapperRef.current.style.setProperty('--uncover-pct', '100%');
-      textWrapperRef.current.style.setProperty('--light-pos', '100%');
+      textWrapperRef.current.style.setProperty('--uncover-left', '100%');
     }
 
     const handleGlobalClick = () => {
@@ -27,9 +25,6 @@ export const App: React.FC = () => {
 
   const handleStateChange = (state: 1 | 2 | 3) => {
     setEngineState(state);
-    if (state === 3) {
-      setLightPos(18); // Left resting position
-    }
   };
 
   return (
@@ -60,41 +55,45 @@ export const App: React.FC = () => {
 
       {/* ========================================================================= */}
       {/* 1. HERO TYPOGRAPHY CONTAINER (BEHIND THE GLOW AT z-10)                   */}
-      {/* Uses CSS mask-image with soft feathering driven directly by CSS variable  */}
+      {/* Revealed smoothly via --uncover-left as the canvas beam sweeps across    */}
       {/* ========================================================================= */}
       <div
         ref={textWrapperRef}
-        className="relative z-10 w-full flex items-center justify-center px-4"
+        className="relative z-10 w-full flex items-center justify-center"
         style={
           {
-            '--uncover-pct': '100%',
-            '--light-pos': '100%',
-            maskImage:
+            '--uncover-left': '100%',
+            clipPath:
               engineState === 1
-                ? 'none'
-                : 'linear-gradient(to right, transparent 0%, transparent calc(var(--uncover-pct) - 4%), black calc(var(--uncover-pct) + 3%), black 100%)',
-            WebkitMaskImage:
+                ? 'inset(0 0 0 100%)'
+                : engineState === 2
+                ? 'inset(0 0 0 var(--uncover-left, 100%))'
+                : 'none',
+            WebkitClipPath:
               engineState === 1
-                ? 'none'
-                : 'linear-gradient(to right, transparent 0%, transparent calc(var(--uncover-pct) - 4%), black calc(var(--uncover-pct) + 3%), black 100%)',
+                ? 'inset(0 0 0 100%)'
+                : engineState === 2
+                ? 'inset(0 0 0 var(--uncover-left, 100%))'
+                : 'none',
             opacity: engineState === 1 ? 0 : 1,
-            willChange: 'mask-image, opacity',
+            willChange: 'clip-path, opacity',
           } as React.CSSProperties
         }
       >
         <WwdcTextEffect
           text="'Verse"
           direction="left-to-right"
-          lightPosition={engineState === 3 ? 18 : lightPos}
+          lightPosition={18}
           bloomStrength={1.0}
           chromaticIntensity={1.0}
           oppositeGlowStrength={1.0}
+          animateIn={false}
         />
       </div>
 
       {/* ========================================================================= */}
       {/* 2. FULLSCREEN CANVAS FLUID LIGHT ENGINE (IN FRONT OF TEXT AT z-20)        */}
-      {/* Mix-blend-mode: screen ensures the blazing white light passes OVER text   */}
+      {/* Mix-blend-mode: screen ensures the beam passes OVER the text             */}
       {/* ========================================================================= */}
       <CanvasFluidLightEngine
         ref={engineRef}
@@ -102,7 +101,6 @@ export const App: React.FC = () => {
         targetElementRef={textWrapperRef}
         onStateChange={handleStateChange}
       />
-
     </main>
   );
 };
