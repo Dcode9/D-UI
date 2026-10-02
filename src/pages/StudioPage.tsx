@@ -250,35 +250,31 @@ export const StudioPage: React.FC = () => {
         </section>
       </main>
 
-      {/* ========================================================================= */}
-      {/* 2. THE AUTHENTIC D'TUNES PLAYER DOCK (WITH CUSTOM MEZZOTINT BLUR)          */}
-      {/* ========================================================================= */}
-      <aside className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-6xl px-4 pointer-events-auto">
-        <DTunesPlayerDock
-          track={currentTrack}
-          isPlaying={isPlaying}
-          onTogglePlay={handleTogglePlay}
-          onPrev={handlePrev}
-          onNext={handleNext}
-          currentTime={currentTime}
-          duration={currentTrack.duration}
-          onSeek={handleSeek}
-          volume={volume}
-          onVolumeChange={setVolume}
-          shuffle={shuffle}
-          onToggleShuffle={() => setShuffle(!shuffle)}
-          repeatMode={repeatMode}
-          onToggleRepeat={handleToggleRepeat}
-          isQueueOpen={isQueueOpen}
-          onToggleQueue={() => setIsQueueOpen(!isQueueOpen)}
-          queueCount={tracks.length}
-          isLyricsOpen={isLyricsOpen}
-          onToggleLyrics={() => setIsLyricsOpen(!isLyricsOpen)}
-          isEqualizerOpen={isEqualizerOpen}
-          onToggleEqualizer={() => setIsEqualizerOpen(!isEqualizerOpen)}
-          onToggleLike={handleToggleLike}
-        />
-      </aside>
+      {/* 2. THE REAL D'TUNES PLAYER FOOTER STACK (WITH CUSTOM MEZZOTINT MATERIAL) */}
+      <DTunesPlayerDock
+        track={currentTrack}
+        isPlaying={isPlaying}
+        onTogglePlay={handleTogglePlay}
+        onPrev={handlePrev}
+        onNext={handleNext}
+        currentTime={currentTime}
+        duration={currentTrack.duration}
+        onSeek={handleSeek}
+        volume={volume}
+        onVolumeChange={setVolume}
+        shuffle={shuffle}
+        onToggleShuffle={() => setShuffle(!shuffle)}
+        repeatMode={repeatMode}
+        onToggleRepeat={handleToggleRepeat}
+        isQueueOpen={isQueueOpen}
+        onToggleQueue={() => setIsQueueOpen(!isQueueOpen)}
+        queueCount={tracks.length}
+        isLyricsOpen={isLyricsOpen}
+        onToggleLyrics={() => setIsLyricsOpen(!isLyricsOpen)}
+        isEqualizerOpen={isEqualizerOpen}
+        onToggleEqualizer={() => setIsEqualizerOpen(!isEqualizerOpen)}
+        onToggleLike={handleToggleLike}
+      />
     </div>
   );
 };

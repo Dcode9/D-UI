@@ -42,26 +42,25 @@ export const BottomPlayerBar: React.FC<BottomPlayerBarProps> = ({
   };
 
   return (
-    <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-6xl px-4 pointer-events-auto ${className}`}>
-      <DTunesPlayerDock
-        track={rest.track || mockTrack}
-        isPlaying={isPlaying}
-        onTogglePlay={onTogglePlay}
-        onPrev={rest.onPrev || (() => {})}
-        onNext={rest.onNext || (() => {})}
-        currentTime={numericCurrentTime}
-        duration={numericDuration}
-        onSeek={rest.onSeek || (() => {})}
-        volume={rest.volume ?? 0.75}
-        onVolumeChange={rest.onVolumeChange || (() => {})}
-        shuffle={rest.shuffle ?? false}
-        onToggleShuffle={rest.onToggleShuffle || (() => {})}
-        repeatMode={rest.repeatMode ?? 'off'}
-        onToggleRepeat={rest.onToggleRepeat || (() => {})}
-        onToggleLike={rest.onToggleLike || (() => {})}
-        {...rest}
-      />
-    </div>
+    <DTunesPlayerDock
+      track={rest.track || mockTrack}
+      isPlaying={isPlaying}
+      onTogglePlay={onTogglePlay}
+      onPrev={rest.onPrev || (() => {})}
+      onNext={rest.onNext || (() => {})}
+      currentTime={numericCurrentTime}
+      duration={numericDuration}
+      onSeek={rest.onSeek || (() => {})}
+      volume={rest.volume ?? 0.75}
+      onVolumeChange={rest.onVolumeChange || (() => {})}
+      shuffle={rest.shuffle ?? false}
+      onToggleShuffle={rest.onToggleShuffle || (() => {})}
+      repeatMode={rest.repeatMode ?? 'off'}
+      onToggleRepeat={rest.onToggleRepeat || (() => {})}
+      onToggleLike={rest.onToggleLike || (() => {})}
+      className={className}
+      {...rest}
+    />
   );
 };
 

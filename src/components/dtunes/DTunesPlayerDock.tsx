@@ -1,21 +1,19 @@
-import React from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import {
   Shuffle,
   SkipBack,
   SkipForward,
+  Repeat,
   Mic2,
   Sliders,
   ListMusic,
   Heart,
-  Maximize2,
+  ChevronUp,
+  Volume2,
+  VolumeX,
+  Volume1,
 } from 'lucide-react';
 import { Track, RepeatMode } from './types';
-import {
-  OpticalButton,
-  OpticalSeekbar,
-  OpticalVolumeControl,
-  OpticalRepeatButton,
-} from './OpticalControls';
 import { PlayPauseTrigger } from './PlayPauseTrigger';
 import { GrainBlurFilter, GRAIN_BLUR_DEFAULTS } from './GrainBlurSurface';
 
@@ -41,12 +39,23 @@ export interface DTunesPlayerDockProps {
   onToggleLyrics?: () => void;
   isEqualizerOpen?: boolean;
   onToggleEqualizer?: () => void;
-  onExpandCard?: () => void;
   onToggleLike: (id: string) => void;
   className?: string;
-  filterId?: string;
 }
 
+// Formatter for mm:ss
+const formatTime = (seconds: number): string => {
+  if (isNaN(seconds) || seconds < 0) return '0:00';
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+};
+
+/**
+ * EXACT DUPLICATION OF REAL D'TUNES BOTTOM BAR (#player-footer)
+ * - Stack: #info-island (top right) + #player-card (bottom pill)
+ * - Material: Custom Mezzotint Grain Blur replaces generic CSS backdrop-blur
+ */
 export const DTunesPlayerDock: React.FC<DTunesPlayerDockProps> = ({
   track,
   isPlaying,
@@ -64,127 +73,298 @@ export const DTunesPlayerDock: React.FC<DTunesPlayerDockProps> = ({
   onToggleRepeat,
   isQueueOpen = false,
   onToggleQueue,
-  queueCount = 0,
+  queueCount = 3,
   isLyricsOpen = false,
   onToggleLyrics,
   isEqualizerOpen = false,
   onToggleEqualizer,
-  onExpandCard,
   onToggleLike,
   className = '',
-  filterId = 'dtunes-dock-grain-blur',
 }) => {
+  // Seekbar canvas ref & state
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [hoverProgress, setHoverProgress] = useState<number | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [prevVolume, setPrevVolume] = useState(volume > 0 ? volume : 0.75);
+
+  const safeDuration = duration > 0 ? duration : 1;
+  const currentProgress = Math.min(1, Math.max(0, currentTime / safeDuration));
+
+  // Audio Visualizer Waveform Canvas animation loop (Identical to D'Tunes visualizer.js)
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    let animId: number;
+    let t = 0;
+
+    const render = () => {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+
+      if (canvas.width !== width * dpr || canvas.height !== height * dpr) {
+        canvas.width = width * dpr;
+        canvas.height = height * dpr;
+      }
+
+      ctx.save();
+      ctx.scale(dpr, dpr);
+      ctx.clearRect(0, 0, width, height);
+
+      const centerY = height / 2;
+      t += 0.04;
+
+      // Draw background track line
+      ctx.beginPath();
+      ctx.moveTo(0, centerY);
+      ctx.lineTo(width, centerY);
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // Number of wave points
+      const points = 72;
+      const progressX = width * currentProgress;
+
+      // Unplayed Waveform (dim white/zinc)
+      ctx.beginPath();
+      ctx.moveTo(0, centerY);
+      for (let i = 0; i <= points; i++) {
+        const x = (i / points) * width;
+        const normX = i / points;
+        const env = Math.sin(normX * Math.PI); // taper ends
+        const wave = isPlaying
+          ? Math.sin(normX * 12 + t) * 6 * env + Math.sin(normX * 24 - t * 1.5) * 3 * env
+          : Math.sin(normX * 8) * 3 * env;
+
+        ctx.lineTo(x, centerY + wave);
+      }
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Played Waveform (glow white/cyan with progress clipping)
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(0, 0, progressX, height);
+      ctx.clip();
+
+      ctx.beginPath();
+      ctx.moveTo(0, centerY);
+      for (let i = 0; i <= points; i++) {
+        const x = (i / points) * width;
+        const normX = i / points;
+        const env = Math.sin(normX * Math.PI);
+        const wave = isPlaying
+          ? Math.sin(normX * 12 + t) * 6 * env + Math.sin(normX * 24 - t * 1.5) * 3 * env
+          : Math.sin(normX * 8) * 3 * env;
+
+        ctx.lineTo(x, centerY + wave);
+      }
+      ctx.strokeStyle = '#22d3ee';
+      ctx.shadowColor = 'rgba(34, 211, 238, 0.8)';
+      ctx.shadowBlur = isPlaying ? 8 : 2;
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+      ctx.restore();
+
+      ctx.restore();
+      animId = requestAnimationFrame(render);
+    };
+
+    animId = requestAnimationFrame(render);
+    return () => cancelAnimationFrame(animId);
+  }, [isPlaying, currentProgress]);
+
+  // Handle seeking
+  const handleSeekPointer = (clientX: number, target: HTMLDivElement) => {
+    const rect = target.getBoundingClientRect();
+    const frac = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    setHoverProgress(frac);
+    onSeek(frac * safeDuration);
+  };
+
+  const toggleMute = () => {
+    if (volume > 0) {
+      setPrevVolume(volume);
+      onVolumeChange(0);
+    } else {
+      onVolumeChange(prevVolume || 0.75);
+    }
+  };
+
+  const VolumeIcon = volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
+
   return (
     <div
-      className={`relative w-full max-w-6xl mx-auto rounded-3xl py-3 px-4 sm:px-6 flex items-center justify-between gap-4 sm:gap-6 shadow-[0_30px_70px_rgba(0,0,0,0.95),0_0_1px_rgba(255,255,255,0.3)] border border-white/15 select-none ${className}`}
+      id="player-footer"
+      className={`fixed bottom-6 left-6 right-6 z-50 flex flex-col items-end pointer-events-none gap-2 select-none ${className}`}
     >
+      {/* ========================================================================= */}
       {/* 1. MASTER MEZZOTINT GRAIN BLUR SHADER PIPELINE (Settled: 55px / 0.70 / 8.5px) */}
+      {/* ========================================================================= */}
       <GrainBlurFilter
-        id={filterId}
+        id="dtunes-mezzotint-filter"
         scatter={GRAIN_BLUR_DEFAULTS.scatter}
         grainDensity={GRAIN_BLUR_DEFAULTS.grainDensity}
         opticalDiffusion={GRAIN_BLUR_DEFAULTS.opticalDiffusion}
         octaves={1}
       />
 
-      {/* 2. OPTICAL DIFFUSION BACKDROP (8.5px diffusion spread + dense obsidian tint so underlying sharp text cannot be seen) */}
+      {/* ========================================================================= */}
+      {/* 2. TOP ITEM: #info-island (Floating Now Playing Card over bottom bar right) */}
+      {/* ========================================================================= */}
       <div
-        className="absolute inset-0 rounded-[inherit] pointer-events-none"
-        style={{
-          backdropFilter: `blur(${GRAIN_BLUR_DEFAULTS.opticalDiffusion}px)`,
-          WebkitBackdropFilter: `blur(${GRAIN_BLUR_DEFAULTS.opticalDiffusion}px)`,
-          backgroundColor: 'rgba(9, 9, 13, 0.88)',
-        }}
-      />
-
-      {/* 3. PROCEDURAL MEZZOTINT INK GRAIN TEXTURE (GPU rendered via SVG turbulence - soft velvet photographic grain) */}
-      <svg
-        className="absolute inset-0 w-full h-full rounded-[inherit] pointer-events-none opacity-20 mix-blend-overlay"
-        aria-hidden="true"
+        id="info-island"
+        className="pointer-events-auto relative w-full md:w-80 rounded-2xl p-2 pr-4 flex items-center shadow-2xl border border-white/15 overflow-hidden transition-all duration-300 group"
       >
-        <filter id="dtunes-dock-surface-grain">
-          <feTurbulence
-            type="fractalNoise"
-            baseFrequency="0.70"
-            numOctaves="1"
-            stitchTiles="stitch"
-          />
-          <feColorMatrix type="saturate" values="0" />
-        </filter>
-        <rect width="100%" height="100%" filter="url(#dtunes-dock-surface-grain)" />
-      </svg>
-
-      {/* 4. SPECULAR RIDGE TOP RIM & INNER GLOSS CATCH */}
-      <div className="absolute inset-0 rounded-[inherit] pointer-events-none border-t border-white/40 shadow-[inset_0_1px_1px_rgba(255,255,255,0.22)]" />
-
-      {/* ========================================================================= */}
-      {/* ZONE 1: CURRENT TRACK INFORMATION & ARTWORK                              */}
-      {/* ========================================================================= */}
-      <div className="relative z-10 flex items-center gap-3.5 min-w-0 flex-shrink-0 sm:w-80">
-        {/* Album Artwork thumbnail with hover zoom & expand icon */}
+        {/* CUSTOM MEZZOTINT GRAIN BLUR BACKDROP (Replaces generic blur(24px)) */}
         <div
-          onClick={onExpandCard}
-          className="relative w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 border border-white/20 cursor-pointer shadow-md group"
-          title="Click to view Full Card Visualizer"
+          className="absolute inset-0 rounded-[inherit] pointer-events-none"
+          style={{
+            backdropFilter: `blur(${GRAIN_BLUR_DEFAULTS.opticalDiffusion}px)`,
+            WebkitBackdropFilter: `blur(${GRAIN_BLUR_DEFAULTS.opticalDiffusion}px)`,
+            backgroundColor: 'rgba(14, 14, 20, 0.78)',
+          }}
+        />
+        {/* Procedural SVG Turbulence Ink Grain */}
+        <svg
+          className="absolute inset-0 w-full h-full rounded-[inherit] pointer-events-none opacity-30 mix-blend-overlay"
+          aria-hidden="true"
         >
+          <filter id="info-island-surface-grain">
+            <feTurbulence type="fractalNoise" baseFrequency="0.70" numOctaves="1" stitchTiles="stitch" />
+            <feColorMatrix type="saturate" values="0" />
+          </filter>
+          <rect width="100%" height="100%" filter="url(#info-island-surface-grain)" />
+        </svg>
+        {/* Specular ridge top catch */}
+        <div className="absolute inset-0 rounded-[inherit] pointer-events-none border-t border-white/35 shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)]" />
+
+        {/* Expand queue chevron (reveals on hover like in real D'Tunes) */}
+        <button
+          onClick={onToggleQueue}
+          id="btn-expand-queue"
+          className="relative z-10 w-0 opacity-0 overflow-hidden text-gray-400 hover:text-white transition-all duration-300 group-hover:w-7 group-hover:opacity-100 flex items-center justify-center flex-shrink-0 cursor-pointer hidden md:flex"
+          aria-label="Expand Queue"
+          title="Open Queue"
+        >
+          <ChevronUp size={18} className="transition-transform duration-300 group-hover:-translate-y-0.5" />
+        </button>
+
+        {/* Album Artwork thumbnail with spinning glow ring */}
+        <div
+          id="album-art-wrapper"
+          className="relative z-10 w-12 h-12 flex-shrink-0 cursor-pointer rounded-xl shadow-md ml-1 my-1 overflow-hidden border border-white/20 group/art"
+        >
+          {/* Animated Glow Border */}
+          <div
+            className="absolute -inset-1 rounded-xl opacity-60 blur-[6px] bg-gradient-to-r from-cyan-400 via-purple-500 to-amber-400 animate-spin pointer-events-none"
+            style={{ animationDuration: '9s' }}
+          />
           <img
+            id="curr-art-img"
             src={track.coverUrl}
             alt={track.title}
-            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110 select-none"
+            className="relative z-10 w-full h-full object-cover transition-transform duration-300 group-hover/art:scale-105 select-none"
           />
-          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-            <Maximize2 size={16} className="text-white" />
+        </div>
+
+        {/* Track Title & Artist Meta */}
+        <div id="player-track-meta" className="relative z-10 flex items-center justify-between flex-1 min-w-0 ml-3">
+          <div className="flex-1 min-w-0 flex flex-col justify-center cursor-pointer">
+            <h3
+              id="p-title"
+              className="font-bold text-white text-sm truncate hover:text-cyan-300 transition-colors leading-tight"
+              title={track.title}
+            >
+              {track.title}
+            </h3>
+            <p id="p-artist" className="text-xs text-gray-400 truncate mt-0.5 leading-tight">
+              {track.artist}
+            </p>
           </div>
-        </div>
 
-        {/* Track Titles */}
-        <div className="flex-1 min-w-0">
-          <h4
-            onClick={onExpandCard}
-            className="text-xs sm:text-sm font-bold text-white truncate cursor-pointer hover:text-cyan-300 transition-colors leading-tight"
-            title={track.title}
+          {/* Heart Like Button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleLike(track.id);
+            }}
+            id="p-like-btn"
+            className={`p-1.5 transition cursor-pointer flex-shrink-0 ml-2 rounded-lg ${
+              track.isLiked ? 'text-red-500 hover:text-red-400' : 'text-gray-400 hover:text-white'
+            }`}
+            aria-label="Favorite"
+            title={track.isLiked ? 'Remove Like' : 'Like'}
           >
-            {track.title}
-          </h4>
-          <p className="text-[11px] font-mono text-zinc-400 truncate mt-0.5 leading-tight">
-            {track.artist}
-          </p>
+            <Heart size={18} className={track.isLiked ? 'fill-red-500' : 'fill-none'} />
+          </button>
         </div>
-
-        {/* Heart Like Button */}
-        <button
-          onClick={() => onToggleLike(track.id)}
-          className={`p-2 rounded-xl transition-all cursor-pointer ${
-            track.isLiked ? 'text-red-500 hover:text-red-400' : 'text-zinc-500 hover:text-zinc-200'
-          }`}
-          title={track.isLiked ? 'Remove from Favorites' : 'Add to Favorites'}
-          aria-label="Favorite"
-        >
-          <Heart size={18} className={track.isLiked ? 'fill-red-500' : 'fill-none'} />
-        </button>
       </div>
 
       {/* ========================================================================= */}
-      {/* ZONE 2: MASTER PLAYBACK TRANSPORT & WAVEFORM SEEKBAR                      */}
+      {/* 3. MAIN PLAYER PILL (#player-card: Exactly matching D'Tunes layout)       */}
       {/* ========================================================================= */}
-      <div className="relative z-10 flex-1 flex flex-col items-center max-w-xl">
-        {/* Transport Buttons Row */}
-        <div className="flex items-center gap-2.5 sm:gap-4 mb-2">
-          <OpticalButton
-            size="sm"
-            variant="ghost"
-            active={shuffle}
+      <div
+        id="player-card"
+        className="pointer-events-auto relative w-full rounded-2xl shadow-2xl p-2 px-4 flex items-center gap-4 h-[72px] border border-white/15 overflow-hidden"
+      >
+        {/* CUSTOM MEZZOTINT GRAIN BLUR BACKDROP (Replaces generic blur(24px)) */}
+        <div
+          className="absolute inset-0 rounded-[inherit] pointer-events-none"
+          style={{
+            backdropFilter: `blur(${GRAIN_BLUR_DEFAULTS.opticalDiffusion}px)`,
+            WebkitBackdropFilter: `blur(${GRAIN_BLUR_DEFAULTS.opticalDiffusion}px)`,
+            backgroundColor: 'rgba(14, 14, 20, 0.80)',
+          }}
+        />
+        {/* Procedural SVG Turbulence Ink Grain */}
+        <svg
+          className="absolute inset-0 w-full h-full rounded-[inherit] pointer-events-none opacity-30 mix-blend-overlay"
+          aria-hidden="true"
+        >
+          <filter id="player-card-surface-grain">
+            <feTurbulence type="fractalNoise" baseFrequency="0.70" numOctaves="1" stitchTiles="stitch" />
+            <feColorMatrix type="saturate" values="0" />
+          </filter>
+          <rect width="100%" height="100%" filter="url(#player-card-surface-grain)" />
+        </svg>
+        {/* Specular ridge top catch */}
+        <div className="absolute inset-0 rounded-[inherit] pointer-events-none border-t border-white/35 shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)]" />
+
+        {/* ----------------------------------------------------------------------- */}
+        {/* ZONE A: TRANSPORT CONTROLS (Left side of player-card)                  */}
+        {/* ----------------------------------------------------------------------- */}
+        <div className="relative z-10 flex items-center gap-3 flex-shrink-0">
+          {/* Shuffle button */}
+          <button
             onClick={onToggleShuffle}
-            title={`Shuffle: ${shuffle ? 'Active' : 'Off'}`}
+            id="btn-shuffle"
+            className={`transition cursor-pointer p-1.5 rounded-lg ${
+              shuffle ? 'text-cyan-400' : 'text-gray-400 hover:text-white'
+            }`}
+            title={`Shuffle: ${shuffle ? 'On' : 'Off'}`}
+            aria-label="Shuffle"
           >
-            <Shuffle size={16} className={shuffle ? 'text-cyan-400' : 'text-zinc-400'} />
-          </OpticalButton>
+            <Shuffle size={18} />
+          </button>
 
-          <OpticalButton size="sm" variant="ghost" onClick={onPrev} title="Previous Track (Left Arrow)">
-            <SkipBack size={18} />
-          </OpticalButton>
+          {/* Previous button */}
+          <button
+            onClick={onPrev}
+            id="btn-prev"
+            className="text-gray-300 hover:text-white transition cursor-pointer p-1.5 rounded-lg flex-shrink-0"
+            title="Previous (Left Arrow)"
+            aria-label="Previous"
+          >
+            <SkipBack size={20} />
+          </button>
 
-          {/* Hero Center Play/Pause Trigger (Snappy 120ms Morph, Obsidian Geometry, Spacebar Support, No Aura) */}
+          {/* Master Play/Pause Hero Button (Snappy 120ms morph, obsidian finish, no aura) */}
           <PlayPauseTrigger
             isPlaying={isPlaying}
             onToggle={onTogglePlay}
@@ -193,76 +373,180 @@ export const DTunesPlayerDock: React.FC<DTunesPlayerDockProps> = ({
             enableSpacebar={true}
           />
 
-          <OpticalButton size="sm" variant="ghost" onClick={onNext} title="Next Track (Right Arrow)">
-            <SkipForward size={18} />
-          </OpticalButton>
+          {/* Next button */}
+          <button
+            onClick={onNext}
+            id="btn-next"
+            className="text-gray-300 hover:text-white transition cursor-pointer p-1.5 rounded-lg flex-shrink-0"
+            title="Next (Right Arrow)"
+            aria-label="Next"
+          >
+            <SkipForward size={20} />
+          </button>
 
-          {/* Repeat Button with Mode Cycling */}
-          <OpticalRepeatButton repeatMode={repeatMode} onToggle={onToggleRepeat} />
+          {/* Repeat button with mode cycling */}
+          <button
+            onClick={onToggleRepeat}
+            id="btn-repeat"
+            className={`relative transition cursor-pointer p-1.5 rounded-lg ${
+              repeatMode !== 'off' ? 'text-cyan-400' : 'text-gray-400 hover:text-white'
+            }`}
+            title={`Repeat: ${repeatMode}`}
+            aria-label="Repeat"
+          >
+            <Repeat size={18} />
+            {repeatMode === 'one' && (
+              <span className="absolute -top-1 -right-1 text-[8px] font-mono font-bold bg-cyan-400 text-black rounded-full px-1">
+                1
+              </span>
+            )}
+          </button>
         </div>
 
-        {/* Needle Waveform Seekbar */}
-        <div className="w-full">
-          <OpticalSeekbar
-            currentTime={currentTime}
-            duration={duration}
-            isPlaying={isPlaying}
-            onSeek={onSeek}
-          />
+        {/* ----------------------------------------------------------------------- */}
+        {/* ZONE B: WAVEFORM VISUALIZER SEEK BAR (Center of player-card)            */}
+        {/* ----------------------------------------------------------------------- */}
+        <div className="relative z-10 flex-1 h-full relative flex flex-col justify-center group px-4 border-l border-white/10 ml-2">
+          <div
+            id="seek-bar-container"
+            onPointerDown={(e) => {
+              setIsDragging(true);
+              handleSeekPointer(e.clientX, e.currentTarget);
+            }}
+            onPointerMove={(e) => {
+              if (isDragging || e.buttons === 1) {
+                handleSeekPointer(e.clientX, e.currentTarget);
+              } else {
+                const rect = e.currentTarget.getBoundingClientRect();
+                setHoverProgress(Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)));
+              }
+            }}
+            onPointerUp={() => setIsDragging(false)}
+            onPointerLeave={() => {
+              if (!isDragging) setHoverProgress(null);
+            }}
+            className="w-full h-[46px] relative flex items-center cursor-pointer select-none"
+          >
+            {/* Hover Tooltip showing Timestamp */}
+            {hoverProgress !== null && (
+              <div
+                id="seek-tooltip"
+                className="absolute -top-8 -translate-x-1/2 px-2 py-0.5 rounded bg-black/90 border border-white/20 text-[10px] font-mono text-white shadow-xl pointer-events-none z-30"
+                style={{ left: `${hoverProgress * 100}%` }}
+              >
+                {formatTime(hoverProgress * safeDuration)}
+              </div>
+            )}
+
+            {/* Canvas Visualizer Waveform */}
+            <canvas
+              ref={canvasRef}
+              id="visualizer-canvas"
+              className="absolute inset-0 w-full h-full pointer-events-none"
+            />
+
+            {/* Circular Scrubber Thumb (matching D'Tunes input[type=range] thumb) */}
+            <div
+              className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow-[0_0_8px_rgba(255,255,255,0.9)] pointer-events-none transition-transform duration-75"
+              style={{ left: `calc(${currentProgress * 100}% - 6px)` }}
+            />
+          </div>
+
+          {/* Timestamps Row */}
+          <div id="seek-time-row" className="flex justify-between w-full text-[11px] text-gray-400 font-mono -mt-1 px-1">
+            <span id="seek-current-time">{formatTime(currentTime)}</span>
+            <span id="seek-duration-time">{formatTime(safeDuration)}</span>
+          </div>
         </div>
-      </div>
 
-      {/* ========================================================================= */}
-      {/* ZONE 3: AUDIO UTILITIES, LYRICS, EQ, QUEUE, VOLUME                        */}
-      {/* ========================================================================= */}
-      <div className="relative z-10 hidden lg:flex items-center gap-2 flex-shrink-0">
-        {/* Lyrics Button with Live Activity Pip */}
-        <OpticalButton
-          size="sm"
-          variant="glass"
-          active={isLyricsOpen}
-          onClick={onToggleLyrics}
-          title="Synchronized Lyrics"
-        >
-          <Mic2 size={16} />
-          {isPlaying && (
-            <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-          )}
-        </OpticalButton>
+        {/* ----------------------------------------------------------------------- */}
+        {/* ZONE C: UTILITIES & VOLUME (Right side of player-card)                  */}
+        {/* ----------------------------------------------------------------------- */}
+        <div className="relative z-10 flex items-center gap-2 border-l border-white/10 pl-3 flex-shrink-0">
+          {/* Lyrics button with cyan indicator dot */}
+          <button
+            onClick={onToggleLyrics}
+            id="btn-lyrics"
+            className={`relative p-2 transition rounded-full hover:bg-white/10 cursor-pointer ${
+              isLyricsOpen ? 'text-cyan-400' : 'text-gray-400 hover:text-white'
+            }`}
+            title="Lyrics (L)"
+            aria-label="Lyrics"
+          >
+            <Mic2 size={18} />
+            {isPlaying && (
+              <span
+                id="lyrics-indicator-dot"
+                className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-cyan-400 animate-pulse shadow-sm shadow-cyan-500/50"
+              />
+            )}
+          </button>
 
-        {/* Studio Equalizer Button */}
-        <OpticalButton
-          size="sm"
-          variant="glass"
-          active={isEqualizerOpen}
-          onClick={onToggleEqualizer}
-          title="Studio Graphic Equalizer"
-        >
-          <Sliders size={16} />
-        </OpticalButton>
+          {/* Studio Equalizer button */}
+          <button
+            onClick={onToggleEqualizer}
+            id="btn-equalizer"
+            className={`p-2 transition rounded-full hover:bg-white/10 cursor-pointer ${
+              isEqualizerOpen ? 'text-cyan-400' : 'text-gray-400 hover:text-white'
+            }`}
+            title="Studio Equalizer & Bass Control (E)"
+            aria-label="Equalizer"
+          >
+            <Sliders size={18} />
+          </button>
 
-        {/* Queue Drawer Button with Count Badge */}
-        <OpticalButton
-          size="sm"
-          variant="glass"
-          active={isQueueOpen}
-          onClick={onToggleQueue}
-          title="Play Queue"
-          className="relative"
-        >
-          <ListMusic size={16} />
-          {queueCount > 0 && (
-            <span className="absolute -top-1 -right-1 px-1.5 py-0.2 rounded-full text-[9px] font-mono font-bold bg-cyan-400 text-zinc-950">
-              {queueCount}
-            </span>
-          )}
-        </OpticalButton>
+          {/* Queue button with badge count */}
+          <button
+            onClick={onToggleQueue}
+            id="btn-queue-desktop"
+            className={`p-2 transition rounded-full hover:bg-white/10 hidden md:flex items-center justify-center relative cursor-pointer ${
+              isQueueOpen ? 'text-cyan-400' : 'text-gray-400 hover:text-white'
+            }`}
+            title="Queue (Q)"
+            aria-label="Queue"
+          >
+            <ListMusic size={18} />
+            {queueCount > 0 && (
+              <span
+                id="queue-badge-count"
+                className="absolute -top-1 -right-1 text-[9px] font-black bg-cyan-400 text-black rounded-full px-1.5 min-w-[16px] h-4 flex items-center justify-center"
+              >
+                {queueCount}
+              </span>
+            )}
+          </button>
 
-        {/* Tactile Divider */}
-        <div className="w-[1px] h-6 bg-white/15 mx-1" />
+          {/* Volume slider */}
+          <div className="w-24 hidden md:flex items-center gap-1.5" id="volume-control-wrapper">
+            <button
+              onClick={toggleMute}
+              className="text-gray-400 hover:text-white transition cursor-pointer p-1"
+              title={volume === 0 ? 'Unmute' : 'Mute'}
+              aria-label="Mute toggle"
+            >
+              <VolumeIcon size={16} />
+            </button>
+            <input
+              type="range"
+              id="volume-slider"
+              min="0"
+              max="1"
+              step="0.01"
+              value={volume}
+              onChange={(e) => onVolumeChange(parseFloat(e.target.value))}
+              className="w-full h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-cyan-400 hover:bg-gray-500 transition-colors"
+              aria-label="Volume"
+            />
+          </div>
 
-        {/* Volume Slider with Mute Toggle & Percentage */}
-        <OpticalVolumeControl volume={volume} onChange={onVolumeChange} />
+          {/* Hi-Fi Lossless badge */}
+          <div
+            id="ios-quality-badge"
+            className="hidden lg:flex text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-white/10 text-gray-300 border border-white/15"
+          >
+            Hi-Fi
+          </div>
+        </div>
       </div>
     </div>
   );
