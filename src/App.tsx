@@ -1,106 +1,101 @@
-import React, { useRef, useState, useEffect } from 'react';
-import { WwdcTextEffect } from './components/WwdcTextEffect';
-import { CanvasFluidLightEngine, CanvasFluidLightEngineHandle } from './components/CanvasFluidLightEngine';
+import React, { useState, useEffect } from 'react';
+import { ShowcasePage } from './pages/ShowcasePage';
+import { StudioPage } from './pages/StudioPage';
+import { Layers, Sliders } from 'lucide-react';
 
 export const App: React.FC = () => {
-  const engineRef = useRef<CanvasFluidLightEngineHandle>(null);
-  const textWrapperRef = useRef<HTMLDivElement>(null);
-  const [engineState, setEngineState] = useState<1 | 2 | 3>(1);
-
-  // Initialize uncover CSS variable and global click replay listener
-  useEffect(() => {
-    if (textWrapperRef.current) {
-      textWrapperRef.current.style.setProperty('--uncover-left', '100%');
+  // Determine initial route based on browser path
+  const getInitialRoute = (): 'components' | 'studio' => {
+    if (typeof window !== 'undefined') {
+      const path = window.location.pathname;
+      if (path.includes('studio')) {
+        return 'studio';
+      }
     }
+    return 'components';
+  };
 
-    const handleGlobalClick = () => {
-      if (engineRef.current?.getState() === 3) {
-        engineRef.current.replay();
+  const [currentRoute, setCurrentRoute] = useState<'components' | 'studio'>(getInitialRoute);
+
+  // Sync route with browser history
+  const navigateTo = (route: 'components' | 'studio') => {
+    setCurrentRoute(route);
+    const newPath = route === 'studio' ? '/studio' : '/components';
+    if (window.location.pathname !== newPath) {
+      window.history.pushState({ route }, '', newPath);
+    }
+  };
+
+  useEffect(() => {
+    const handlePopState = () => {
+      const path = window.location.pathname;
+      if (path.includes('studio')) {
+        setCurrentRoute('studio');
+      } else {
+        setCurrentRoute('components');
       }
     };
 
-    window.addEventListener('click', handleGlobalClick);
-    return () => window.removeEventListener('click', handleGlobalClick);
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  const handleStateChange = (state: 1 | 2 | 3) => {
-    setEngineState(state);
-  };
-
   return (
-    <main
-      className={`relative w-screen h-screen bg-[#040406] overflow-hidden flex items-center justify-center select-none text-[#e2e2e8] ${
-        engineState === 3 ? 'cursor-pointer' : 'cursor-default'
-      }`}
-    >
-      {/* Background Subtle Radial Vignette */}
-      <div
-        className="absolute inset-0 pointer-events-none z-0"
-        style={{
-          background: 'radial-gradient(circle at 50% 50%, #08080e 0%, #040406 95%)',
-        }}
-      />
+    <div className="relative min-h-screen w-full bg-[#050508] text-white">
+      {/* FLOATING TOP NAVIGATION BAR */}
+      <nav className="fixed top-3 left-0 right-0 z-50 flex items-center justify-between px-4 sm:px-8 max-w-6xl mx-auto pointer-events-none">
+        {/* Brand / Logo */}
+        <div
+          onClick={() => navigateTo('components')}
+          className="pointer-events-auto flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/80 backdrop-blur-xl border border-white/15 text-xs font-mono font-bold text-white shadow-2xl cursor-pointer hover:border-white/30 transition-all"
+        >
+          <span className="w-2 h-2 rounded-full bg-cyan-400" />
+          <span className="tracking-widest uppercase">D'Tunes</span>
+          <span className="text-zinc-600">•</span>
+          <span className="text-zinc-400 text-[10px]">Optical UI</span>
+        </div>
 
-      {/* SVG Fine Film Grain Filter (Maelie Lusson aesthetic) */}
-      <svg className="hidden" aria-hidden="true">
-        <filter id="film-grain">
-          <feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="3" stitchTiles="stitch" />
-          <feColorMatrix type="matrix" values="0 0 0 0 1   0 0 0 0 1   0 0 0 0 1  0 0 0 0.04 0" />
-        </filter>
-      </svg>
-      <div
-        className="absolute inset-0 pointer-events-none z-30 opacity-30 mix-blend-overlay"
-        style={{ filter: 'url(#film-grain)' }}
-      />
+        {/* Center Nav Switcher: /components vs /studio */}
+        <div className="pointer-events-auto flex items-center gap-1 p-1 rounded-full bg-black/85 backdrop-blur-2xl border border-white/20 shadow-2xl font-mono text-xs">
+          <button
+            onClick={() => navigateTo('components')}
+            className={`px-4 py-1.5 rounded-full font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+              currentRoute === 'components'
+                ? 'bg-white text-zinc-950 shadow-lg'
+                : 'text-zinc-400 hover:text-white'
+            }`}
+          >
+            <Layers size={12} />
+            <span>Showcase (/components)</span>
+          </button>
+          <button
+            onClick={() => navigateTo('studio')}
+            className={`px-4 py-1.5 rounded-full font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+              currentRoute === 'studio'
+                ? 'bg-white text-zinc-950 shadow-lg'
+                : 'text-zinc-400 hover:text-white'
+            }`}
+          >
+            <Sliders size={12} />
+            <span>Studio Lab (/studio)</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse ml-0.5" />
+          </button>
+        </div>
 
-      {/* ========================================================================= */}
-      {/* 1. HERO TYPOGRAPHY CONTAINER (BEHIND THE GLOW AT z-10)                   */}
-      {/* Revealed smoothly via --uncover-left as the canvas beam sweeps across    */}
-      {/* ========================================================================= */}
-      <div
-        ref={textWrapperRef}
-        className="relative z-10 w-full flex items-center justify-center"
-        style={
-          {
-            '--uncover-left': '100%',
-            clipPath:
-              engineState === 1
-                ? 'inset(0 0 0 100%)'
-                : engineState === 2
-                ? 'inset(0 0 0 var(--uncover-left, 100%))'
-                : 'none',
-            WebkitClipPath:
-              engineState === 1
-                ? 'inset(0 0 0 100%)'
-                : engineState === 2
-                ? 'inset(0 0 0 var(--uncover-left, 100%))'
-                : 'none',
-            opacity: engineState === 1 ? 0 : 1,
-            willChange: 'clip-path, opacity',
-          } as React.CSSProperties
-        }
-      >
-        <WwdcTextEffect
-          text="'Verse"
-          direction="left-to-right"
-          lightPosition={18}
-          bloomStrength={1.0}
-          chromaticIntensity={1.0}
-          oppositeGlowStrength={1.0}
-          animateIn={false}
-        />
-      </div>
+        {/* Right Active Status */}
+        <div className="hidden sm:flex pointer-events-auto items-center gap-2 px-3 py-1.5 rounded-full bg-black/80 backdrop-blur-xl border border-white/15 text-[11px] font-mono text-zinc-400 shadow-xl">
+          <span className="text-emerald-400 font-bold">01: Material</span>
+          <span>→</span>
+          <span className="text-cyan-400 font-bold">02: Play/Pause</span>
+        </div>
+      </nav>
 
-      {/* ========================================================================= */}
-      {/* 2. FULLSCREEN CANVAS FLUID LIGHT ENGINE (IN FRONT OF TEXT AT z-20)        */}
-      {/* Mix-blend-mode: screen ensures the beam passes OVER the text             */}
-      {/* ========================================================================= */}
-      <CanvasFluidLightEngine
-        ref={engineRef}
-        autoPlay={true}
-        targetElementRef={textWrapperRef}
-        onStateChange={handleStateChange}
-      />
-    </main>
+      {/* ACTIVE PAGE CONTENT */}
+      {currentRoute === 'components' ? (
+        <ShowcasePage onNavigateToStudio={() => navigateTo('studio')} />
+      ) : (
+        <StudioPage onNavigateToShowcase={() => navigateTo('components')} />
+      )}
+    </div>
   );
 };
