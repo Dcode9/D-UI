@@ -189,45 +189,30 @@ export const CanvasFluidLightEngine = forwardRef<CanvasFluidLightEngineHandle, C
     ) => {
       ctx.clearRect(0, 0, W, H);
 
-      // Center Sweep Horizontal Phase (State 2)
+      // Center Sweep Horizontal Phase (State 2 & State 3 resting)
       if (customX !== null && customY !== null) {
         const px = (customX / 100) * W;
         const py = (customY / 100) * H;
         const beamW = (cfg.originLen / 100) * W;
         const beamH = (cfg.spread / 100) * W;
-        const maxRadius = Math.max(beamW, beamH) * 0.75;
 
         ctx.save();
         ctx.filter = `blur(${cfg.blur}px)`;
         ctx.globalCompositeOperation = 'screen';
 
         const b = Math.min(4, Math.max(0.2, cfg.brightness));
+        const rMax = Math.max(beamW, beamH) * 0.6;
 
-        // Diffuse Chromatic Dispersion Halo (Strict Null Falloff at outer edge)
-        const grad = ctx.createRadialGradient(px, py, 0, px, py, maxRadius);
-        grad.addColorStop(0, `rgba(255, 255, 255, ${Math.min(1, 0.98 * b)})`);
-        grad.addColorStop(0.18, `rgba(255, 195, 80, ${Math.min(1, 0.75 * b)})`);
-        grad.addColorStop(0.4, `rgba(130, 205, 255, ${Math.min(1, 0.35 * b)})`);
-        grad.addColorStop(0.68, `rgba(60, 130, 240, ${Math.min(1, 0.08 * b)})`);
-        grad.addColorStop(0.85, 'rgba(0, 0, 0, 0)');
+        // Exact reference gradient: cool white → silvery blue → blue-gray → null
+        const grad = ctx.createRadialGradient(px, py, 0, px, py, rMax);
+        grad.addColorStop(0, `rgba(255, 255, 255, ${Math.min(1, 0.95 * b)})`);
+        grad.addColorStop(0.3, `rgba(210, 220, 240, ${Math.min(1, 0.65 * b)})`);
+        grad.addColorStop(0.65, `rgba(140, 160, 200, ${Math.min(1, 0.3 * b)})`);
         grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
 
         ctx.fillStyle = grad;
         ctx.beginPath();
-        ctx.arc(px, py, maxRadius, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Incandescent Core Filament
-        const coreRadius = maxRadius * 0.35;
-        const coreGrad = ctx.createRadialGradient(px, py, 0, px, py, coreRadius);
-        coreGrad.addColorStop(0, `rgba(255, 255, 255, ${Math.min(1, 1.0 * b)})`);
-        coreGrad.addColorStop(0.45, `rgba(250, 252, 255, ${Math.min(1, 0.6 * b)})`);
-        coreGrad.addColorStop(0.85, 'rgba(0, 0, 0, 0)');
-        coreGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-
-        ctx.fillStyle = coreGrad;
-        ctx.beginPath();
-        ctx.arc(px, py, coreRadius, 0, Math.PI * 2);
+        ctx.ellipse(px, py, beamW / 2, beamH / 2, Math.PI / 2, 0, Math.PI * 2);
         ctx.fill();
 
         ctx.restore();
@@ -287,10 +272,10 @@ export const CanvasFluidLightEngine = forwardRef<CanvasFluidLightEngineHandle, C
         centerNode.y,
         beamLength * 0.75
       );
+      // Exact reference gradient: cool white → silvery blue → blue-gray → null
       grad.addColorStop(0, `rgba(255, 255, 255, ${Math.min(1, 0.95 * b)})`);
-      grad.addColorStop(0.25, `rgba(255, 195, 95, ${Math.min(1, 0.75 * b)})`);
-      grad.addColorStop(0.55, `rgba(130, 205, 255, ${Math.min(1, 0.35 * b)})`);
-      grad.addColorStop(0.85, 'rgba(0, 0, 0, 0)');
+      grad.addColorStop(0.35, `rgba(210, 220, 240, ${Math.min(1, 0.65 * b)})`);
+      grad.addColorStop(0.7, `rgba(140, 160, 200, ${Math.min(1, 0.3 * b)})`);
       grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
 
       ctx.fillStyle = grad;
@@ -338,11 +323,11 @@ export const CanvasFluidLightEngine = forwardRef<CanvasFluidLightEngineHandle, C
         const sElapsed = time - sweepStartTime;
         const progress = Math.min(1, sElapsed / sweepDuration);
 
-        // Quintic smoothstep for ultra-buttery zero-jerk acceleration & deceleration
+        // Reference quadratic ease-in-out (same as user's original)
         const easeP =
           progress < 0.5
-            ? 16 * Math.pow(progress, 5)
-            : 1 - Math.pow(-2 * progress + 2, 5) / 2;
+            ? 2 * progress * progress
+            : 1 - Math.pow(-2 * progress + 2, 2) / 2;
 
         const currentX = 100 - easeP * 100;
         const currentY = 50;
@@ -369,7 +354,7 @@ export const CanvasFluidLightEngine = forwardRef<CanvasFluidLightEngineHandle, C
         if (progress < 1) {
           stateRef.current.animFrameId = requestAnimationFrame(sweepStep);
         } else {
-          // STATE 3: FINAL LOADED RESTING STATE
+          // STATE 3: FINAL LOADED RESTING STATE — render resting glow at left edge
           stateRef.current.activeViewState = 3;
           onStateChangeRef.current?.(3);
 
@@ -378,8 +363,8 @@ export const CanvasFluidLightEngine = forwardRef<CanvasFluidLightEngineHandle, C
             targetElementRef.current.style.opacity = '1';
           }
 
-          // Clear canvas so the locked commit df455d3 typography glow takes over with zero double-halo
-          ctx.clearRect(0, 0, W, H);
+          // Render resting glow at left edge (matches reference: renderCanvasBeam(STATE_3_CFG, 0, 0, 50))
+          renderCanvasBeam(ctx, W, H, STATE_3_CFG, 0, 0, 50);
         }
       };
 
