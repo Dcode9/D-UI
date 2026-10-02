@@ -45,7 +45,7 @@ export const App: React.FC = () => {
           D'Tunes
         </span>
 
-        <div className="pointer-events-auto flex items-center gap-1 p-1 rounded-full bg-white/5 border border-white/10 backdrop-blur-xl font-mono text-xs">
+        <div className="pointer-events-auto flex items-center gap-1 p-1 rounded-full bg-[#0a0a0f]/90 border border-white/10 shadow-[0_10px_25px_rgba(0,0,0,0.7)] font-mono text-xs">
           <button
             onClick={() => navigateTo('components')}
             className={`px-3 py-1 rounded-full transition-all cursor-pointer ${
