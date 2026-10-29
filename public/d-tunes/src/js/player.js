@@ -349,6 +349,19 @@
                 document.body.classList.add('has-active-track');
                 document.getElementById('queue-wrapper')?.classList.remove('preview-expanded', 'track-swap-out');
                 document.getElementById('player-footer')?.classList.remove('translate-y-[150%]', 'opacity-0');
+                // Takeover transition if Up Next preview was active
+                const island = document.getElementById('info-island');
+                const previewPill = document.getElementById('queue-preview-pill');
+                const qWrap = document.getElementById('queue-wrapper');
+                if (island && previewPill && qWrap && qWrap.classList.contains('preview-expanded')) {
+                    island.classList.add('island-exit-up');
+                    previewPill.classList.add('preview-takeover-up');
+                    setTimeout(() => {
+                        island.classList.remove('island-exit-up');
+                        previewPill.classList.remove('preview-takeover-up');
+                        qWrap.classList.remove('preview-expanded');
+                    }, 400);
+                }
                 ui.updateMetadata(state.currentTrack, { loading: true });
                 ui.setPlayerLoading(true);
                 ui.updatePlayBtn();
