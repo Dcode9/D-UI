@@ -1,0 +1,298 @@
+const http = require('node:http');
+const fs = require('node:fs');
+const path = require('node:path');
+const { getRecommendations, PLAYLIST_TYPES } = require('./lib/recommendationEngine');
+const { deduplicateSongs } = require('./lib/deduplication');
+const store = require('./lib/jsonStore');
+const saavn = require('./lib/saavnClient');
+const lyricsService = require('./lib/lyricsService');
+
+const PORT = Number(process.env.PORT || 3000);
+const PUBLIC_ROOT = __dirname;
+
+function sendJson(res, status, body) {
+  res.writeHead(status, { 'content-type': 'application/json', 'access-control-allow-origin': '*' });
+  res.end(JSON.stringify(body));
+}
+
+function parseBody(req) {
+  if (req.body !== undefined && req.body !== null) {
+    if (typeof req.body === 'object') return Promise.resolve(req.body);
+    if (typeof req.body === 'string') {
+      try { return Promise.resolve(req.body ? JSON.parse(req.body) : {}); } catch (error) { return Promise.reject(error); }
+    }
+  }
+  return new Promise((resolve, reject) => {
+    let raw = '';
+    req.on('data', (chunk) => { raw += chunk; });
+    req.on('end', () => {
+      if (!raw) return resolve({});
+      try { resolve(JSON.parse(raw)); } catch (error) { reject(error); }
+    });
+    req.on('error', (err) => reject(err));
+  });
+}
+
+function topKeys(map = {}, count = 3) {
+  return Object.entries(map).sort((a, b) => Number(b[1]) - Number(a[1])).slice(0, count).map(([key]) => key).filter(Boolean);
+}
+
+async function externalCandidates({ playlistType, profile, options, limit }) {
+  const candidates = [];
+  const artists = topKeys(profile.artist_scores_json, 3);
+  const languages = topKeys(profile.language_scores_json, 2);
+
+  if (options.seedSongId) {
+    // 1. First get direct recommendation suggestions for this exact track from recommendation backend
+    const suggestions = await saavn.getSongSuggestions(options.seedSongId, limit).catch(() => []);
+    candidates.push(...suggestions);
+
+    const seed = await saavn.getSong(options.seedSongId).catch(() => null);
+    if (seed) {
+      options.seedSong = seed;
+      if (seed.primary_artists) {
+        candidates.push(...await saavn.getArtistTopSongs(seed.primary_artists, Math.ceil(limit / 2)).catch(() => []));
+      }
+      candidates.push(...await saavn.searchSongs(`${seed.primary_artists} ${seed.title}`, limit).catch(() => []));
+      if (seed.album) candidates.push(...await saavn.searchSongs(`${seed.album} ${seed.primary_artists}`, limit).catch(() => []));
+    }
+  }
+
+  if (options.seedArtist) {
+    candidates.push(...await saavn.getArtistTopSongs(options.seedArtist, limit).catch(() => []));
+    candidates.push(...await saavn.searchSongs(`${options.seedArtist} top songs`, limit).catch(() => []));
+  }
+
+  if (options.language) {
+    candidates.push(...await saavn.searchSongs(`top ${options.language} hits 2026`, limit).catch(() => []));
+  }
+
+  if (playlistType === PLAYLIST_TYPES.LATE_NIGHT || playlistType === PLAYLIST_TYPES.CHILL_VIBES) {
+    candidates.push(...await saavn.searchSongs('soft acoustic lofi romantic songs', limit).catch(() => []));
+    candidates.push(...await saavn.searchSongs('midnight chill unplugged melodies', limit).catch(() => []));
+  } else if (playlistType === PLAYLIST_TYPES.DISCOVERY || playlistType === PLAYLIST_TYPES.DISCOVER_WEEKLY) {
+    candidates.push(...await saavn.searchSongs(`${languages[0] || ''} new indie trending songs`.trim(), limit).catch(() => []));
+    candidates.push(...await saavn.searchSongs('fresh breakthrough indie pop 2026', limit).catch(() => []));
+  } else if (playlistType === PLAYLIST_TYPES.DAILY_MIX_1) {
+    if (artists[0]) candidates.push(...await saavn.getArtistTopSongs(artists[0], limit).catch(() => []));
+    candidates.push(...await saavn.searchSongs(`${languages[0] || ''} top hits`, limit).catch(() => []));
+  } else if (playlistType === PLAYLIST_TYPES.DAILY_MIX_2) {
+    if (artists[1] || artists[0]) candidates.push(...await saavn.getArtistTopSongs(artists[1] || artists[0], limit).catch(() => []));
+    candidates.push(...await saavn.searchSongs(`${languages[1] || languages[0] || ''} viral songs`, limit).catch(() => []));
+  } else if (playlistType === PLAYLIST_TYPES.RELEASE_RADAR) {
+    candidates.push(...await saavn.searchSongs(`${languages[0] || ''} new releases 2026`, limit).catch(() => []));
+    candidates.push(...await saavn.searchSongs('latest new songs 2026', limit).catch(() => []));
+  }
+
+  for (const artist of artists) {
+    candidates.push(...await saavn.getArtistTopSongs(artist, Math.ceil(limit / 2)).catch(() => []));
+  }
+  for (const language of languages) {
+    candidates.push(...await saavn.searchSongs(`${language} top hits`, Math.ceil(limit / 2)).catch(() => []));
+  }
+
+  // Always bring in rich trending data
+  candidates.push(...await saavn.getTrending(limit).catch(() => []));
+
+  return deduplicateSongs(candidates);
+}
+
+async function recommendationDeps(options = {}) {
+  return {
+    getTasteProfile: store.getTasteProfile,
+    getRecentEvents: store.getRecentEvents,
+    getUserSongScores: store.getUserSongScores,
+    getLocalCandidates: store.getLocalCandidates,
+    fetchExternalCandidates: (ctx) => externalCandidates({ ...ctx, options: { ...ctx.options, ...options } }),
+  };
+}
+
+async function handleApi(req, res, url) {
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204, { 'access-control-allow-origin': '*', 'access-control-allow-methods': 'GET,POST,OPTIONS', 'access-control-allow-headers': 'content-type' });
+    return res.end();
+  }
+
+  if (req.method === 'POST' && url.pathname === '/api/music/event') {
+    const body = await parseBody(req);
+    if (!body.userId || !body.eventType || (!body.songSaavnId && !body.song?.saavn_id && !body.song?.id)) {
+      return sendJson(res, 400, { error: 'userId, eventType, and songSaavnId/song are required' });
+    }
+    const event = store.recordEvent(body);
+    return sendJson(res, 201, { event });
+  }
+
+  if (req.method === 'POST' && url.pathname === '/api/music/recalculate-profile') {
+    const body = await parseBody(req);
+    const userId = body.userId || url.searchParams.get('userId') || 'anonymous';
+    return sendJson(res, 200, { profile: store.rebuildUserTasteProfile(userId) });
+  }
+
+  if (req.method === 'GET' && url.pathname === '/api/music/recommendations') {
+    const userId = url.searchParams.get('userId') || 'anonymous';
+    const type = url.searchParams.get('type') || PLAYLIST_TYPES.FOR_YOU;
+    const limit = Number(url.searchParams.get('limit') || 25);
+    const deps = await recommendationDeps({ language: url.searchParams.get('language') });
+    const songs = await getRecommendations(userId, { limit, playlistType: type, language: url.searchParams.get('language') }, deps);
+    return sendJson(res, 200, { songs: deduplicateSongs(songs) });
+  }
+
+  if (req.method === 'GET' && url.pathname === '/api/music/similar') {
+    const seedSongId = url.searchParams.get('songId');
+    const limit = Number(url.searchParams.get('limit') || 25);
+    const deps = await recommendationDeps({ seedSongId });
+    const songs = await getRecommendations('anonymous', { limit, playlistType: PLAYLIST_TYPES.SIMILAR, seedSongId }, deps);
+    return sendJson(res, 200, { songs: deduplicateSongs(songs) });
+  }
+
+  if (req.method === 'GET' && url.pathname === '/api/music/artist-radio') {
+    const seedArtist = url.searchParams.get('artist');
+    const userId = url.searchParams.get('userId') || 'anonymous';
+    const limit = Number(url.searchParams.get('limit') || 25);
+    const deps = await recommendationDeps({ seedArtist });
+    const songs = await getRecommendations(userId, { limit, playlistType: PLAYLIST_TYPES.ARTIST_RADIO, seedArtist }, deps);
+    return sendJson(res, 200, { songs: deduplicateSongs(songs) });
+  }
+
+  if (req.method === 'GET' && url.pathname === '/api/music/playlist') {
+    const type = url.searchParams.get('type') || PLAYLIST_TYPES.LATE_NIGHT;
+    const userId = url.searchParams.get('userId') || 'anonymous';
+    const limit = Number(url.searchParams.get('limit') || 25);
+    const deps = await recommendationDeps({ language: url.searchParams.get('language') });
+    const songs = await getRecommendations(userId, { limit, playlistType: type, language: url.searchParams.get('language') }, deps);
+    return sendJson(res, 200, { songs: deduplicateSongs(songs) });
+  }
+
+  if (req.method === 'GET' && url.pathname === '/api/music/lyrics') {
+    const track = url.searchParams.get('track') || url.searchParams.get('track_name') || url.searchParams.get('title') || url.searchParams.get('name');
+    const artist = url.searchParams.get('artist') || url.searchParams.get('artist_name') || url.searchParams.get('primary_artists') || '';
+    const album = url.searchParams.get('album') || '';
+    const duration = Number(url.searchParams.get('duration') || 0);
+
+    if (!track) {
+      return sendJson(res, 400, { error: 'track or title parameter is required' });
+    }
+
+    try {
+      const result = await lyricsService.fetchLyrics({ track, artist, album, duration });
+      return sendJson(res, 200, {
+        lyrics: result,
+        success: Boolean(result && (result.syncedLyrics || result.plainLyrics || result.instrumental))
+      });
+    } catch (err) {
+      return sendJson(res, 500, { error: err.message || 'Failed to fetch lyrics' });
+    }
+  }
+
+  if (req.method === 'GET' && url.pathname === '/api/music/spotify-playlist') {
+    const rawUrl = url.searchParams.get('url');
+    if (!rawUrl) {
+      return sendJson(res, 400, { error: 'url parameter is required' });
+    }
+    try {
+      const spotifyUrlRegex = /(?:https?:\/\/)?(?:open\.spotify\.com\/(?:embed\/)?|spotify:)(playlist|album|track)[/:]([a-zA-Z0-9]+)/i;
+      const match = rawUrl.trim().match(spotifyUrlRegex);
+      if (!match) {
+        return sendJson(res, 400, { error: 'Invalid Spotify URL' });
+      }
+      const type = match[1].toLowerCase();
+      const id = match[2];
+      const embedUrl = `https://open.spotify.com/embed/${type}/${id}`;
+      
+      const fetchResponse = await fetch(embedUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+        }
+      });
+      
+      if (!fetchResponse.ok) {
+        return sendJson(res, fetchResponse.status, { error: `Spotify embed returned HTTP ${fetchResponse.status}` });
+      }
+      
+      const html = await fetchResponse.text();
+      let title = `Spotify ${type}`;
+      let tracks = [];
+      
+      const scriptMatch = html.match(/<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/);
+      if (scriptMatch && scriptMatch[1]) {
+        try {
+          const json = JSON.parse(scriptMatch[1]);
+          const pageProps = json.props?.pageProps;
+          const stateData = pageProps?.state?.data;
+          const entity = stateData?.entity || pageProps?.entity || stateData?.[type];
+          if (entity) {
+            title = entity.name || entity.title || title;
+            const trackList = entity.trackList || stateData?.playlist?.trackList || stateData?.album?.trackList;
+            if (Array.isArray(trackList)) {
+              tracks = trackList.map(t => {
+                const songTitle = t.title || t.name || '';
+                const subtitle = t.subtitle || (Array.isArray(t.artists) ? t.artists.map(a => a.name).join(', ') : '');
+                return { title: songTitle, artist: subtitle };
+              }).filter(t => t.title);
+            } else if (type === 'track') {
+              tracks = [{
+                title: entity.name || entity.title || '',
+                artist: entity.subtitle || (Array.isArray(entity.artists) ? entity.artists.map(a => a.name).join(', ') : '')
+              }];
+            }
+          }
+        } catch (parseErr) {
+          console.warn('[Server Spotify] Parse __NEXT_DATA__ error:', parseErr);
+        }
+      }
+      
+      return sendJson(res, 200, { ok: true, title, tracks });
+    } catch (err) {
+      return sendJson(res, 500, { error: err.message || 'Failed to fetch Spotify playlist' });
+    }
+  }
+
+  return sendJson(res, 404, { error: 'Not found' });
+}
+
+function serveStatic(req, res, url) {
+  const ALIASES = { '/download': '/downloads/index.html', '/downloads': '/downloads/index.html' };
+  const requested = url.pathname === '/'
+    ? '/index.html'
+    : (ALIASES[url.pathname] || decodeURIComponent(url.pathname));
+  let filePath = path.normalize(path.join(PUBLIC_ROOT, requested));
+  if (!filePath.startsWith(PUBLIC_ROOT)) {
+    res.writeHead(403); return res.end('Forbidden');
+  }
+  if (fs.existsSync(filePath) && fs.statSync(filePath).isDirectory()) {
+    filePath = path.join(filePath, 'index.html');
+  }
+  fs.readFile(filePath, (error, data) => {
+    if (error) { res.writeHead(404); return res.end('Not found'); }
+    const ext = path.extname(filePath);
+    const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.json': 'application/json' };
+    res.writeHead(200, { 'content-type': types[ext] || 'application/octet-stream' });
+    res.end(data);
+  });
+}
+
+if (require.main === module) {
+  http.createServer(async (req, res) => {
+    const url = new URL(req.url, `http://${req.headers.host}`);
+    try {
+      if (url.pathname.startsWith('/api/')) return await handleApi(req, res, url);
+      return serveStatic(req, res, url);
+    } catch (error) {
+      return sendJson(res, 500, { error: error.message });
+    }
+  }).listen(PORT, '0.0.0.0', () => {
+    console.log(`D'Tunes listening on http://0.0.0.0:${PORT}`);
+  });
+}
+
+module.exports = async (req, res) => {
+  try {
+    const host = req.headers['x-forwarded-host'] || req.headers.host || 'localhost';
+    const protocol = req.headers['x-forwarded-proto'] || 'https';
+    const url = new URL(req.url, `${protocol}://${host}`);
+    return await handleApi(req, res, url);
+  } catch (error) {
+    return sendJson(res, 500, { error: error.message });
+  }
+};

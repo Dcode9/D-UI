@@ -3,6 +3,9 @@
   "rewrites": [
     { "source": "/components", "destination": "/index.html" },
     { "source": "/studio", "destination": "/studio.html" },
-    { "source": "/studio.html", "destination": "/studio.html" }
+    { "source": "/studio.html", "destination": "/studio.html" },
+    { "source": "/d-tunes", "destination": "/d-tunes/index.html" },
+    { "source": "/d-tunes/(.*)", "destination": "/d-tunes/$1" },
+    { "source": "/api/(.*)", "destination": "/api/index.js" }
   ]
 }

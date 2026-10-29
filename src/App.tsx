@@ -66,6 +66,13 @@ export const App: React.FC = () => {
           >
             Studio
           </button>
+          <a
+            href="/d-tunes"
+            className="px-3 py-1 rounded-full transition-all text-zinc-400 hover:text-white flex items-center gap-1.5 cursor-pointer"
+          >
+            <span>D'Tunes App</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
+          </a>
         </div>
       </nav>
 
