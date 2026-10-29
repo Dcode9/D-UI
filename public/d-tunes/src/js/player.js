@@ -511,8 +511,7 @@
                 if (typeof viz !== 'undefined') viz.start();
                 updateMediaPosition();
             },
-            next: (force = false) => {
-                if (typeof viz !== 'undefined' && viz.triggerTrackTransition) viz.triggerTrackTransition('next'); 
+            next: (force = false) => { 
                 if (state.userQueue.length > 0) {
                     const nextSong = state.userQueue.shift();
                     player.playDirect(nextSong);
@@ -576,8 +575,7 @@
                     }
                 }
             },
-            prev: () => {
-                if (typeof viz !== 'undefined' && viz.triggerTrackTransition) viz.triggerTrackTransition('prev'); 
+            prev: () => { 
                 if (state.queue.length === 0) return;
                 if (audio.currentTime > 3) {
                     audio.currentTime = 0;
@@ -605,11 +603,7 @@
                     player.playDirect(state.queue[prevIdx]);
                 }
             },
-            setVolume: (val) => {
-                const clamped = Math.max(0, Math.min(1, parseFloat(val) || 0));
-                audio.volume = clamped;
-                if (typeof window.updateVolumeUI === 'function') window.updateVolumeUI(clamped);
-            },
+            setVolume: (val) => { audio.volume = Math.max(0, Math.min(1, val)); },
             toggleShuffle: () => { 
                 state.shuffle = !state.shuffle; 
                 localStorage.setItem('playShuffle', state.shuffle);

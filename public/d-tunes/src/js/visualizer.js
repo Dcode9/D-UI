@@ -114,16 +114,6 @@
         const VIZ_LOW_BINS_END = 5, VIZ_MID_BINS_START = 10, VIZ_MID_BINS_END = 40;
         const VIZ_SILENCE_THRESHOLD = 0.001;
         let isVizLoopRunning = false;
-
-        // Custom Track Change Waveform Collapse & Expansion Animation State
-        const trackTransition = {
-            active: false,
-            direction: 'next', // 'next' or 'prev'
-            startTime: 0,
-            duration: 520, // ms
-            flattenDuration: 110, // ms
-        };
-
         const viz = {
             start: () => {
                 if (!isVizLoopRunning) {
@@ -131,15 +121,8 @@
                     requestAnimationFrame(viz.render);
                 }
             },
-            triggerTrackTransition: (dir = 'next') => {
-                trackTransition.active = true;
-                trackTransition.direction = dir;
-                trackTransition.startTime = performance.now();
-                lastClipProgress = -1;
-                viz.start();
-            },
             render: () => {
-                if (!state.loaded && !trackTransition.active) {
+                if (!state.loaded) {
                     isVizLoopRunning = false;
                     return;
                 }
@@ -149,151 +132,6 @@
                     return;
                 }
                 const width = canvas.width / dpr; const height = canvas.height / dpr; const centerY = height / 2; visualizerCtx.clearRect(0, 0, width, height);
-
-                // Handle Track Change Waveform Collapse/Expansion Animation
-                if (trackTransition.active) {
-                    const now = performance.now();
-                    const elapsed = now - trackTransition.startTime;
-
-                    if (elapsed >= trackTransition.duration) {
-                        trackTransition.active = false;
-                        lastClipProgress = -1;
-                        if (canvas) canvas.style.clipPath = '';
-                        if (vizSeekTrack) vizSeekTrack.style.clipPath = '';
-                    } else {
-                        // Phase 1: Rapid Waveform Flattening
-                        if (elapsed < trackTransition.flattenDuration) {
-                            const flattenP = elapsed / trackTransition.flattenDuration;
-                            const ampScale = 1 - flattenP;
-                            visualizerCtx.beginPath();
-                            visualizerCtx.moveTo(0, centerY);
-                            for (let x = 0; x <= width; x++) {
-                                const baseWave = Math.sin((x / width) * 8 * Math.PI);
-                                visualizerCtx.lineTo(x, centerY + baseWave * 8 * ampScale);
-                            }
-                            visualizerCtx.lineWidth = 2.5;
-                            visualizerCtx.lineCap = 'round';
-                            visualizerCtx.strokeStyle = '#ffffff';
-                            visualizerCtx.shadowColor = 'rgba(255, 255, 255, 0.7)';
-                            visualizerCtx.shadowBlur = 4;
-                            visualizerCtx.stroke();
-                        } else {
-                            // Phase 2: Dual-Line Collapse and Expansion
-                            const animElapsed = elapsed - trackTransition.flattenDuration;
-                            const animTotal = trackTransition.duration - trackTransition.flattenDuration;
-                            const p = Math.min(1, Math.max(0, animElapsed / animTotal));
-                            // Smooth easeInOutQuad
-                            const ease = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
-                            const dir = trackTransition.direction;
-
-                            let oldX1, oldX2, newX1, newX2;
-
-                            if (dir === 'next') {
-                                // Collapsing line shrinks to left:
-                                // Left end stays pinned at 0 till the last
-                                if (ease < 0.85) {
-                                    oldX1 = 0;
-                                    oldX2 = width * (1 - ease / 0.85);
-                                } else {
-                                    // Almost a point width: slides off to left
-                                    const exitP = (ease - 0.85) / 0.15;
-                                    const ptW = 4;
-                                    const shift = exitP * 28;
-                                    oldX1 = -shift;
-                                    oldX2 = -shift + ptW * (1 - exitP);
-                                }
-
-                                // Incoming line simultaneously enters from right:
-                                // Right end stays pinned at width
-                                if (ease < 0.12) {
-                                    const enterP = ease / 0.12;
-                                    newX2 = width;
-                                    newX1 = width - (enterP * 6);
-                                } else {
-                                    const expandP = (ease - 0.12) / 0.88;
-                                    newX2 = width;
-                                    newX1 = width * (1 - expandP);
-                                }
-                            } else {
-                                // Prev: Collapsing line shrinks to right:
-                                // Right end stays pinned at width till the last
-                                if (ease < 0.85) {
-                                    oldX1 = width * (ease / 0.85);
-                                    oldX2 = width;
-                                } else {
-                                    // Almost a point width: slides off to right
-                                    const exitP = (ease - 0.85) / 0.15;
-                                    const ptW = 4;
-                                    const shift = exitP * 28;
-                                    oldX2 = width + shift;
-                                    oldX1 = width + shift - ptW * (1 - exitP);
-                                }
-
-                                // Incoming line simultaneously enters from left:
-                                // Left end stays pinned at 0
-                                if (ease < 0.12) {
-                                    const enterP = ease / 0.12;
-                                    newX1 = 0;
-                                    newX2 = enterP * 6;
-                                } else {
-                                    const expandP = (ease - 0.12) / 0.88;
-                                    newX1 = 0;
-                                    newX2 = width * expandP;
-                                }
-                            }
-
-                            // Keep canvas unclipped during transition for full line visibility
-                            if (canvas) canvas.style.clipPath = 'none';
-                            if (vizSeekTrack) vizSeekTrack.style.clipPath = 'none';
-
-                            // Draw unplayed background track guide
-                            visualizerCtx.beginPath();
-                            visualizerCtx.moveTo(0, centerY);
-                            visualizerCtx.lineTo(width, centerY);
-                            visualizerCtx.lineWidth = 3;
-                            visualizerCtx.lineCap = 'round';
-                            visualizerCtx.strokeStyle = 'rgba(255, 255, 255, 0.14)';
-                            visualizerCtx.stroke();
-
-                            // Draw collapsing old line
-                            if (oldX2 > oldX1) {
-                                visualizerCtx.beginPath();
-                                visualizerCtx.moveTo(Math.max(-50, oldX1), centerY);
-                                visualizerCtx.lineTo(Math.min(width + 50, oldX2), centerY);
-                                visualizerCtx.lineWidth = 3;
-                                visualizerCtx.lineCap = 'round';
-                                visualizerCtx.strokeStyle = `rgba(255, 255, 255, ${Math.max(0.15, 1 - ease * 0.8)})`;
-                                visualizerCtx.shadowColor = 'rgba(255, 255, 255, 0.7)';
-                                visualizerCtx.shadowBlur = 6;
-                                visualizerCtx.stroke();
-                            }
-
-                            // Draw incoming new line
-                            if (newX2 > newX1) {
-                                visualizerCtx.beginPath();
-                                visualizerCtx.moveTo(Math.max(-50, newX1), centerY);
-                                visualizerCtx.lineTo(Math.min(width + 50, newX2), centerY);
-                                visualizerCtx.lineWidth = 3;
-                                visualizerCtx.lineCap = 'round';
-                                visualizerCtx.strokeStyle = `rgba(255, 255, 255, ${0.35 + ease * 0.65})`;
-                                visualizerCtx.shadowColor = 'rgba(255, 255, 255, 0.9)';
-                                visualizerCtx.shadowBlur = 8;
-                                visualizerCtx.stroke();
-                            }
-                        }
-
-                        // Hide the seek edge marker during collapse animation
-                        const seekEdge = document.getElementById('seek-edge-marker');
-                        if (seekEdge) seekEdge.style.opacity = '0';
-
-                        requestAnimationFrame(viz.render);
-                        return;
-                    }
-                }
-
-                // Restore seek edge marker opacity
-                const seekEdge = document.getElementById('seek-edge-marker');
-                if (seekEdge) seekEdge.style.opacity = '1';
                 // Always update the clip-path so the progress line stays visible
                 if(vizSeekTrack && currentProgress !== lastClipProgress) {
                     const progressWidth = width * currentProgress;

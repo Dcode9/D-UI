@@ -423,7 +423,6 @@
     window.dtunesVolume = v;
     const slider = document.getElementById('volume-slider');
     if (slider && !fromSystem) slider.value = v;
-    if (typeof window.updateVolumeUI === 'function') window.updateVolumeUI(v);
     const el = audioEl();
     if (isDesktop && api && api.setSystemVolume) {
       pushSystemVolume(v);

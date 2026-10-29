@@ -6,19 +6,19 @@
  * which loads the same origin). Downloaded songs are handled separately by
  * src/js/offline.js. Bump VERSION to publish a new shell.
  */
-const VERSION = 'dtunes-shell-v1.1.4';
+const VERSION = 'dtunes-shell-v1.1.3';
 const NETWORK_TIMEOUT_MS = 3000;
 
 // Same-origin shell assets (no query strings; lookups ignore the ?v= cache-buster).
 const SHELL = [
   '/d-tunes/',
   '/d-tunes/index.html',
-  '/manifest.json',
-  '/DTunes.svg',
-  '/haptics.js',
-  '/favicon.ico',
-  '/assets/favicon.png',
-  '/assets/apple-touch-icon.png',
+  '/d-tunes/manifest.json',
+  '/d-tunes/DTunes.svg',
+  '/d-tunes/haptics.js',
+  '/d-tunes/favicon.ico',
+  '/d-tunes/assets/favicon.png',
+  '/d-tunes/assets/apple-touch-icon.png',
   '/d-tunes/src/css/styles.css',
   '/d-tunes/src/js/preload.js',
   '/d-tunes/src/js/dverseClient.js',
@@ -121,7 +121,7 @@ async function networkFirst(request, fallbackKey) {
   const cache = await caches.open(VERSION);
   if (typeof navigator !== 'undefined' && !navigator.onLine) {
     const cached = (await cache.match(fallbackKey))
-      || (await cache.match('/index.html'))
+      || (await cache.match('/d-tunes/index.html'))
       || (await cache.match('/'));
     if (cached) return cached;
   }
@@ -137,7 +137,7 @@ async function networkFirst(request, fallbackKey) {
     return await Promise.race([network, timeout]);
   } catch (err) {
     const cached = (await cache.match(fallbackKey))
-      || (await cache.match('/index.html'))
+      || (await cache.match('/d-tunes/index.html'))
       || (await cache.match('/'));
     if (cached) {
       network.catch(() => {});
@@ -195,7 +195,7 @@ self.addEventListener('fetch', (event) => {
   if (url.protocol !== 'http:' && url.protocol !== 'https:') return;
 
   if (request.mode === 'navigate') {
-    event.respondWith(networkFirst(request, '/index.html'));
+    event.respondWith(networkFirst(request, '/d-tunes/index.html'));
     return;
   }
 
