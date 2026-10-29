@@ -512,7 +512,6 @@
                 updateMediaPosition();
             },
             next: (force = false) => {
-                if (typeof viz !== 'undefined' && viz.triggerTrackTransition) viz.triggerTrackTransition('next'); 
                 if (state.userQueue.length > 0) {
                     const nextSong = state.userQueue.shift();
                     player.playDirect(nextSong);
@@ -577,7 +576,6 @@
                 }
             },
             prev: () => {
-                if (typeof viz !== 'undefined' && viz.triggerTrackTransition) viz.triggerTrackTransition('prev'); 
                 if (state.queue.length === 0) return;
                 if (audio.currentTime > 3) {
                     audio.currentTime = 0;
