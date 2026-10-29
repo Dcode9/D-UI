@@ -663,7 +663,10 @@
                     cloudLibrary.setLibrary(songToLike || { id: songId }, true);
                     ui.renderLibraryLists();
                 }
-                if(state.currentTrack && state.currentTrack.id === songId) ui.updateMetadata(state.currentTrack); 
+                if(state.currentTrack && state.currentTrack.id === songId) {
+                    ui.updateMetadata(state.currentTrack);
+                    if (nextLiked) document.getElementById('p-like-btn')?.classList.add('heart-just-liked');
+                } 
                 ui.renderPlaylists(); 
                 if (!document.getElementById('view-playlist').classList.contains('hidden') && document.getElementById('playlist-view-title').textContent === 'Liked Songs') { ui.openPlaylist('Liked Songs'); }
             },

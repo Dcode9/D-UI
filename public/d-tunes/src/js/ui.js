@@ -1590,6 +1590,57 @@
                     </div>
                 </div>`;
             },
+            heartMarkup: () => `<svg class="heart-glyph" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>`,
+            createNowPlayingInner: (song, artistSuffix = '') => {
+                const title = utils.escapeHtml(song.name || song.title || 'Unknown');
+                const artist = utils.escapeHtml(song.artist || 'Unknown');
+                const img = song.img || FALLBACK_ART;
+                const liked = typeof player !== 'undefined' && player.isLiked && player.isLiked(song.id);
+                const safeId = utils.escapeJs(song.id);
+                return `
+                    <div class="np-art">
+                        <img src="${img}" onerror="this.src='${FALLBACK_ART}'" alt="" class="np-art-img" decoding="async">
+                    </div>
+                    <div class="np-copy">
+                        <div class="marquee-container w-full"><div class="np-title marquee-text">${title}</div></div>
+                        <div class="marquee-container w-full"><div class="np-artist marquee-text">${artist}${artistSuffix}</div></div>
+                    </div>
+                    <button type="button" class="np-heart ${liked ? 'is-liked text-red-500' : ''}" aria-label="${liked ? 'Unlike' : 'Like'}" onclick="event.stopPropagation(); player.likeSong('${safeId}')">${ui.heartMarkup()}</button>
+                `;
+            },
+            createPlayerListPill: (song, clickHandlerStr, context = 'queue', reorder = null) => {
+                const storeId = songStore.add(song);
+                const click = clickHandlerStr || `playSongById('${storeId}')`;
+                const suffix = (context === 'history' && song.playedAt) ? ` · ${utils.escapeHtml(ui.formatRelativeTime(song.playedAt))}` : '';
+                const inner = ui.createNowPlayingInner(song, suffix);
+                if (ui.isOfflineUnavailable(song)) {
+                    return `<div class="np-row" data-store-id="${storeId}"><div class="np-pill is-disabled" aria-disabled="true" title="Not downloaded — unavailable offline">${inner}${ui.notDownloadedBadge('ml-2')}</div></div>`;
+                }
+                const reorderAttrs = reorder
+                    ? `draggable="true" data-queue-section="${utils.escapeHtml(reorder.section)}" data-queue-index="${reorder.index}"`
+                    : '';
+                const drag = reorder ? `<button class="queue-drag-handle np-drag" title="Drag to rearrange" aria-label="Rearrange ${utils.escapeHtml(song.name || '')}" onclick="event.stopPropagation()" type="button"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M9 5a2 2 0 1 1-4 0 2 2 0 0 1 4 0Zm10 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0ZM9 12a2 2 0 1 1-4 0 2 2 0 0 1 4 0Zm10 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0ZM9 19a2 2 0 1 1-4 0 2 2 0 0 1 4 0Zm10 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z"/></svg></button>` : '';
+                const rowClass = reorder ? 'queue-reorder-row swipe-song np-row relative overflow-hidden group select-none flex-shrink-0 w-full' : 'swipe-song np-row relative overflow-hidden group select-none flex-shrink-0 w-full';
+                return `
+                <div class="${rowClass}" ${reorderAttrs} data-store-id="${storeId}">
+                    <div class="swipe-reveal-left absolute inset-y-0 left-0 flex items-center overflow-hidden pointer-events-none rounded-full z-0 bg-emerald-600 text-white font-bold text-xs" style="width:0px;">
+                        <div class="swipe-reveal-content flex items-center gap-2 px-4 whitespace-nowrap min-w-max h-full">
+                            <svg class="swipe-reveal-icon w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7"/></svg>
+                            <span class="swipe-reveal-text font-bold text-xs tracking-wide">Play Next</span>
+                        </div>
+                    </div>
+                    <div class="swipe-reveal-right absolute inset-y-0 right-0 flex items-center justify-end overflow-hidden pointer-events-none rounded-full z-0 bg-[var(--accent-color)] text-black font-bold text-xs" style="width:0px;">
+                        <div class="swipe-reveal-content flex items-center justify-end gap-2 px-4 whitespace-nowrap min-w-max h-full">
+                            <span class="swipe-reveal-text font-bold text-xs tracking-wide">Add to Queue</span>
+                            <svg class="swipe-reveal-icon w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h10m-10 4h6"/></svg>
+                        </div>
+                    </div>
+                    <div class="swipe-song-card np-pill cursor-pointer relative z-10" onclick="${click}" ondblclick="player.likeSong('${utils.escapeJs(song.id)}')">
+                        ${inner}
+                        ${drag}
+                    </div>
+                </div>`;
+            },
             createSongPillInner: (song) => {
                 const isCurrent = state.currentTrack && state.currentTrack.id === song.id;
                 const isOffline = typeof offlineStore !== 'undefined' && offlineStore.isDownloaded && offlineStore.isDownloaded(song.id);
@@ -1620,41 +1671,11 @@
                 if (next) next.innerHTML = render(getUpcomingTrack(), 'Next');
                 updateMarquees();
             },
-            createQueuePill: (song, section, index) => {
-                const storeId = songStore.add(song);
-                if (ui.isOfflineUnavailable(song)) {
-                    return `
-                    <div class="relative overflow-hidden rounded-2xl mb-2 flex-shrink-0 w-full" data-store-id="${storeId}">
-                        <div class="glass-panel rounded-2xl p-2 pr-2 flex items-center shadow-2xl w-full border border-white/10 bg-[#121212]/95 opacity-45 grayscale cursor-not-allowed select-none" aria-disabled="true" title="Not downloaded — unavailable offline">
-                            ${ui.createSongPillInner(song)}
-                            ${ui.notDownloadedBadge('ml-2')}
-                        </div>
-                    </div>`;
-                }
-                const safeSection = utils.escapeHtml(section);
-                return `
-                <div class="queue-reorder-row swipe-song relative overflow-hidden rounded-2xl mb-2 group select-none flex-shrink-0 w-full" draggable="true" data-queue-section="${safeSection}" data-queue-index="${index}" data-store-id="${storeId}">
-                    <div class="swipe-reveal-left absolute inset-y-0 left-0 flex items-center overflow-hidden pointer-events-none rounded-2xl z-0 bg-emerald-600 text-white font-bold text-xs" style="width:0px;">
-                        <div class="swipe-reveal-content flex items-center gap-2 px-4 whitespace-nowrap min-w-max h-full">
-                            <svg class="swipe-reveal-icon w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7"/></svg>
-                            <span class="swipe-reveal-text font-bold text-xs tracking-wide">Play Next</span>
-                        </div>
-                    </div>
-                    <div class="swipe-reveal-right absolute inset-y-0 right-0 flex items-center justify-end overflow-hidden pointer-events-none rounded-2xl z-0 bg-[var(--accent-color)] text-black font-bold text-xs" style="width:0px;">
-                        <div class="swipe-reveal-content flex items-center justify-end gap-2 px-4 whitespace-nowrap min-w-max h-full">
-                            <span class="swipe-reveal-text font-bold text-xs tracking-wide">Add to Queue</span>
-                            <svg class="swipe-reveal-icon w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h10m-10 4h6"/></svg>
-                        </div>
-                    </div>
-                    <div class="swipe-song-card glass-panel rounded-2xl p-2 pr-2 flex items-center shadow-2xl w-full border border-white/10 transition-colors bg-[#121212]/95 cursor-pointer relative z-10" onclick="playSongById('${storeId}')" ondblclick="player.likeSong('${utils.escapeJs(song.id)}')">
-                        ${ui.createSongPillInner(song)}
-                        <button class="queue-drag-handle" title="Drag to rearrange" aria-label="Rearrange ${utils.escapeHtml(song.name)}" onclick="event.stopPropagation()" type="button">
-                            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M9 5a2 2 0 1 1-4 0 2 2 0 0 1 4 0Zm10 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0ZM9 12a2 2 0 1 1-4 0 2 2 0 0 1 4 0Zm10 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0ZM9 19a2 2 0 1 1-4 0 2 2 0 0 1 4 0Zm10 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z"/></svg>
-                        </button>
-                    </div>
-                </div>`;
-            },
+            createQueuePill: (song, section, index) => ui.createPlayerListPill(song, null, 'queue', { section, index }),
             createSongPill: (song, clickHandlerStr, context = 'queue') => {
+                if (context === 'queue' || context === 'history') {
+                    return ui.createPlayerListPill(song, clickHandlerStr, context);
+                }
                 const storeId = songStore.add(song);
                 if (ui.isOfflineUnavailable(song)) {
                     return `
@@ -1962,7 +1983,7 @@
                 ui.setPlayerLoading(!!options.loading);
                 const likeBtn = document.getElementById('p-like-btn');
                 const isLiked = state.likedIds.some(item => (typeof item === 'string' ? item === track.id : item.id === track.id));
-                likeBtn.className = isLiked ? 'text-red-500 transition flex-shrink-0 ml-2' : 'text-gray-400 hover:text-red-500 transition flex-shrink-0 ml-2';
+                likeBtn.className = isLiked ? 'np-like is-liked text-red-500' : 'np-like text-gray-400 hover:text-white';
 
                 if ('mediaSession' in navigator) {
                     navigator.mediaSession.metadata = new MediaMetadata({
@@ -2041,6 +2062,42 @@
                 }
                 updateMarquees();
             },
+            morphPlayIcon: (playing) => {
+                const btn = document.getElementById('btn-play');
+                const path = btn?.querySelector('.pp-poly');
+                if (!btn || !path) return;
+                if (ui._ppPlaying === playing) return;
+                const first = ui._ppPlaying === undefined;
+                ui._ppPlaying = playing;
+                btn.classList.toggle('is-playing', playing);
+                btn.classList.toggle('is-paused', !playing);
+                btn.setAttribute('aria-label', playing ? 'Pause' : 'Play');
+                const PLAY = [8.3, 5, 12.58, 7.7, 12.58, 16.3, 8.3, 19, 12.58, 7.7, 19.4, 12, 19.4, 12, 12.58, 16.3];
+                const PAUSE = [6.2, 4.6, 10, 4.6, 10, 19.4, 6.2, 19.4, 14, 4.6, 17.8, 4.6, 17.8, 19.4, 14, 19.4];
+                const target = playing ? PAUSE : PLAY;
+                if (!ui._ppFrom) ui._ppFrom = PLAY.slice();
+                if (first && !playing) {
+                    ui._ppFrom = PLAY.slice();
+                    path.setAttribute('d', ui._ppPath(ui._ppFrom));
+                    return;
+                }
+                const start = ui._ppFrom.slice();
+                const t0 = performance.now();
+                if (ui._ppFrame) cancelAnimationFrame(ui._ppFrame);
+                const ease = (t) => 1 - Math.pow(1 - t, 3);
+                const step = (now) => {
+                    const p = Math.min(1, (now - t0) / 280);
+                    const e = ease(p);
+                    for (let i = 0; i < 16; i++) ui._ppFrom[i] = start[i] + (target[i] - start[i]) * e;
+                    path.setAttribute('d', ui._ppPath(ui._ppFrom));
+                    if (p < 1) ui._ppFrame = requestAnimationFrame(step);
+                };
+                ui._ppFrame = requestAnimationFrame(step);
+            },
+            _ppPath: (pts) => {
+                const xy = (i) => `${pts[i * 2].toFixed(2)} ${pts[i * 2 + 1].toFixed(2)}`;
+                return `M${xy(0)} L${xy(1)} L${xy(2)} L${xy(3)} Z M${xy(4)} L${xy(5)} L${xy(6)} L${xy(7)} Z`;
+            },
             updatePlayBtn: () => {
                 // Audio element is the source of truth: if not paused and not ended, it IS playing.
                 if (state.loaded && !isPlaybackPending) {
@@ -2052,10 +2109,7 @@
                     }
                 }
                 const playing = state.playing;
-                const playIcon = document.getElementById('icon-play');
-                const pauseIcon = document.getElementById('icon-pause');
-                if (playIcon) playIcon.className = playing ? 'hidden' : 'flex ml-1';
-                if (pauseIcon) pauseIcon.className = playing ? 'flex' : 'hidden';
+                ui.morphPlayIcon(playing);
                 const mPlayBtn = document.getElementById('m-icon-play');
                 const mPauseBtn = document.getElementById('m-icon-pause');
                 if (mPlayBtn && mPauseBtn) {

@@ -118,15 +118,13 @@
                 }
             },
 
-            setIndicator: (hasLyrics) => {
-                const dot = document.getElementById('lyrics-indicator-dot');
-                if (dot) {
-                    dot.style.opacity = hasLyrics ? '1' : '0';
-                }
-                const badge = document.getElementById('lyrics-sync-badge');
-                if (badge) {
-                    const isSynced = Boolean(lyricsManager.currentLyrics?.syncedLyrics);
-                    badge.classList.toggle('hidden', !isSynced);
+            setIndicator: () => {
+                const data = lyricsManager.currentLyrics;
+                const available = Boolean(data && !data.instrumental && (data.syncedLyrics || data.plainLyrics));
+                document.getElementById('btn-lyrics')?.classList.toggle('lyrics-unavailable', !available);
+                document.getElementById('m-tab-lyrics')?.classList.toggle('lyrics-unavailable', !available);
+                if (!available && document.body.dataset.mobileTab === 'lyrics' && typeof ui !== 'undefined' && ui.switchMobilePlayerTab) {
+                    ui.switchMobilePlayerTab('track');
                 }
             },
 

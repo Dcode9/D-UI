@@ -1,13 +1,43 @@
         // Custom Volume Slider Synchronization
         window.updateVolumeUI = function(val) {
-            const v = Math.max(0, Math.min(1, parseFloat(val)));
+            const v = Math.max(0, Math.min(1, Number(val) || 0));
             const volSlider = document.getElementById('volume-slider');
             const volFill = document.getElementById('volume-fill');
             const volEdge = document.getElementById('volume-edge-marker');
-            if (volSlider && Math.abs(parseFloat(volSlider.value) - v) > 0.005) volSlider.value = v;
-            if (volFill) volFill.style.width = (v * 100) + '%';
-            if (volEdge) volEdge.style.left = (v * 100) + '%';
+            const pct = (v * 100) + '%';
+            if (volFill) volFill.style.width = pct;
+            if (volEdge) volEdge.style.left = pct;
+            if (volSlider && document.activeElement !== volSlider) volSlider.value = String(v);
         };
+
+        function paintPlayhead(progress) {
+            const p = Math.max(0, Math.min(1, progress));
+            currentProgress = p;
+            const seekEdgeEl = document.getElementById('seek-edge-marker');
+            if (seekEdgeEl) seekEdgeEl.style.left = (p * 100) + '%';
+            if (vizSeekTrack) vizSeekTrack.style.clipPath = `inset(0 0 0 ${p * 100}%)`;
+            if (vizCanvas) {
+                const dpr = Math.min(window.devicePixelRatio || 1, 2);
+                const canvasW = vizCanvas.width / dpr;
+                vizCanvas.style.clipPath = `inset(0 ${canvasW - canvasW * p}px 0 0)`;
+                lastClipProgress = p;
+            }
+        }
+
+        function paintUpNextPreview() {
+            const nextTrack = (typeof getUpcomingTrack === 'function') ? getUpcomingTrack() : null;
+            const wrap = document.getElementById('queue-wrapper');
+            const pill = document.getElementById('queue-preview-pill');
+            if (!wrap || !pill || !nextTrack || state.queueExpanded) return false;
+            if (pill.dataset.trackId !== String(nextTrack.id)) {
+                pill.dataset.trackId = String(nextTrack.id);
+                pill.className = 'np-pill';
+                pill.innerHTML = ui.createNowPlayingInner(nextTrack);
+                if (typeof updateMarquees === 'function') updateMarquees();
+            }
+            wrap.classList.add('preview-expanded');
+            return true;
+        }
 
         async function initApp() {
             installGlobalImageFallback();
@@ -99,6 +129,31 @@
                 window.updateVolumeUI(audio.volume || 1);
             }
 
+            const nextBtn = document.getElementById('btn-next');
+            if (nextBtn) {
+                nextBtn.addEventListener('pointerenter', () => {
+                    state.nextBtnHover = true;
+                    paintUpNextPreview();
+                });
+                nextBtn.addEventListener('pointerleave', () => {
+                    state.nextBtnHover = false;
+                    const remaining = (audio.duration || 0) - (audio.currentTime || 0);
+                    const nearEnd = Number.isFinite(audio.duration) && audio.duration > 12 && audio.currentTime > 3 && remaining <= 5 && remaining > 0.15;
+                    if (!nearEnd) {
+                        state.upNextTriggered = false;
+                        document.getElementById('queue-wrapper')?.classList.remove('preview-expanded');
+                    }
+                });
+            }
+
+            const tickPlayhead = () => {
+                if (state.playing && !state.isDragging && Number.isFinite(audio.duration) && audio.duration > 0) {
+                    paintPlayhead(audio.currentTime / audio.duration);
+                }
+                requestAnimationFrame(tickPlayhead);
+            };
+            requestAnimationFrame(tickPlayhead);
+
             seekBar.addEventListener('mousedown', () => setDragging(true));
             seekBar.addEventListener('pointerdown', () => setDragging(true));
             seekBar.addEventListener('touchstart', () => setDragging(true), { passive: true });
@@ -114,15 +169,13 @@
                 if (!Number.isFinite(audio.duration) || audio.duration <= 0) return;
                 const nextTime = parseFloat(seekBar.value);
                 if (!Number.isFinite(nextTime)) return;
-                currentProgress = Math.max(0, Math.min(1, nextTime / audio.duration));
-                if (Math.abs(audio.currentTime - nextTime) > 0.08) {
-                    audio.currentTime = nextTime;
-                    updateMediaPosition();
-                    if (typeof lyricsManager !== 'undefined' && lyricsManager.syncTime) {
-                        lyricsManager.syncTime(nextTime, true);
-                    }
-                    if (typeof viz !== 'undefined') viz.start();
+                paintPlayhead(nextTime / audio.duration);
+                audio.currentTime = nextTime;
+                updateMediaPosition();
+                if (typeof lyricsManager !== 'undefined' && lyricsManager.syncTime) {
+                    lyricsManager.syncTime(nextTime, true);
                 }
+                if (typeof viz !== 'undefined') viz.start();
             });
 
             seekBar.addEventListener('change', () => {
@@ -131,7 +184,7 @@
                 if (!Number.isFinite(nextTime)) return;
                 audio.currentTime = nextTime;
                 updateMediaPosition();
-                currentProgress = Math.max(0, Math.min(1, nextTime / audio.duration));
+                paintPlayhead(nextTime / audio.duration);
                 if (typeof lyricsManager !== 'undefined' && lyricsManager.syncTime) {
                     lyricsManager.syncTime(nextTime, true);
                 }
@@ -666,23 +719,9 @@
                 if (typeof lyricsManager !== 'undefined' && lyricsManager.syncTime) lyricsManager.syncTime(audio.currentTime);
                 if (window.listeningSession) listeningSession.update();
                 if (Number.isFinite(audio.duration) && audio.duration > 0 && !state.isDragging) {
-                    seekBar.max = audio.duration; seekBar.value = audio.currentTime;
-                    currentProgress = audio.currentTime / audio.duration;
-
-                    // Immediately synchronize visualizer seekbar clip paths
-                    if (vizSeekTrack && Number.isFinite(currentProgress)) {
-                        vizSeekTrack.style.clipPath = `inset(0 0 0 ${currentProgress * 100}%)`;
-                    }
-                    if (vizCanvas && Number.isFinite(currentProgress)) {
-                        const dpr = Math.min(window.devicePixelRatio || 1, 2);
-                        const canvasW = vizCanvas.width / dpr;
-                        const progressWidth = canvasW * currentProgress;
-                        vizCanvas.style.clipPath = `inset(0 ${canvasW - progressWidth}px 0 0)`;
-                    const seekEdgeEl = document.getElementById('seek-edge-marker');
-                    if (seekEdgeEl && Number.isFinite(currentProgress)) {
-                        seekEdgeEl.style.left = (currentProgress * 100) + '%';
-                    }
-                    }
+                    seekBar.max = audio.duration;
+                    if (document.activeElement !== seekBar) seekBar.value = audio.currentTime;
+                    paintPlayhead(audio.currentTime / audio.duration);
                     if (state.playing && !isVizLoopRunning && typeof viz !== 'undefined' && viz.start) {
                         viz.start();
                     }
@@ -709,24 +748,19 @@
                         persist.save();
                     }
 
-                    // Morphing 10s Preview Logic (Hardened against duration jitter)
+                    // Up Next appears in the last ~5 seconds, and also while Next is hovered.
                     const timeRemaining = audio.duration - audio.currentTime;
                     const hasNext = Boolean(getUpcomingTrack());
                     const wrap = document.getElementById('queue-wrapper');
-                    
-                    if (Number.isFinite(audio.duration) && audio.duration > 20 && audio.currentTime > 5 && timeRemaining <= 10 && timeRemaining > 0 && hasNext) {
-                        if (!state.upNextTriggered && !state.queueExpanded) {
+                    const nearEnd = Number.isFinite(audio.duration) && audio.duration > 12 && audio.currentTime > 3 && timeRemaining <= 5 && timeRemaining > 0.15 && hasNext;
+
+                    if (nearEnd && !state.queueExpanded) {
+                        if (!state.upNextTriggered) {
                             state.upNextTriggered = true;
-                            let nextTrack = getUpcomingTrack();
                             primeNextTrack();
-                            if (nextTrack) {
-                                document.getElementById('queue-preview-pill').innerHTML = ui.createSongPillInner(nextTrack);
-                                document.getElementById('queue-preview-pill').className = "glass-panel rounded-2xl p-2 pr-4 flex items-center shadow-2xl w-full border border-white/10 bg-[#121212]/90 transition-all duration-400";
-                                wrap.classList.add('preview-expanded');
-                                updateMarquees();
-                            }
                         }
-                    } else if (state.upNextTriggered && timeRemaining > 10) {
+                        paintUpNextPreview();
+                    } else if (!state.nextBtnHover && state.upNextTriggered && timeRemaining > 5) {
                         state.upNextTriggered = false;
                         wrap.classList.remove('preview-expanded');
                     }
@@ -750,13 +784,23 @@
                 }
 
                 const wrap = document.getElementById('queue-wrapper');
-                if(state.upNextTriggered && !state.queueExpanded) {
+                const showingPreview = wrap && wrap.classList.contains('preview-expanded') && !state.queueExpanded;
+                if(showingPreview) {
+                    const island = document.getElementById('info-island');
+                    const pill = document.getElementById('queue-preview-pill');
+                    if (island && pill) {
+                        const shift = pill.getBoundingClientRect().top - island.getBoundingClientRect().top;
+                        wrap.style.setProperty('--np-swap-shift', Math.max(48, shift) + 'px');
+                    }
                     wrap.classList.add('track-swap-out');
                     setTimeout(() => {
+                        wrap.classList.add('track-swap-settle');
                         wrap.classList.remove('preview-expanded', 'track-swap-out');
+                        if (pill) pill.dataset.trackId = '';
                         if(state.repeat === 2) { audio.currentTime = 0; requestPlay(); state.upNextTriggered = false; } else player.next();
-                    }, document.visibilityState === 'hidden' ? 0 : 400); // Wait for CSS swap out morph only when visible
-                } else {
+                        requestAnimationFrame(() => wrap.classList.remove('track-swap-settle'));
+                    }, document.visibilityState === 'hidden' ? 0 : 480);
+                } else if (wrap) {
                     wrap.classList.remove('preview-expanded', 'track-swap-out');
                     if(state.repeat === 2) { audio.currentTime = 0; requestPlay(); state.upNextTriggered = false; } else player.next();
                 }
