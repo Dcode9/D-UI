@@ -1,3 +1,14 @@
+        // Custom Volume Slider Synchronization
+        window.updateVolumeUI = function(val) {
+            const v = Math.max(0, Math.min(1, parseFloat(val)));
+            const volSlider = document.getElementById('volume-slider');
+            const volFill = document.getElementById('volume-fill');
+            const volEdge = document.getElementById('volume-edge-marker');
+            if (volSlider && Math.abs(parseFloat(volSlider.value) - v) > 0.005) volSlider.value = v;
+            if (volFill) volFill.style.width = (v * 100) + '%';
+            if (volEdge) volEdge.style.left = (v * 100) + '%';
+        };
+
         async function initApp() {
             installGlobalImageFallback();
 
@@ -77,6 +88,16 @@
                 state.isDragging = dragging;
                 if (!dragging) persist.save();
             };
+
+                        const initVolSlider = document.getElementById('volume-slider');
+            if (initVolSlider) {
+                initVolSlider.addEventListener('input', (e) => {
+                    if (window.player && window.player.setVolume) {
+                        player.setVolume(e.target.value);
+                    }
+                });
+                window.updateVolumeUI(audio.volume || 1);
+            }
 
             seekBar.addEventListener('mousedown', () => setDragging(true));
             seekBar.addEventListener('pointerdown', () => setDragging(true));
@@ -657,6 +678,10 @@
                         const canvasW = vizCanvas.width / dpr;
                         const progressWidth = canvasW * currentProgress;
                         vizCanvas.style.clipPath = `inset(0 ${canvasW - progressWidth}px 0 0)`;
+                    const seekEdgeEl = document.getElementById('seek-edge-marker');
+                    if (seekEdgeEl && Number.isFinite(currentProgress)) {
+                        seekEdgeEl.style.left = (currentProgress * 100) + '%';
+                    }
                     }
                     if (state.playing && !isVizLoopRunning && typeof viz !== 'undefined' && viz.start) {
                         viz.start();

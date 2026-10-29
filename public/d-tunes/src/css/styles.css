@@ -252,7 +252,7 @@
             background: rgba(12, 12, 16, 0.74);
             border: 1px solid var(--mezzotint-border);
             box-shadow: var(--mezzotint-shadow), inset 0 1px 0 var(--mezzotint-ridge);
-            border-radius: 1.25rem;
+            border-radius: 9999px;
             position: relative;
             overflow: hidden;
         }
@@ -297,7 +297,7 @@
             background: var(--mezzotint-bg-card);
             border: 1px solid var(--mezzotint-border);
             box-shadow: 0 24px 60px -12px rgba(0, 0, 0, 0.85), inset 0 1px 0 var(--mezzotint-ridge);
-            border-radius: 1.25rem;
+            border-radius: 9999px;
         }
 
         /* --- D'Tunes Chiseled Obsidian Play Trigger --- */
@@ -2011,3 +2011,231 @@ button, input[type="range"], a, .scroll-card, .song-pill {
 .reveal-text.revealed {
     opacity: 1;
 }
+
+
+        /* ========================================================
+           REDESIGNED PILL PLAYER BAR & CUSTOM SLIDERS
+           ======================================================== */
+        #player-card {
+            border-radius: 9999px !important;
+            height: 58px !important;
+            padding-left: 6px !important;
+            padding-right: 18px !important;
+            gap: 0 !important;
+            display: flex !important;
+            align-items: center !important;
+        }
+
+        #info-island, #queue-preview-pill {
+            border-radius: 9999px !important;
+        }
+
+        #album-art-wrapper {
+            border-radius: 9999px !important;
+            overflow: hidden !important;
+        }
+
+        #album-art-wrapper img {
+            border-radius: 9999px !important;
+        }
+
+        /* Concentric Left Play Trigger (Concentric with bar's left semicircle) */
+        .btn-mezzotint-play {
+            width: 46px !important;
+            height: 46px !important;
+            min-width: 46px !important;
+            min-height: 46px !important;
+            border-radius: 9999px !important;
+            background: #0d0d12 !important;
+            color: #ffffff !important;
+            border: 1px solid rgba(255, 255, 255, 0.22) !important;
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.8), inset 0 1px 1px rgba(255, 255, 255, 0.45) !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            cursor: pointer;
+            outline: none;
+            transition: transform 0.12s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.15s ease, background 0.15s ease !important;
+            position: relative;
+            user-select: none;
+            flex-shrink: 0 !important;
+            margin-left: 0px !important;
+            margin-right: 6px !important;
+            z-index: 10;
+        }
+
+        .btn-mezzotint-play:hover:not(:disabled) {
+            background: #171720 !important;
+            border-color: rgba(255, 255, 255, 0.35) !important;
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.9), inset 0 1px 1px rgba(255, 255, 255, 0.6) !important;
+            transform: scale(1.05) !important;
+        }
+
+        .btn-mezzotint-play:active:not(:disabled) {
+            transform: scale(0.90) !important;
+        }
+
+        /* Soft, tactile icon buttons */
+        .control-icon-btn {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 9999px;
+            color: rgba(255, 255, 255, 0.65);
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            outline: none;
+            transition: color 0.15s ease, transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.15s ease;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            flex-shrink: 0;
+        }
+
+        .control-icon-btn:hover:not(:disabled) {
+            color: #ffffff;
+            background-color: rgba(255, 255, 255, 0.09);
+        }
+
+        .control-icon-btn:active:not(:disabled) {
+            transform: scale(0.85);
+        }
+
+        .control-icon-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        /* Specific animations on click */
+        .btn-prev-anim:active:not(:disabled) {
+            transform: translateX(-4px) scale(0.88) !important;
+        }
+
+        .btn-next-anim:active:not(:disabled) {
+            transform: translateX(4px) scale(0.88) !important;
+        }
+
+        .btn-shuffle-anim:active:not(:disabled) {
+            transform: rotate(-15deg) scale(0.86) !important;
+        }
+
+        .btn-repeat-anim:active:not(:disabled) {
+            transform: rotate(180deg) scale(0.86) !important;
+        }
+
+        /* --- Unified Custom Sliders (Seekbar & Volume Rocker) --- */
+        .custom-slider-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+            user-select: none;
+            touch-action: none;
+        }
+
+        .slider-track-bg {
+            position: absolute;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background-color: rgba(255, 255, 255, 0.18);
+            border-radius: 9999px;
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: none;
+            transition: background-color 0.2s ease;
+        }
+
+        .custom-slider-container:hover .slider-track-bg {
+            background-color: rgba(255, 255, 255, 0.28);
+        }
+
+        .slider-fill {
+            position: absolute;
+            left: 0;
+            height: 3px;
+            background: #ffffff;
+            border-radius: 9999px;
+            top: 50%;
+            transform: translateY(-50%);
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+            pointer-events: none;
+            z-index: 2;
+            transition: width 0.05s linear;
+        }
+
+        /* The iconic rounded edge indicator - replacing the circle knob */
+        .slider-rounded-edge {
+            position: absolute;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 3.5px;
+            height: 12px;
+            border-radius: 9999px;
+            background: #ffffff;
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.9), 0 0 2px rgba(255, 255, 255, 1);
+            pointer-events: none;
+            z-index: 6;
+            transition: height 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease, opacity 0.2s ease;
+        }
+
+        .custom-slider-container:hover .slider-rounded-edge {
+            height: 15px;
+            width: 4px;
+            box-shadow: 0 0 12px rgba(255, 255, 255, 1), 0 0 3px rgba(255, 255, 255, 1);
+        }
+
+        /* Seamless invisible input layer for full accessibility, drag, and touch */
+        .custom-slider-input {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+            z-index: 10;
+            margin: 0;
+            padding: 0;
+            -webkit-appearance: none;
+            appearance: none;
+            background: transparent;
+        }
+
+        .custom-slider-input::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 24px;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .custom-slider-input::-moz-range-thumb {
+            width: 16px;
+            height: 24px;
+            opacity: 0;
+            cursor: pointer;
+            border: none;
+        }
+
+        /* Clean seekbar overrides */
+        #seek-bar-container {
+            height: 42px !important;
+            padding: 0 4px !important;
+        }
+
+        #seek-bar-track {
+            height: 3px !important;
+            border-radius: 9999px !important;
+        }
+
+        #visualizer-canvas {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 3;
+        }
