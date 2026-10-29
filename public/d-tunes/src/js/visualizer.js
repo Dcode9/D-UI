@@ -294,20 +294,12 @@
                 // Restore seek edge marker opacity
                 const seekEdge = document.getElementById('seek-edge-marker');
                 if (seekEdge) seekEdge.style.opacity = '1';
-                // Silky continuous 60fps progress interpolation with zero stop points
-                if (state.playing && Number.isFinite(audio.duration) && audio.duration > 0 && !state.isDragging) {
-                    const targetProg = Math.max(0, Math.min(1, audio.currentTime / audio.duration));
-                    currentProgress += (targetProg - currentProgress) * 0.35;
-                }
-                if (vizSeekTrack && Math.abs(currentProgress - lastClipProgress) > 0.0001) {
+                // Always update the clip-path so the progress line stays visible
+                if(vizSeekTrack && currentProgress !== lastClipProgress) {
                     const progressWidth = width * currentProgress;
                     canvas.style.clipPath = `inset(0 ${width - progressWidth}px 0 0)`;
                     vizSeekTrack.style.clipPath = `inset(0 0 0 ${currentProgress * 100}%)`;
                     lastClipProgress = currentProgress;
-                    const seekEdge = document.getElementById('seek-edge-marker');
-                    if (seekEdge && !trackTransition.active) {
-                        seekEdge.style.left = (currentProgress * 100) + '%';
-                    }
                 }
                 time += 0.05; let targetLow = 0, targetMid = 0;
                 if (state.playing && isAudioContextInitialized && analyserData) {
@@ -338,25 +330,17 @@
                 smoothedLow += (targetLow - smoothedLow) * 0.1; smoothedMid += (targetMid - smoothedMid) * 0.1;
                 let verticalScale = audio.duration > 0 ? (0.3 + 0.7 * Math.min(1, currentProgress / 0.4)) * 0.8 : 1.0;
                 visualizerCtx.beginPath(); visualizerCtx.moveTo(0, centerY);
-                // Switched frequency response: Bass controls wave count / ripples, Treble/Mid controls vertical amplitude
-                const bassWaveBoost = 1 + (smoothedLow * 4.2);
-                const waveCount = Math.min(18, Math.max(2, (width * currentProgress) * 0.022 * bassWaveBoost));
-                const intensity = audio.volume; const isHovering = state.hoverProgress >= 0;
+                const waveCount = Math.min(14, Math.max(2, (width * currentProgress) * 0.03)); const intensity = audio.volume; const isHovering = state.hoverProgress >= 0;
                 hoverIntensity += ((isHovering ? 1.0 : 0.0) - hoverIntensity) * 0.1;
-                
-                // Treble/Mid drives primary wave amplitude; Bass drives secondary resonance and wave frequency
-                const loudness = Math.max(0.45, intensity);
-                const trebleAmplitude = (centerY * 1.15) * Math.pow(smoothedMid, 1.55) * loudness * verticalScale;
-                const bassResonance = (centerY * 0.38) * Math.pow(smoothedLow, 1.4) * loudness * verticalScale;
-
                 for (let x = 0; x <= width; x++) {
                     const localProgress = x / (width * currentProgress || 1); const taper = Math.sin(localProgress * Math.PI);
-                    // Bass-driven spatial harmonics
-                    const baseWave = Math.sin((x / width) * waveCount * Math.PI);
-                    const fastWave = Math.sin((x / width) * waveCount * 2.8 * Math.PI + time * 1.2);
+                    const baseWave = Math.sin((x / width) * waveCount * Math.PI); const fastWave = Math.sin((x / width) * waveCount * 2.5 * Math.PI + time);
+                    const loudness = Math.max(0.45, intensity);
+                    const baseAmplitude = (centerY * 1.05) * Math.pow(smoothedLow, 1.7) * loudness * verticalScale;
+                    const detailAmplitude = (centerY * 0.34) * Math.pow(smoothedMid, 1.35) * loudness * verticalScale;
                     let interactionFactor = 1.0;
                     if (hoverIntensity > 0.01) { const hoverX = (isHovering ? state.hoverProgress : state.lastHoverProgress) * width; const dist = Math.abs(x - hoverX); if (dist < 60) interactionFactor = 1.0 - (hoverIntensity * (1.0 - (dist/60)*(dist/60)*(3-2*(dist/60)))); }
-                    visualizerCtx.lineTo(x, centerY + (baseWave * trebleAmplitude + fastWave * bassResonance) * taper * interactionFactor);
+                    visualizerCtx.lineTo(x, centerY + (baseWave * baseAmplitude + fastWave * detailAmplitude) * taper * interactionFactor);
                 }
                 visualizerCtx.lineWidth = 2; visualizerCtx.strokeStyle = '#fff'; visualizerCtx.shadowColor = 'rgba(255, 255, 255, 0.7)'; visualizerCtx.shadowBlur = smoothedLow > 0.3 ? 4 : 0; visualizerCtx.stroke();
                 

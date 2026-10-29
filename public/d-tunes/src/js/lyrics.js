@@ -119,15 +119,9 @@
             },
 
             setIndicator: (hasLyrics) => {
-                const btnLyrics = document.getElementById('btn-lyrics');
-                if (btnLyrics) {
-                    if (hasLyrics) {
-                        btnLyrics.classList.remove('no-lyrics', 'hidden');
-                        btnLyrics.style.display = 'inline-flex';
-                    } else {
-                        btnLyrics.classList.add('no-lyrics', 'hidden');
-                        btnLyrics.style.display = 'none';
-                    }
+                const dot = document.getElementById('lyrics-indicator-dot');
+                if (dot) {
+                    dot.style.opacity = hasLyrics ? '1' : '0';
                 }
                 const badge = document.getElementById('lyrics-sync-badge');
                 if (badge) {

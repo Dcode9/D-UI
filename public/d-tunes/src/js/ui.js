@@ -1602,7 +1602,7 @@
                     </div>
                 ` : '';
                 return `
-                    <div class="w-11 h-11 rounded-full overflow-hidden flex-shrink-0 shadow-md border border-white/20 ml-0.5 relative">
+                    <div class="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 shadow-md border border-white/20 ml-1 relative">
                         <img src="${song.img}" onerror="this.src='${FALLBACK_ART}'" class="w-full h-full object-cover" decoding="async">
                         ${isCurrent ? `<div class="absolute inset-0 bg-black/45 flex items-center justify-center">${eqMarkup}</div>` : ''}
                     </div>
@@ -1611,40 +1611,6 @@
                         <div class="marquee-container w-full mt-0.5"><div class="text-xs text-gray-400 marquee-text">${utils.escapeHtml(song.artist)}</div></div>
                     </div>
                 `;
-            },
-                        renderQueuePreviewPill: (song) => {
-                const pill = document.getElementById('queue-preview-pill');
-                if (!pill || !song) return;
-                pill.innerHTML = `
-                    <div class="relative w-11 h-11 flex-shrink-0 rounded-full overflow-hidden shadow-md border border-white/20 my-1">
-                        <img src="${song.img || song.image || 'DTunes.svg'}" onerror="this.src='DTunes.svg'" class="w-full h-full object-cover rounded-full" alt="">
-                    </div>
-                    <div class="flex items-center justify-between flex-1 min-w-0 ml-2.5">
-                        <div class="flex-1 min-w-0 flex flex-col justify-center">
-                            <div class="marquee-container w-full"><h3 class="font-medium text-white text-sm marquee-text">${utils.escapeHtml(song.name || song.title || 'Next Track')}</h3></div>
-                            <div class="marquee-container w-full mt-0.5"><p class="text-xs text-gray-400 marquee-text">${utils.escapeHtml(song.artist || song.primary_artists || 'Upcoming')}</p></div>
-                        </div>
-                        <button class="w-10 h-10 flex items-center justify-center text-gray-300 hover:text-white rounded-full transition ml-1 flex-shrink-0" onclick="player.next(); event.stopPropagation();" title="Play Next">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="17.5" y="5" width="2.5" height="14" rx="1.25"/><path d="M5.2 6.02c-.98-.6-2.2.1-2.2 1.25v9.46c0 1.15 1.22 1.85 2.2 1.25L13.2 13.25c.93-.57.93-1.93 0-2.5L5.2 6.02z"/></svg>
-                        </button>
-                    </div>
-                `;
-                updateMarquees();
-            },
-            showNextPreviewOnHover: (show) => {
-                const wrap = document.getElementById('queue-wrapper');
-                if (!wrap) return;
-                if (show) {
-                    const nextTrack = getUpcomingTrack();
-                    if (nextTrack) {
-                        ui.renderQueuePreviewPill(nextTrack);
-                        wrap.classList.add('preview-expanded');
-                    }
-                } else {
-                    if (!state.upNextTriggered && !state.queueExpanded) {
-                        wrap.classList.remove('preview-expanded');
-                    }
-                }
             },
             renderCompactSwipePreview: () => {
                 const prev = document.getElementById('compact-swipe-prev');
@@ -2086,27 +2052,9 @@
                     }
                 }
                 const playing = state.playing;
-                const btnPlay = document.getElementById('btn-play');
-                if (btnPlay) {
-                    btnPlay.classList.toggle('is-playing', playing);
-                    btnPlay.classList.toggle('is-paused', !playing);
-                }
-                const morphP1 = document.getElementById('play-morph-p1');
-                const morphP2 = document.getElementById('play-morph-p2');
-                if (morphP1 && morphP2) {
-                    if (playing) {
-                        // Morph into Pause: two vertical bars, perfectly centered
-                        morphP1.setAttribute('d', 'M 6.5 5.5 L 10.5 5.5 L 10.5 18.5 L 6.5 18.5 Z');
-                        morphP2.setAttribute('d', 'M 13.5 5.5 L 17.5 5.5 L 17.5 18.5 L 13.5 18.5 Z');
-                    } else {
-                        // Morph into Play: triangle, perfectly centered
-                        morphP1.setAttribute('d', 'M 8 5.5 L 14 9.2 L 14 14.8 L 8 18.5 Z');
-                        morphP2.setAttribute('d', 'M 14 9.2 L 18.8 12 L 18.8 12 L 14 14.8 Z');
-                    }
-                }
                 const playIcon = document.getElementById('icon-play');
                 const pauseIcon = document.getElementById('icon-pause');
-                if (playIcon) playIcon.className = playing ? 'hidden' : 'flex';
+                if (playIcon) playIcon.className = playing ? 'hidden' : 'flex ml-1';
                 if (pauseIcon) pauseIcon.className = playing ? 'flex' : 'hidden';
                 const mPlayBtn = document.getElementById('m-icon-play');
                 const mPauseBtn = document.getElementById('m-icon-pause');
