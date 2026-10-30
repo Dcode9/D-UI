@@ -175,6 +175,8 @@
             --dtunes-optical-diffusion: 8.5px;
             --dtunes-grain-density: 0.70;
             --dtunes-scatter: 55px;
+            /* Graceful fallback for engines without SVG backdrop filters. */
+            --dtunes-optical-filter: blur(var(--dtunes-optical-diffusion));
 
             --mezzotint-bg: rgba(12, 12, 16, 0.74);
             --mezzotint-bg-card: rgba(10, 10, 14, 0.78);
@@ -187,12 +189,20 @@
             --mezzotint-grain-overlay: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='inkGrain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.875' numOctaves='1' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 0.18 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23inkGrain)'/%3E%3C/svg%3E");
         }
 
+        /* Every frosted surface now uses the real Mezzotint grain backdrop
+           filter instead of a smooth Gaussian blur. */
+        @supports (backdrop-filter: url(#dtunes-mezzotint-filter)) {
+            :root {
+                --dtunes-optical-filter: url(#dtunes-mezzotint-filter);
+            }
+        }
+
         /* --- Universal Mezzotint Glass & Blur Panels --- */
         .glass-panel {
             position: relative;
             background: var(--mezzotint-bg);
-            backdrop-filter: blur(var(--dtunes-optical-diffusion));
-            -webkit-backdrop-filter: blur(var(--dtunes-optical-diffusion));
+            backdrop-filter: var(--dtunes-optical-filter);
+            -webkit-backdrop-filter: var(--dtunes-optical-filter);
             border: 1px solid var(--mezzotint-border);
             box-shadow: var(--mezzotint-shadow), inset 0 1px 0 var(--mezzotint-ridge);
             transform: translateZ(0);
@@ -219,6 +229,11 @@
             z-index: 2;
         }
 
+        .mezzotint-surface {
+            backdrop-filter: var(--dtunes-optical-filter);
+            -webkit-backdrop-filter: var(--dtunes-optical-filter);
+        }
+
         /* Player Bar, User Menu, Navigation, Modals & Dropdown Rich Blurs */
         header.glass-panel,
         #mobile-nav,
@@ -232,8 +247,8 @@
         #ms-store-banner,
         #context-menu,
         .search-blur-bg {
-            backdrop-filter: blur(var(--dtunes-optical-diffusion));
-            -webkit-backdrop-filter: blur(var(--dtunes-optical-diffusion));
+            backdrop-filter: var(--dtunes-optical-filter);
+            -webkit-backdrop-filter: var(--dtunes-optical-filter);
             background: var(--mezzotint-bg);
             border: 1px solid var(--mezzotint-border);
             box-shadow: var(--mezzotint-shadow), inset 0 1px 0 var(--mezzotint-ridge);
@@ -247,8 +262,8 @@
 
         #info-island,
         #queue-preview-pill {
-            backdrop-filter: blur(var(--dtunes-optical-diffusion));
-            -webkit-backdrop-filter: blur(var(--dtunes-optical-diffusion));
+            backdrop-filter: var(--dtunes-optical-filter);
+            -webkit-backdrop-filter: var(--dtunes-optical-filter);
             background: rgba(12, 12, 16, 0.74);
             border: 1px solid var(--mezzotint-border);
             box-shadow: var(--mezzotint-shadow), inset 0 1px 0 var(--mezzotint-ridge);
@@ -281,8 +296,8 @@
         }
 
         #profile-dropdown {
-            backdrop-filter: blur(var(--dtunes-optical-diffusion));
-            -webkit-backdrop-filter: blur(var(--dtunes-optical-diffusion));
+            backdrop-filter: var(--dtunes-optical-filter);
+            -webkit-backdrop-filter: var(--dtunes-optical-filter);
             background: rgba(14, 14, 20, 0.88);
             border: 1px solid var(--mezzotint-border);
             box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.75), inset 0 1px 0 var(--mezzotint-ridge);
@@ -292,8 +307,8 @@
         }
 
         #player-card {
-            backdrop-filter: blur(var(--dtunes-optical-diffusion));
-            -webkit-backdrop-filter: blur(var(--dtunes-optical-diffusion));
+            backdrop-filter: var(--dtunes-optical-filter);
+            -webkit-backdrop-filter: var(--dtunes-optical-filter);
             background: var(--mezzotint-bg-card);
             border: 1px solid var(--mezzotint-border);
             box-shadow: 0 24px 60px -12px rgba(0, 0, 0, 0.85), inset 0 1px 0 var(--mezzotint-ridge);
@@ -407,8 +422,8 @@
         .song-pill {
             display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem; padding-right: 1rem;
             background: rgba(14, 14, 18, 0.72);
-            backdrop-filter: blur(var(--dtunes-optical-diffusion));
-            -webkit-backdrop-filter: blur(var(--dtunes-optical-diffusion));
+            backdrop-filter: var(--dtunes-optical-filter);
+            -webkit-backdrop-filter: var(--dtunes-optical-filter);
             border: 1px solid var(--mezzotint-border);
             border-radius: 1rem;
             cursor: pointer;
@@ -526,8 +541,8 @@
             height: 38px;
             border-radius: 9999px;
             background: rgba(12, 12, 16, 0.82);
-            backdrop-filter: blur(var(--dtunes-optical-diffusion));
-            -webkit-backdrop-filter: blur(var(--dtunes-optical-diffusion));
+            backdrop-filter: var(--dtunes-optical-filter);
+            -webkit-backdrop-filter: var(--dtunes-optical-filter);
             border: 1px solid var(--mezzotint-border);
             box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.7), inset 0 1px 0 var(--mezzotint-ridge);
             color: #ffffff;
@@ -571,8 +586,8 @@
             mask-composite: intersect;
             -webkit-mask-composite: source-in;
             opacity: 1;
-            backdrop-filter: blur(var(--dtunes-optical-diffusion));
-            -webkit-backdrop-filter: blur(var(--dtunes-optical-diffusion));
+            backdrop-filter: var(--dtunes-optical-filter);
+            -webkit-backdrop-filter: var(--dtunes-optical-filter);
             transition: opacity 0.22s cubic-bezier(0.4, 0, 0.2, 1);
             transform: translateZ(0);
         }
@@ -584,8 +599,8 @@
             mask-composite: intersect;
             -webkit-mask-composite: source-in;
             opacity: 1;
-            backdrop-filter: blur(var(--dtunes-optical-diffusion));
-            -webkit-backdrop-filter: blur(var(--dtunes-optical-diffusion));
+            backdrop-filter: var(--dtunes-optical-filter);
+            -webkit-backdrop-filter: var(--dtunes-optical-filter);
             transition: opacity 0.22s cubic-bezier(0.4, 0, 0.2, 1);
             transform: translateZ(0);
         }
@@ -613,7 +628,7 @@
         
         .search-dropdown-wrapper { position: absolute; top: 100%; left: -20px; right: -20px; padding: 20px; pointer-events: none; z-index: 100; visibility: hidden; }
         .search-blur-bg {
-            inset: 0; border-radius: 2rem; position: absolute; background: rgba(10, 10, 14, 0.74); backdrop-filter: blur(var(--dtunes-optical-diffusion)); -webkit-backdrop-filter: blur(var(--dtunes-optical-diffusion)); pointer-events: none;
+            inset: 0; border-radius: 2rem; position: absolute; background: rgba(10, 10, 14, 0.74); backdrop-filter: var(--dtunes-optical-filter); -webkit-backdrop-filter: var(--dtunes-optical-filter); pointer-events: none;
             mask-image: radial-gradient(ellipse at top, black 50%, transparent 90%); -webkit-mask-image: radial-gradient(ellipse at top, black 50%, transparent 90%); opacity: 0; transition: opacity 0.3s;
         }
         .search-results-content {
@@ -653,7 +668,7 @@
         /* --- Desktop Queue Expansion Logic --- */
         #queue-blur-bg { 
             position: absolute; inset: -40px; border-radius: 3rem; z-index: 0;
-            background: transparent; backdrop-filter: blur(var(--dtunes-optical-diffusion)); -webkit-backdrop-filter: blur(var(--dtunes-optical-diffusion)); pointer-events: none; opacity: 0; transition: opacity 0.4s;
+            background: transparent; backdrop-filter: var(--dtunes-optical-filter); -webkit-backdrop-filter: var(--dtunes-optical-filter); pointer-events: none; opacity: 0; transition: opacity 0.4s;
             mask-image: radial-gradient(ellipse at center bottom, black 40%, transparent 80%);
             -webkit-mask-image: radial-gradient(ellipse at center bottom, black 40%, transparent 80%);
         }
@@ -668,8 +683,8 @@
             flex-direction: column;
             border-radius: 1.25rem;
             background: rgba(12, 12, 16, 0.78);
-            backdrop-filter: blur(var(--dtunes-optical-diffusion));
-            -webkit-backdrop-filter: blur(var(--dtunes-optical-diffusion));
+            backdrop-filter: var(--dtunes-optical-filter);
+            -webkit-backdrop-filter: var(--dtunes-optical-filter);
             border: 1px solid var(--mezzotint-border);
             box-shadow: var(--mezzotint-shadow), inset 0 1px 0 var(--mezzotint-ridge);
             margin-top: 0.5rem;
@@ -729,6 +744,143 @@
 
         #queue-full-content { opacity: 0; transition: opacity 0.3s; pointer-events: none; display: flex; flex-direction: column; flex: 1; min-height: 0; }
         #queue-tabs { position: relative; z-index: 20; }
+
+        /* --- Redesigned Queue Panel & Segmented Tab Switch --- */
+        #queue-expandable-area {
+            border-radius: 1.5rem;
+            margin-top: 0.6rem;
+            background: rgba(10, 10, 14, 0.72);
+            border-color: rgba(255, 255, 255, 0.12);
+            box-shadow: 0 24px 60px -22px rgba(0, 0, 0, 0.92), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        }
+        #queue-wrapper.queue-expanded #queue-expandable-area { max-height: 480px; }
+
+        #queue-tabs.queue-panel-head {
+            padding: 0.75rem 0.75rem 0.65rem 0.75rem;
+            background: linear-gradient(to bottom, rgba(255, 255, 255, 0.045), transparent);
+            border-bottom-color: rgba(255, 255, 255, 0.07);
+        }
+
+        .segmented-tabs {
+            --seg-index: 0;
+            --seg-count: 2;
+            position: relative;
+            display: flex;
+            align-items: center;
+            padding: 3px;
+            border-radius: 9999px;
+            background: rgba(255, 255, 255, 0.055);
+            border: 1px solid rgba(255, 255, 255, 0.09);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            isolation: isolate;
+        }
+        .segmented-tabs::before {
+            content: "";
+            position: absolute;
+            top: 3px;
+            bottom: 3px;
+            left: 3px;
+            width: calc((100% - 6px) / var(--seg-count));
+            border-radius: 9999px;
+            background: #ffffff;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.45);
+            transform: translateX(calc(var(--seg-index) * 100%));
+            transition: transform 0.34s cubic-bezier(0.2, 0.8, 0.2, 1);
+            z-index: 0;
+            pointer-events: none;
+        }
+        .segmented-tabs > button {
+            position: relative;
+            z-index: 1;
+            flex: 1 1 0;
+            min-width: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 6px 10px;
+            border: none;
+            background: transparent;
+            border-radius: 9999px;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 0.07em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.52);
+            cursor: pointer;
+            transition: color 0.22s ease, opacity 0.22s ease;
+            white-space: nowrap;
+        }
+        .segmented-tabs > button:hover { color: rgba(255, 255, 255, 0.82); }
+        .segmented-tabs > button.is-active,
+        .segmented-tabs > button.active { color: #08080b; }
+        .segmented-tabs > button svg {
+            width: 12px;
+            height: 12px;
+            flex-shrink: 0;
+            opacity: 0.7;
+        }
+        .segmented-tabs > button.is-active svg,
+        .segmented-tabs > button.active svg { opacity: 1; }
+
+        .queue-tab-switch { width: 218px; max-width: 62%; flex-shrink: 0; }
+
+        .queue-clear-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 6px 10px;
+            border-radius: 9999px;
+            border: 1px solid rgba(255, 255, 255, 0.09);
+            background: rgba(255, 255, 255, 0.04);
+            color: rgba(255, 255, 255, 0.55);
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 0.07em;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: color 0.2s ease, background 0.2s ease, border-color 0.2s ease, transform 0.12s ease;
+        }
+        .queue-clear-btn svg { width: 12px; height: 12px; }
+        .queue-clear-btn:hover:not(:disabled) {
+            color: #ffb4b4;
+            border-color: rgba(248, 113, 113, 0.35);
+            background: rgba(248, 113, 113, 0.1);
+        }
+        .queue-clear-btn:active:not(:disabled) { transform: scale(0.95); }
+        .queue-clear-btn:disabled { opacity: 0.35; pointer-events: none; }
+        .queue-clear-btn.hidden { display: none; }
+
+        .queue-panel-list {
+            overflow-y: auto;
+            padding: 0.5rem 0.5rem 0.65rem;
+            gap: 0.15rem;
+            min-height: 0;
+            scrollbar-gutter: stable;
+        }
+        .queue-section-label {
+            font-size: 9.5px;
+            font-weight: 800;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.42);
+            padding: 0.35rem 0.55rem 0.3rem;
+        }
+        .queue-section-label.queue-section-date {
+            color: color-mix(in srgb, var(--accent-color) 82%, white 18%);
+            padding-top: 0.7rem;
+        }
+        .queue-empty-state {
+            margin: 0.25rem;
+            padding: 1.1rem 0.9rem;
+            border-radius: 1rem;
+            border: 1px dashed rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.025);
+            color: rgba(255, 255, 255, 0.42);
+            font-size: 0.72rem;
+            line-height: 1.5;
+            text-align: center;
+        }
 
         /* Modal Overlay */
         #playlist-modal, #playlist-selector-modal, #profile-modal { transition: opacity 0.3s ease; }
@@ -927,8 +1079,8 @@
         html[data-ui-mode="mobile"] #search-dropdown .search-blur-bg {
             border-radius: 1.25rem;
             background: rgba(10, 10, 14, 0.88);
-            backdrop-filter: blur(var(--dtunes-optical-diffusion));
-            -webkit-backdrop-filter: blur(var(--dtunes-optical-diffusion));
+            backdrop-filter: var(--dtunes-optical-filter);
+            -webkit-backdrop-filter: var(--dtunes-optical-filter);
             mask-image: none;
             -webkit-mask-image: none;
             border: 1px solid var(--mezzotint-border);
@@ -956,8 +1108,8 @@
             align-items: center;
             height: auto;
             padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
-            backdrop-filter: blur(var(--dtunes-optical-diffusion));
-            -webkit-backdrop-filter: blur(var(--dtunes-optical-diffusion));
+            backdrop-filter: var(--dtunes-optical-filter);
+            -webkit-backdrop-filter: var(--dtunes-optical-filter);
             background: linear-gradient(180deg, rgba(8, 8, 12, 0.82), rgba(8, 8, 12, 0.94));
             box-shadow: inset 0 1px 0 var(--mezzotint-ridge);
             border-top: 1px solid rgba(255, 255, 255, 0.1);
@@ -1425,8 +1577,8 @@ html[data-ui-mode="mobile"] body.mobile-player-open #player-footer {
     gap: 0 !important;
     padding: calc(8px + env(safe-area-inset-top)) 18px calc(14px + env(safe-area-inset-bottom)) !important;
     background: radial-gradient(circle at 50% 8%, color-mix(in srgb, var(--accent-color, #22d3ee) 25%, #141418), #060608 72%) !important;
-    backdrop-filter: blur(var(--dtunes-optical-diffusion)) !important;
-    -webkit-backdrop-filter: blur(var(--dtunes-optical-diffusion)) !important;
+    backdrop-filter: var(--dtunes-optical-filter) !important;
+    -webkit-backdrop-filter: var(--dtunes-optical-filter) !important;
     overflow: hidden !important;
     pointer-events: auto !important;
     opacity: 1 !important;
@@ -1819,15 +1971,57 @@ html[data-ui-mode="mobile"] body.mobile-player-open .mobile-queue-btn {
 
 /* Mobile Player Tab Switching */
 .mobile-tab-btn {
-    transition: all 0.2s ease;
+    transition: color 0.22s ease;
     border: none;
     cursor: pointer;
+    background: transparent;
 }
+.mobile-tab-btn.is-active,
 .mobile-tab-btn.active {
-    background: var(--accent-color) !important;
-    color: #000000 !important;
-    font-weight: 700 !important;
-    box-shadow: 0 2px 10px color-mix(in srgb, var(--accent-color) 25%, transparent);
+    color: #08080b !important;
+    font-weight: 800 !important;
+}
+.mobile-player-tabs {
+    --seg-index: 0;
+    --seg-count: 4;
+    flex: 1 1 auto;
+    max-width: 300px;
+    margin: 0 8px;
+}
+.mobile-player-tabs > button {
+    font-size: 10.5px;
+    padding: 7px 6px;
+    letter-spacing: 0.06em;
+}
+@media (max-width: 380px) {
+    .mobile-player-tabs {
+        margin: 0 4px;
+    }
+    .mobile-player-tabs > button {
+        font-size: 9.5px;
+        padding: 7px 4px;
+        letter-spacing: 0.04em;
+    }
+}
+
+html[data-ui-mode="mobile"] body.mobile-player-open #queue-tabs {
+    justify-content: space-between;
+    padding: 10px 4px 12px !important;
+}
+html[data-ui-mode="mobile"] body.mobile-player-open #queue-tabs .queue-tab-switch {
+    display: none !important;
+}
+html[data-ui-mode="mobile"] body.mobile-player-open #queue-tabs::before {
+    content: "Up Next";
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.5);
+    padding-left: 0.55rem;
+}
+html[data-ui-mode="mobile"] body.mobile-player-open[data-mobile-tab="history"] #queue-tabs::before {
+    content: "History";
 }
 
 /* Mobile Player Tab States (Playing, Queue, History, Lyrics) */

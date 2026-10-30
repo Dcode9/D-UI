@@ -2041,12 +2041,15 @@
                 }
             },
             switchMobilePlayerTab: (tab) => {
+                const mobileTabs = ['track', 'queue', 'history', 'lyrics'];
+                const tabIndex = Math.max(0, mobileTabs.indexOf(tab));
                 document.body.dataset.mobileTab = tab;
+                const tabSwitch = document.querySelector('.mobile-player-tabs');
+                if (tabSwitch) tabSwitch.style.setProperty('--seg-index', String(tabIndex));
                 document.querySelectorAll('.mobile-tab-btn').forEach(btn => {
                     const isCurrent = btn.id === `m-tab-${tab}`;
-                    btn.classList.toggle('active', isCurrent);
-                    btn.classList.toggle('text-white', isCurrent);
-                    btn.classList.toggle('text-gray-400', !isCurrent);
+                    btn.classList.toggle('is-active', isCurrent);
+                    btn.setAttribute('aria-selected', String(isCurrent));
                 });
                 if (tab === 'queue') {
                     ui.switchQueueTab('upnext');
@@ -2133,29 +2136,36 @@
                 const isUpNext = tab === 'upnext';
                 const tabUpNext = document.getElementById('tab-upnext');
                 const tabHist = document.getElementById('tab-history');
+                const tabSwitch = document.getElementById('queue-tab-switch');
                 const qList = document.getElementById('queue-list');
                 const hList = document.getElementById('history-list');
                 const clearQ = document.getElementById('btn-clear-queue');
-                const autoQ = document.getElementById('btn-queue-autoplay');
                 const clearH = document.getElementById('btn-clear-history');
 
-                if (tabUpNext) tabUpNext.className = isUpNext ? "text-xs font-bold uppercase tracking-wider text-white" : "text-xs font-bold uppercase tracking-wider text-gray-500 hover:text-gray-300";
-                if (tabHist) tabHist.className = isUpNext ? "text-xs font-bold uppercase tracking-wider text-gray-500 hover:text-gray-300" : "text-xs font-bold uppercase tracking-wider text-white";
+                if (tabSwitch) tabSwitch.style.setProperty('--seg-index', isUpNext ? '0' : '1');
+                if (tabUpNext) {
+                    tabUpNext.classList.toggle('is-active', isUpNext);
+                    tabUpNext.setAttribute('aria-selected', String(isUpNext));
+                }
+                if (tabHist) {
+                    tabHist.classList.toggle('is-active', !isUpNext);
+                    tabHist.setAttribute('aria-selected', String(!isUpNext));
+                }
                 if (qList) qList.classList.toggle('hidden', !isUpNext);
                 if (hList) hList.classList.toggle('hidden', isUpNext);
                 if (clearQ) clearQ.classList.toggle('hidden', !isUpNext);
-                if (autoQ) autoQ.classList.toggle('hidden', !isUpNext);
                 if (clearH) clearH.classList.toggle('hidden', isUpNext);
 
                 if (deviceMode.isMobileUI() && document.body.classList.contains('mobile-player-open')) {
                     const targetMobileTab = isUpNext ? 'queue' : 'history';
                     if (document.body.dataset.mobileTab !== targetMobileTab) {
                         document.body.dataset.mobileTab = targetMobileTab;
+                        const mobileSwitch = document.querySelector('.mobile-player-tabs');
+                        if (mobileSwitch) mobileSwitch.style.setProperty('--seg-index', isUpNext ? '1' : '2');
                         document.querySelectorAll('.mobile-tab-btn').forEach(btn => {
                             const isCurrent = btn.id === `m-tab-${targetMobileTab}`;
-                            btn.classList.toggle('active', isCurrent);
-                            btn.classList.toggle('text-white', isCurrent);
-                            btn.classList.toggle('text-gray-400', !isCurrent);
+                            btn.classList.toggle('is-active', isCurrent);
+                            btn.setAttribute('aria-selected', String(isCurrent));
                         });
                     }
                 }
@@ -2199,7 +2209,8 @@
                     : Math.max(0, state.queue.length - state.idx - 1);
                 if (clearBtn) {
                     clearBtn.disabled = manualCount + autoCount === 0;
-                    clearBtn.textContent = manualCount > 0 ? `Clear Queue (${manualCount})` : 'Clear Queue';
+                    const clearLabel = document.getElementById('btn-clear-queue-label');
+                    if (clearLabel) clearLabel.textContent = manualCount > 0 ? `Clear (${manualCount})` : 'Clear';
                 }
                 const totalQueueCount = manualCount + autoCount;
                 const badge = document.getElementById('queue-badge-count');
@@ -2209,17 +2220,17 @@
                 }
                 let html = '';
                 if (state.userQueue.length > 0) {
-                    html += `<div class="text-[10px] text-white font-bold uppercase tracking-wider mb-1 pl-2 mt-1 drop-shadow-md">Queue</div>`;
+                    html += `<div class="queue-section-label">Queued by you</div>`;
                     html += state.userQueue.map((song, index) => ui.createQueuePill(song, 'manual', index)).join('');
                 }
                 const upcoming = state.shuffle 
                     ? state.shuffledOrder.slice(state.shufflePointer + 1, state.shufflePointer + 11).map(i => state.queue[i]).filter(Boolean)
                     : state.queue.slice(state.idx + 1, state.idx + 11);
                 if (upcoming.length > 0) {
-                    html += `<div class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1 pl-2 mt-3 drop-shadow-md">Autoplay</div>`;
+                    html += `<div class="queue-section-label" style="margin-top:12px">Next in line</div>`;
                     html += upcoming.map((song, index) => ui.createQueuePill(song, 'auto', index)).join('');
                 }
-                listEl.innerHTML = html === '' ? '<div class="text-xs text-gray-500 p-3 rounded-xl border border-white/5 bg-white/5">Queue is empty. Add songs and they will appear here instantly.</div>' : html;
+                listEl.innerHTML = html === '' ? '<div class="queue-empty-state">Queue is empty. Add songs and they will appear here instantly.</div>' : html;
                 updateMarquees();
                 if (ui.updateAlbumCarouselPeeks) ui.updateAlbumCarouselPeeks();
             },
@@ -2228,7 +2239,7 @@
                 if (!histEl) return;
                 const historySongs = state.playHistory || [];
                 if (historySongs.length === 0) {
-                    histEl.innerHTML = '<div class="text-xs text-gray-500 p-3 rounded-xl border border-white/5 bg-white/5">No history yet. Played tracks will appear here.</div>';
+                    histEl.innerHTML = '<div class="queue-empty-state">No history yet. Played tracks will appear here.</div>';
                     return;
                 }
                 
@@ -2242,7 +2253,7 @@
                 
                 let html = '';
                 for (const [label, songs] of Object.entries(groups)) {
-                    html += `<div class="text-[10px] text-[var(--accent-color)] font-extrabold uppercase tracking-wider mt-4 mb-2 pl-2 border-l-2 border-[var(--accent-color)]">${utils.escapeHtml(label)}</div>`;
+                    html += `<div class="queue-section-label queue-section-date">${utils.escapeHtml(label)}</div>`;
                     html += songs.map(song => ui.createSongPill(song, `playSongById('${songStore.add(song)}')`)).join('');
                 }
                 

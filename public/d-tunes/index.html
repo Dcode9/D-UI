@@ -136,9 +136,9 @@
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/color-thief/2.3.2/color-thief.umd.js?v=1789798237"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-    <script defer src="src/js/preload.js?v=1.4.0"></script>
+    <script defer src="src/js/preload.js?v=1.5.0"></script>
 
-    <link rel="stylesheet" href="src/css/styles.css?v=1.4.0">
+    <link rel="stylesheet" href="src/css/styles.css?v=1.5.0">
 
 </head>
 <body>
@@ -848,7 +848,7 @@
                         <!-- ================= HOME VIEW ================= -->
         <div id="view-home" class="pb-12">
             <!-- Offline Mode Notice (Windows Desktop only) -->
-            <div id="offline-mode-banner" class="hidden mx-4 md:mx-8 mb-6 p-4 rounded-2xl bg-gradient-to-r from-amber-500/15 via-amber-500/5 to-transparent border border-amber-500/20 backdrop-blur-md flex items-center justify-between gap-4">
+            <div id="offline-mode-banner" class="hidden mx-4 md:mx-8 mb-6 p-4 rounded-2xl bg-gradient-to-r from-amber-500/15 via-amber-500/5 to-transparent border border-amber-500/20 mezzotint-surface flex items-center justify-between gap-4">
                 <div class="flex items-center gap-3">
                     <div class="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 flex-shrink-0">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 4.243a9 9 0 01-12.728 0m0 0l2.829-2.829m-2.829 2.829L3 21m2.829-15.536a9 9 0 0112.728 0M8.464 15.536a5 5 0 010-7.072m0 0l2.829 2.829M1 1l22 22"/></svg>
@@ -1360,11 +1360,11 @@
             <button class="mobile-collapse-btn text-gray-300 hover:text-white transition p-2 rounded-full bg-white/10 active:scale-95" onclick="ui.toggleMobilePlayer(false)" aria-label="Collapse player">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
             </button>
-            <div class="mobile-player-tabs flex items-center p-1 bg-white/10 rounded-full border border-white/10">
-                <button id="m-tab-track" class="mobile-tab-btn active px-3 py-1 rounded-full text-xs font-bold text-white transition" onclick="ui.switchMobilePlayerTab('track')">Playing</button>
-                <button id="m-tab-queue" class="mobile-tab-btn px-3 py-1 rounded-full text-xs font-bold text-gray-400 hover:text-white transition" onclick="ui.switchMobilePlayerTab('queue')">Queue</button>
-                <button id="m-tab-history" class="mobile-tab-btn px-3 py-1 rounded-full text-xs font-bold text-gray-400 hover:text-white transition" onclick="ui.switchMobilePlayerTab('history')">History</button>
-                <button id="m-tab-lyrics" class="mobile-tab-btn lyrics-unavailable px-3 py-1 rounded-full text-xs font-bold text-gray-400 hover:text-white transition" onclick="ui.switchMobilePlayerTab('lyrics')">Lyrics</button>
+            <div class="mobile-player-tabs segmented-tabs" role="tablist" aria-label="Player sections" style="--seg-count:4;">
+                <button id="m-tab-track" class="mobile-tab-btn is-active" role="tab" aria-selected="true" onclick="ui.switchMobilePlayerTab('track')">Playing</button>
+                <button id="m-tab-queue" class="mobile-tab-btn" role="tab" aria-selected="false" onclick="ui.switchMobilePlayerTab('queue')">Queue</button>
+                <button id="m-tab-history" class="mobile-tab-btn" role="tab" aria-selected="false" onclick="ui.switchMobilePlayerTab('history')">History</button>
+                <button id="m-tab-lyrics" class="mobile-tab-btn lyrics-unavailable" role="tab" aria-selected="false" onclick="ui.switchMobilePlayerTab('lyrics')">Lyrics</button>
             </div>
             <button class="text-gray-300 hover:text-white transition p-2 rounded-full bg-white/10 active:scale-95 flex items-center justify-center" onclick="ui.toggleEqualizerModal(true)" aria-label="Open Equalizer">
                 <svg class="w-5 h-5 text-[var(--accent-color)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>
@@ -1433,22 +1433,30 @@
                 <!-- 2. BOTTOM ITEM: Expanding Lists Container -->
                 <div id="queue-expandable-area" class="order-2 flex">
                     <div id="queue-full-content">
-                        <div id="queue-tabs" class="flex items-center justify-between gap-2 px-4 pt-4 pb-2 border-b border-white/5 flex-shrink-0 relative z-20">
-                            <div class="flex items-center gap-3 min-w-0">
-                                <button class="text-xs font-bold uppercase tracking-wider text-white" id="tab-upnext" onclick="ui.switchQueueTab('upnext')">Up Next</button>
-                                <button class="text-xs font-bold uppercase tracking-wider text-gray-500 hover:text-gray-300" id="tab-history" onclick="ui.switchQueueTab('history')">History</button>
-                            </div>
-                            <div class="flex items-center gap-1.5 flex-shrink-0">
-                                <button id="btn-queue-autoplay" onclick="player.triggerQueueAutoplay(8); event.stopPropagation();" class="text-[10px] font-black uppercase tracking-wider text-emerald-300 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 rounded-full px-3 py-1.5 transition flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer" title="Autoplay: Queue continuation tracks">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                                    <span>Autoplay</span>
+                        <div id="queue-tabs" class="queue-panel-head flex items-center justify-between gap-3 px-3.5 pt-3.5 pb-3 border-b border-white/5 flex-shrink-0 relative z-20">
+                            <div id="queue-tab-switch" class="segmented-tabs queue-tab-switch" role="tablist" aria-label="Queue and history">
+                                <button id="tab-upnext" class="queue-tab-btn is-active" role="tab" aria-selected="true" aria-controls="queue-list" onclick="ui.switchQueueTab('upnext')">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 6h16M4 12h10M4 18h7"/><path d="M17 14l3 3-3 3"/></svg>
+                                    <span>Up Next</span>
                                 </button>
-                                <button id="btn-clear-queue" onclick="player.clearQueue(); event.stopPropagation();" class="text-[10px] font-black uppercase tracking-wider text-red-300 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 rounded-full px-2.5 py-1.5 transition disabled:opacity-40 disabled:pointer-events-none" disabled>Clear</button>
-                                <button id="btn-clear-history" onclick="player.clearHistory(); event.stopPropagation();" class="text-[10px] font-black uppercase tracking-wider text-red-300 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 rounded-full px-2.5 py-1.5 transition hidden" title="Clear Listening History">Clear</button>
+                                <button id="tab-history" class="queue-tab-btn" role="tab" aria-selected="false" aria-controls="history-list" onclick="ui.switchQueueTab('history')">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
+                                    <span>History</span>
+                                </button>
+                            </div>
+                            <div class="flex items-center gap-1 flex-shrink-0">
+                                <button id="btn-clear-queue" onclick="player.clearQueue(); event.stopPropagation();" class="queue-clear-btn" title="Clear queue" aria-label="Clear queue" disabled>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7m-8 0 .8 11.1A1.9 1.9 0 0 0 9.7 20h4.6a1.9 1.9 0 0 0 1.9-1.9L17 7"/></svg>
+                                    <span id="btn-clear-queue-label">Clear</span>
+                                </button>
+                                <button id="btn-clear-history" onclick="player.clearHistory(); event.stopPropagation();" class="queue-clear-btn hidden" title="Clear history" aria-label="Clear history">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7m-8 0 .8 11.1A1.9 1.9 0 0 0 9.7 20h4.6a1.9 1.9 0 0 0 1.9-1.9L17 7"/></svg>
+                                    <span>Clear</span>
+                                </button>
                             </div>
                         </div>
-                        <div class="pt-2 pb-1 overflow-y-auto custom-scrollbar flex flex-col gap-1 flex-1 px-2" id="queue-list"></div>
-                        <div class="pt-2 pb-1 overflow-y-auto custom-scrollbar flex flex-col gap-1 flex-1 px-2 hidden" id="history-list"></div>
+                        <div class="queue-panel-list custom-scrollbar flex flex-col flex-1" id="queue-list"></div>
+                        <div class="queue-panel-list custom-scrollbar flex flex-col flex-1 hidden" id="history-list"></div>
                     </div>
                 </div>
             </div>
@@ -1577,7 +1585,7 @@
     </div>
 
     <!-- Mobile Bottom Nav -->
-    <nav id="mobile-nav" class="fixed bottom-0 left-0 right-0 h-[64px] bg-[#050505]/95 backdrop-blur-xl border-t border-white/10 z-[100] flex md:hidden items-center justify-around pb-safe">
+    <nav id="mobile-nav" class="fixed bottom-0 left-0 right-0 h-[64px] bg-[#050505]/95 mezzotint-surface border-t border-white/10 z-[100] flex md:hidden items-center justify-around pb-safe">
         <button data-nav="home" class="flex flex-col items-center gap-1 p-2 text-white transition-colors" onclick="ui.switchView('home'); ui.closeMobileSearch();">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
             <span class="mobile-nav-label">Home</span>
@@ -1777,25 +1785,25 @@
     <audio id="audio-el" crossorigin="anonymous" controls="true" preload="auto" playsinline webkit-playsinline style="position:fixed;top:-9999px;left:-9999px;opacity:0.001;pointer-events:none;width:1px;height:1px;"></audio>
 
     <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script defer src="src/js/dverseClient.js?v=1.4.0"></script>
-    <script defer src="src/js/ai.js?v=1.4.0"></script>
-    <script defer src="src/js/recommendationClient.js?v=1.4.0"></script>
-    <script defer src="src/js/utils.js?v=1.4.0"></script>
-    <script defer src="src/js/api.js?v=1.4.0"></script>
-    <script defer src="src/js/spotify.js?v=1.4.0"></script>
-    <script defer src="src/js/timer.js?v=1.4.0"></script>
-    <script defer src="src/js/state.js?v=1.4.0"></script>
-    <script defer src="src/js/context-menu.js?v=1.4.0"></script>
-    <script defer src="src/js/offline.js?v=1.4.0"></script>
-    <script defer src="src/js/player.js?v=1.4.0"></script>
-    <script defer src="src/js/visualizer.js?v=1.4.0"></script>
-    <script defer src="src/js/theme.js?v=1.4.0"></script>
-    <script defer src="src/js/lyrics.js?v=1.4.0"></script>
-    <script defer src="src/js/ui.js?v=1.4.0"></script>
-    <script defer src="src/js/search.js?v=1.4.0"></script>
-    <script defer src="src/js/ai-hub.js?v=1.4.0"></script>
-    <script defer src="src/js/main.js?v=1.4.0"></script>
-<script defer src="src/js/desktop.js?v=1.4.0"></script>
+    <script defer src="src/js/dverseClient.js?v=1.5.0"></script>
+    <script defer src="src/js/ai.js?v=1.5.0"></script>
+    <script defer src="src/js/recommendationClient.js?v=1.5.0"></script>
+    <script defer src="src/js/utils.js?v=1.5.0"></script>
+    <script defer src="src/js/api.js?v=1.5.0"></script>
+    <script defer src="src/js/spotify.js?v=1.5.0"></script>
+    <script defer src="src/js/timer.js?v=1.5.0"></script>
+    <script defer src="src/js/state.js?v=1.5.0"></script>
+    <script defer src="src/js/context-menu.js?v=1.5.0"></script>
+    <script defer src="src/js/offline.js?v=1.5.0"></script>
+    <script defer src="src/js/player.js?v=1.5.0"></script>
+    <script defer src="src/js/visualizer.js?v=1.5.0"></script>
+    <script defer src="src/js/theme.js?v=1.5.0"></script>
+    <script defer src="src/js/lyrics.js?v=1.5.0"></script>
+    <script defer src="src/js/ui.js?v=1.5.0"></script>
+    <script defer src="src/js/search.js?v=1.5.0"></script>
+    <script defer src="src/js/ai-hub.js?v=1.5.0"></script>
+    <script defer src="src/js/main.js?v=1.5.0"></script>
+<script defer src="src/js/desktop.js?v=1.5.0"></script>
 
 <script src="haptics.js" defer></script></body>
                     </html>

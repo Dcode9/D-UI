@@ -17,9 +17,9 @@
             if (seekEdgeEl) seekEdgeEl.style.left = (p * 100) + '%';
             if (vizSeekTrack) vizSeekTrack.style.clipPath = `inset(0 0 0 ${p * 100}%)`;
             if (vizCanvas) {
-                const dpr = Math.min(window.devicePixelRatio || 1, 2);
-                const canvasW = vizCanvas.width / dpr;
-                vizCanvas.style.clipPath = `inset(0 ${canvasW - canvasW * p}px 0 0)`;
+                // Percentage-based clipping keeps the played waveform edge
+                // glued to the needle marker regardless of layout/resize.
+                vizCanvas.style.clipPath = `inset(0 ${(1 - p) * 100}% 0 0)`;
                 lastClipProgress = p;
             }
         }
@@ -52,6 +52,11 @@
                 lastClipProgress = -1; // Force clipPath update on resize
             };
             resizeCanvas(); window.addEventListener('resize', resizeCanvas);
+            if (window.ResizeObserver) {
+                const seekResizeObserver = new ResizeObserver(() => resizeCanvas());
+                const seekContainer = document.getElementById('seek-bar-container');
+                if (seekContainer) seekResizeObserver.observe(seekContainer);
+            }
 
             deviceMode.apply();
             ui.setMobileNavActive('home');
