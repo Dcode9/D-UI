@@ -759,10 +759,10 @@
         /* --- Player Components --- */
         #seek-bar-container { position: relative; width: 100%; height: 60px; display: flex; align-items: center; justify-content: center; transition: opacity 0.3s; touch-action: none; }
         #seek-bar-container.disabled { opacity: 0.3; pointer-events: none; }
-        #seek-bar-track { position: absolute; height: 2px; width: 100%; background-color: rgba(255, 255, 255, 0.15); border-radius: 3px; top: 50%; transform: translateY(-50%); clip-path: inset(0 0 0 0%); transition: height 0.2s; pointer-events: none; }
+        #seek-bar-track { position: absolute; height: 3px; width: 100%; background-color: rgba(255, 255, 255, 0.18); border-radius: 9999px; top: 50%; transform: translateY(-50%); clip-path: inset(0 0 0 0%); transition: background-color 0.2s ease; pointer-events: none; }
         #visualizer-canvas { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; clip-path: inset(0 100% 0 0); }
         input[type="range"]#seek-bar { -webkit-appearance: none; appearance: none; position: absolute; left: 0; width: 100%; background: transparent; outline: none; margin: 0; padding: 0; z-index: 2; cursor: pointer; height: 20px; top: 50%; transform: translateY(-50%); }
-        input[type="range"]#seek-bar::-webkit-slider-runnable-track { width: 100%; height: 2px; background: transparent; }
+        input[type="range"]#seek-bar::-webkit-slider-runnable-track { width: 100%; height: 3px; background: transparent; }
         input[type="range"]#seek-bar::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 12px; height: 12px; background: #fff; border-radius: 50%; cursor: pointer; box-shadow: 0 0 10px rgba(0,0,0,0.5); transition: transform 0.1s; margin-top: -5px; }
         input[type="range"]#seek-bar:disabled::-webkit-slider-thumb { display: none; }
         input[type="range"]#seek-bar::-webkit-slider-thumb:hover { transform: scale(1.5); }
@@ -836,26 +836,48 @@
            while the previewed song stays rock-solid in place and seamlessly becomes the now playing card. */
         #queue-wrapper.track-swap-out #info-island {
             transform: none !important;
-            opacity: 0;
-            filter: blur(14px);
+            opacity: 0 !important;
+            max-height: 0px !important;
+            padding-top: 0px !important;
+            padding-bottom: 0px !important;
+            margin-top: 0px !important;
+            margin-bottom: 0px !important;
+            border-width: 0px !important;
+            overflow: hidden !important;
+            filter: blur(14px) contrast(140%) brightness(1.2);
             z-index: 4;
             pointer-events: none;
-            transition: opacity 0.42s cubic-bezier(0.4, 0, 0.2, 1), filter 0.42s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            transition: opacity 0.38s cubic-bezier(0.4, 0, 0.2, 1),
+                        filter 0.38s cubic-bezier(0.4, 0, 0.2, 1),
+                        max-height 0.38s cubic-bezier(0.4, 0, 0.2, 1),
+                        padding 0.38s cubic-bezier(0.4, 0, 0.2, 1),
+                        margin 0.38s cubic-bezier(0.4, 0, 0.2, 1) !important;
         }
         #queue-wrapper.track-swap-out #info-island > * {
             filter: blur(10px);
             opacity: 0;
-            transition: filter 0.4s ease, opacity 0.38s ease !important;
+            transition: filter 0.36s ease, opacity 0.34s ease !important;
         }
         #queue-wrapper.track-swap-out #info-island::after {
             opacity: 1 !important;
-            transition: opacity 0.38s ease !important;
+            transition: opacity 0.34s ease !important;
         }
         #queue-wrapper.track-swap-out #up-next-label {
             transform: none !important;
-            opacity: 0;
+            opacity: 0 !important;
+            max-height: 0px !important;
+            margin-top: 0px !important;
+            margin-bottom: 0px !important;
+            overflow: hidden !important;
             filter: blur(8px);
-            transition: opacity 0.34s ease, filter 0.34s ease !important;
+            transition: opacity 0.3s ease,
+                        filter 0.3s ease,
+                        max-height 0.38s cubic-bezier(0.4, 0, 0.2, 1),
+                        margin 0.38s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        }
+        #queue-wrapper.track-swap-out #queue-preview-slot {
+            margin-top: 0px !important;
+            transition: margin-top 0.38s cubic-bezier(0.4, 0, 0.2, 1) !important;
         }
         #queue-wrapper.track-swap-out #queue-preview-pill {
             transform: none !important;
@@ -1411,31 +1433,11 @@ html[data-ui-mode="mobile"] #player-footer {
 }
 
 #album-art-wrapper.is-loading::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    z-index: 3;
-    background:
-        linear-gradient(110deg, transparent 0%, rgba(255,255,255,0.22) 45%, transparent 72%),
-        rgba(0,0,0,0.18);
-    transform: translateX(-100%);
-    animation: album-loading-sheen 1.15s ease-in-out infinite;
+    display: none !important;
 }
 
 #album-art-wrapper.is-loading::before {
-    content: 'Loading';
-    position: absolute;
-    left: 10px;
-    right: 10px;
-    bottom: 10px;
-    z-index: 4;
-    height: 4px;
-    border-radius: 9999px;
-    overflow: hidden;
-    color: transparent;
-    background: linear-gradient(90deg, rgba(34,211,238,0.25), rgba(34,211,238,0.95), rgba(34,211,238,0.25));
-    background-size: 220% 100%;
-    animation: album-loading-bar 1.05s ease-in-out infinite;
+    display: none !important;
 }
 
 @keyframes album-loading-sheen {

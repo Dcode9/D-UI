@@ -171,8 +171,9 @@
                                 const baseWave = Math.sin((x / width) * 8 * Math.PI);
                                 visualizerCtx.lineTo(x, centerY + baseWave * 8 * ampScale);
                             }
-                            visualizerCtx.lineWidth = 2.5;
+                            visualizerCtx.lineWidth = 3;
                             visualizerCtx.lineCap = 'round';
+                            visualizerCtx.lineJoin = 'round';
                             visualizerCtx.strokeStyle = '#ffffff';
                             visualizerCtx.shadowColor = 'transparent';
                             visualizerCtx.shadowBlur = 0;
@@ -252,7 +253,8 @@
                             visualizerCtx.lineTo(width, centerY);
                             visualizerCtx.lineWidth = 3;
                             visualizerCtx.lineCap = 'round';
-                            visualizerCtx.strokeStyle = 'rgba(255, 255, 255, 0.14)';
+                            visualizerCtx.lineJoin = 'round';
+                            visualizerCtx.strokeStyle = 'rgba(255, 255, 255, 0.18)';
                             visualizerCtx.stroke();
 
                             // Draw collapsing old line
@@ -262,6 +264,7 @@
                                 visualizerCtx.lineTo(Math.min(width + 50, oldX2), centerY);
                                 visualizerCtx.lineWidth = 3;
                                 visualizerCtx.lineCap = 'round';
+                                visualizerCtx.lineJoin = 'round';
                                 visualizerCtx.strokeStyle = `rgba(255, 255, 255, ${Math.max(0.15, 1 - ease * 0.8)})`;
                                 visualizerCtx.shadowColor = 'transparent';
                                 visualizerCtx.shadowBlur = 0;
@@ -275,6 +278,7 @@
                                 visualizerCtx.lineTo(Math.min(width + 50, newX2), centerY);
                                 visualizerCtx.lineWidth = 3;
                                 visualizerCtx.lineCap = 'round';
+                                visualizerCtx.lineJoin = 'round';
                                 visualizerCtx.strokeStyle = `rgba(255, 255, 255, ${0.35 + ease * 0.65})`;
                                 visualizerCtx.shadowColor = 'transparent';
                                 visualizerCtx.shadowBlur = 0;
@@ -319,8 +323,10 @@
                         visualizerCtx.beginPath();
                         visualizerCtx.moveTo(0, centerY);
                         visualizerCtx.lineTo(width, centerY);
-                        visualizerCtx.lineWidth = 2;
-                        visualizerCtx.strokeStyle = '#fff';
+                        visualizerCtx.lineWidth = 3;
+                        visualizerCtx.lineCap = 'round';
+                        visualizerCtx.lineJoin = 'round';
+                        visualizerCtx.strokeStyle = '#ffffff';
                         visualizerCtx.shadowColor = 'transparent';
                         visualizerCtx.shadowBlur = 0;
                         visualizerCtx.stroke();
@@ -343,7 +349,7 @@
                     if (hoverIntensity > 0.01) { const hoverX = (isHovering ? state.hoverProgress : state.lastHoverProgress) * width; const dist = Math.abs(x - hoverX); if (dist < 60) interactionFactor = 1.0 - (hoverIntensity * (1.0 - (dist/60)*(dist/60)*(3-2*(dist/60)))); }
                     visualizerCtx.lineTo(x, centerY + (baseWave * baseAmplitude + fastWave * detailAmplitude) * taper * interactionFactor);
                 }
-                visualizerCtx.lineWidth = 2; visualizerCtx.strokeStyle = '#ffffff'; visualizerCtx.shadowColor = 'transparent'; visualizerCtx.shadowBlur = 0; visualizerCtx.stroke();
+                visualizerCtx.lineWidth = 3; visualizerCtx.lineCap = 'round'; visualizerCtx.lineJoin = 'round'; visualizerCtx.strokeStyle = '#ffffff'; visualizerCtx.shadowColor = 'transparent'; visualizerCtx.shadowBlur = 0; visualizerCtx.stroke();
                 
                 requestAnimationFrame(viz.render);
             }

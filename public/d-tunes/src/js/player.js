@@ -352,7 +352,7 @@
         };
 
         const player = {
-            playDirect: async (track) => {
+            playDirect: async (track, options = {}) => {
                 if (!track) return;
                 if (isOfflineBlockedTrack(track)) {
                     notifyOfflineBlockedTrack(track);
@@ -374,11 +374,17 @@
                     swapWrap.classList.remove('preview-expanded', 'track-swap-out');
                 }
                 document.getElementById('player-footer')?.classList.remove('translate-y-[150%]', 'opacity-0');
-                ui.updateMetadata(state.currentTrack, { loading: true });
+                
+                const isSeamless = !!options.isHandoff || Boolean(track.url);
+                ui.updateMetadata(state.currentTrack, { loading: false });
                 if (swapWrap?.dataset.trackSwap === '1') {
                     document.dispatchEvent(new CustomEvent('dtunes:swap-ready'));
                 }
-                ui.setPlayerLoading(true);
+                if (!isSeamless && !track.url) {
+                    ui.setPlayerLoading(true);
+                } else {
+                    ui.setPlayerLoading(false);
+                }
                 ui.updatePlayBtn();
                 ui.renderQueue();
                 persist.save();
@@ -566,14 +572,24 @@
                 if (state.isSwappingTrack) return;
                 state.isSwappingTrack = true;
 
-                // Add track-swap-out: current song and UP NEXT dissolve with Mezzotint Grain Blur in place,
-                // while the previewed song stays rock-solid in place.
+                // Grab upcoming track immediately so metadata & image are 100% pre-warmed
+                const nextTrack = (typeof getUpcomingTrack === 'function') ? getUpcomingTrack() : null;
+
+                // Add track-swap-out: current song and UP NEXT dissolve with Mezzotint Grain Blur in place and collapse,
+                // while the previewed song stays rock-solid in place at the exact resting position (y = 610.8).
                 wrap.classList.add('track-swap-out');
 
+                if (nextTrack) {
+                    const nextPillImg = pill.querySelector('.np-art-img');
+                    const artImg = document.getElementById('curr-art-img');
+                    if (artImg && nextPillImg && nextPillImg.src) {
+                        artImg.src = nextPillImg.src;
+                    }
+                }
+
                 setTimeout(() => {
-                    const nextTrack = (typeof getUpcomingTrack === 'function') ? getUpcomingTrack() : null;
                     if (nextTrack) {
-                        ui.updateMetadata(nextTrack);
+                        ui.updateMetadata(nextTrack, { loading: false });
                     }
                     // Instant settle: freeze transitions to prevent any flash/snap when resetting classes
                     wrap.classList.add('track-swap-settle');
@@ -581,18 +597,18 @@
                     wrap.style.removeProperty('--np-swap-shift');
                     pill.dataset.trackId = '';
                     state.isSwappingTrack = false;
-                    player.next();
+                    player.next(false, { isHandoff: true });
 
                     requestAnimationFrame(() => {
                         wrap.classList.remove('track-swap-settle');
                     });
-                }, 420);
+                }, 380);
             },
-            next: (force = false) => {
+            next: (force = false, options = {}) => {
                 if (typeof viz !== 'undefined' && viz.triggerTrackTransition) viz.triggerTrackTransition('next');
                 if (state.userQueue.length > 0) {
                     const nextSong = state.userQueue.shift();
-                    player.playDirect(nextSong);
+                    player.playDirect(nextSong, options);
                 } else if (state.queue.length > 0) {
                     let nextIdx;
                     if (state.shuffle) {
@@ -608,7 +624,7 @@
                                 homeView.autoplayNextIntelligentTracks().then(success => {
                                     if (success && state.idx + 1 < state.queue.length) {
                                         state.idx = state.idx + 1;
-                                        player.playDirect(state.queue[state.idx]);
+                                        player.playDirect(state.queue[state.idx], options);
                                     } else {
                                         audio.pause();
                                         audio.currentTime = 0;
@@ -632,7 +648,7 @@
                                 homeView.autoplayNextIntelligentTracks().then(success => {
                                     if (success && state.idx + 1 < state.queue.length) {
                                         state.idx = state.idx + 1;
-                                        player.playDirect(state.queue[state.idx]);
+                                        player.playDirect(state.queue[state.idx], options);
                                     } else {
                                         audio.pause();
                                         audio.currentTime = 0;
@@ -649,7 +665,7 @@
                     }
                     if (nextIdx !== undefined && state.queue[nextIdx]) {
                         state.idx = nextIdx;
-                        player.playDirect(state.queue[nextIdx]);
+                        player.playDirect(state.queue[nextIdx], options);
                     }
                 }
             },

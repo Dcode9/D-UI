@@ -1920,8 +1920,12 @@
                 island?.classList.toggle('is-loading', activeLoading);
                 document.getElementById('album-art-wrapper')?.classList.toggle('is-loading', activeLoading);
                 if (state.currentTrack) {
-                    title.textContent = state.currentTrack.name || 'Loading track';
-                    artist.textContent = activeLoading ? `Loading • ${state.currentTrack.artist || 'Preparing audio'}` : (state.currentTrack.artist || 'Unknown Artist');
+                    if (state.currentTrack.name && (!title.textContent || title.textContent === 'Not Playing')) {
+                        title.textContent = state.currentTrack.name;
+                    }
+                    if (state.currentTrack.artist) {
+                        artist.textContent = state.currentTrack.artist;
+                    }
                 }
                 if ('mediaSession' in navigator) {
                     navigator.mediaSession.playbackState = state.playing ? 'playing' : 'paused';
@@ -1958,8 +1962,9 @@
                 }
             },
             updateMetadata: (track, options = {}) => {
-                document.getElementById('p-title').textContent = track.name; 
-                document.getElementById('p-artist').textContent = options.loading ? `Loading • ${track.artist || 'Preparing audio'}` : track.artist;
+                if (!track) return;
+                document.getElementById('p-title').textContent = track.name || track.title || 'Unknown Track'; 
+                document.getElementById('p-artist').textContent = (options.loading && !track.artist) ? 'Loading...' : (track.artist || 'Unknown Artist');
                 const safeArt = sanitizeImageUrl(track.img);
                 const artImg = document.getElementById('curr-art-img');
                 if (artImg) {
@@ -1977,7 +1982,9 @@
                         this.src = FALLBACK_ART;
                     };
                     artImg.onload = () => applyDynamicTrackTheme(artImg);
-                    artImg.src = safeArt;
+                    if (artImg.src !== safeArt) {
+                        artImg.src = safeArt;
+                    }
                     if (artImg.complete && artImg.naturalWidth > 0) applyDynamicTrackTheme(artImg);
                 }
                 ui.setPlayerLoading(!!options.loading);
