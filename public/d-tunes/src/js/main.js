@@ -121,6 +121,7 @@
             const seekBar = document.getElementById('seek-bar'); const container = document.getElementById('seek-bar-container'); const tooltip = document.getElementById('seek-tooltip');
             const setDragging = (dragging) => {
                 state.isDragging = dragging;
+                if (container) container.classList.toggle('is-pressed', dragging);
                 if (!dragging) persist.save();
             };
 
@@ -152,7 +153,8 @@
             }
 
             const tickPlayhead = () => {
-                if (state.playing && !state.isDragging && Number.isFinite(audio.duration) && audio.duration > 0) {
+                const isTransitioning = (typeof trackTransition !== 'undefined' && trackTransition.active);
+                if (state.playing && !state.isDragging && !state.isGlidingToStart && !isTransitioning && Number.isFinite(audio.duration) && audio.duration > 0) {
                     paintPlayhead(audio.currentTime / audio.duration);
                 }
                 requestAnimationFrame(tickPlayhead);
@@ -169,6 +171,34 @@
             seekBar.addEventListener('mouseleave', () => setDragging(false));
             seekBar.addEventListener('touchend', () => setDragging(false), { passive: true });
             seekBar.addEventListener('touchcancel', () => setDragging(false), { passive: true });
+
+            const volContainer = document.getElementById('volume-slider-container');
+            if (container) {
+                container.addEventListener('mousedown', () => container.classList.add('is-pressed'));
+                container.addEventListener('pointerdown', () => container.classList.add('is-pressed'));
+                container.addEventListener('touchstart', () => container.classList.add('is-pressed'), { passive: true });
+            }
+            if (volContainer) {
+                volContainer.addEventListener('mousedown', () => volContainer.classList.add('is-pressed'));
+                volContainer.addEventListener('pointerdown', () => volContainer.classList.add('is-pressed'));
+                volContainer.addEventListener('touchstart', () => volContainer.classList.add('is-pressed'), { passive: true });
+            }
+            window.addEventListener('mouseup', () => {
+                container?.classList.remove('is-pressed');
+                volContainer?.classList.remove('is-pressed');
+            });
+            window.addEventListener('pointerup', () => {
+                container?.classList.remove('is-pressed');
+                volContainer?.classList.remove('is-pressed');
+            });
+            window.addEventListener('touchend', () => {
+                container?.classList.remove('is-pressed');
+                volContainer?.classList.remove('is-pressed');
+            }, { passive: true });
+            window.addEventListener('touchcancel', () => {
+                container?.classList.remove('is-pressed');
+                volContainer?.classList.remove('is-pressed');
+            }, { passive: true });
 
             seekBar.addEventListener('input', () => {
                 if (!Number.isFinite(audio.duration) || audio.duration <= 0) return;

@@ -2545,6 +2545,13 @@ button, input[type="range"], a, .scroll-card, .song-pill {
             box-shadow: none;
         }
 
+        /* Pressed / click state: cancelled out back to original 12px (ONLY while mouse is physically clicked/pressed) */
+        .custom-slider-container:active .slider-rounded-edge,
+        .custom-slider-container.is-pressed .slider-rounded-edge,
+        .custom-slider-input:active ~ .slider-rounded-edge {
+            height: 12px !important;
+        }
+
         /* Seamless invisible input layer for full accessibility, drag, and touch */
         .custom-slider-input {
             position: absolute;

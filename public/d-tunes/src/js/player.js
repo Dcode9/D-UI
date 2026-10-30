@@ -669,15 +669,53 @@
                     }
                 }
             },
-            prev: () => {
-                if (typeof viz !== 'undefined' && viz.triggerTrackTransition) viz.triggerTrackTransition('prev');
-                if (state.queue.length === 0) return;
-                if (audio.currentTime > 3) {
-                    audio.currentTime = 0;
+            smoothGlideToStart: () => {
+                const fromProgress = (audio.duration && Number.isFinite(audio.duration) && audio.duration > 0)
+                    ? (audio.currentTime / audio.duration)
+                    : (currentProgress || 0);
+                audio.currentTime = 0;
+                const sb = document.getElementById('seek-bar');
+                if (sb) sb.value = 0;
+                if (typeof lyricsManager !== 'undefined' && lyricsManager.syncTime) {
+                    lyricsManager.syncTime(0, true);
+                }
+                updateMediaPosition();
+
+                if (fromProgress <= 0.01) {
+                    if (typeof paintPlayhead === 'function') paintPlayhead(0);
                     if (typeof viz !== 'undefined' && viz.start) viz.start();
-                    updateMediaPosition();
                     return;
                 }
+
+                state.isGlidingToStart = true;
+                const startTime = performance.now();
+                const glideDuration = 220; // ms
+                const step = (now) => {
+                    const elapsed = now - startTime;
+                    const p = Math.min(1, elapsed / glideDuration);
+                    const ease = 1 - Math.pow(1 - p, 3);
+                    const currP = fromProgress * (1 - ease);
+                    if (typeof paintPlayhead === 'function') paintPlayhead(currP);
+                    if (p < 1) {
+                        requestAnimationFrame(step);
+                    } else {
+                        state.isGlidingToStart = false;
+                        if (typeof paintPlayhead === 'function') paintPlayhead(0);
+                        if (typeof viz !== 'undefined' && viz.start) viz.start();
+                    }
+                };
+                requestAnimationFrame(step);
+            },
+            prev: () => {
+                if (state.queue.length === 0) return;
+                if (audio.currentTime > 3) {
+                    // SAME SONG RESTART: plays from start without multi-step transition.
+                    // The player head simply moves towards start and continues.
+                    player.smoothGlideToStart();
+                    return;
+                }
+                // DIFFERENT SONG: Trigger multi-step transition
+                if (typeof viz !== 'undefined' && viz.triggerTrackTransition) viz.triggerTrackTransition('prev');
                 let prevIdx;
                 if (state.shuffle) {
                     if (!state.shuffledOrder || state.shuffledOrder.length !== state.queue.length) {

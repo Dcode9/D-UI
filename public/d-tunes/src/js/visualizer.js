@@ -116,12 +116,20 @@
         let isVizLoopRunning = false;
 
         // Custom Track Change Waveform Collapse & Expansion Animation State
+        // Redesigned sequence:
+        // Step 1: Waveform flattens, and player head shrinks to a flat line (3px).
+        // Step 2: The flat line smoothly fades to the grey background color of the remaining progress line.
+        // Step 3: At 0%, the player head animates in with an expand/grow animation (from a point to a line),
+        //         then normal playback resumes as it is.
         const trackTransition = {
             active: false,
-            direction: 'next', // 'next' or 'prev'
+            direction: 'next',
             startTime: 0,
-            duration: 520, // ms
-            flattenDuration: 110, // ms
+            startProgress: 0,
+            flattenDuration: 120, // ms: Step 1
+            fadeDuration: 140,    // ms: Step 2
+            growDuration: 170,    // ms: Step 3
+            duration: 430,        // ms: Total = 120 + 140 + 170
         };
 
         const viz = {
@@ -135,6 +143,14 @@
                 trackTransition.active = true;
                 trackTransition.direction = dir;
                 trackTransition.startTime = performance.now();
+                // Capture where seekbar currently is (at ANY position)
+                let prog = 0;
+                if (typeof currentProgress === 'number' && Number.isFinite(currentProgress)) {
+                    prog = currentProgress;
+                } else if (audio && audio.duration && Number.isFinite(audio.duration) && audio.duration > 0) {
+                    prog = audio.currentTime / audio.duration;
+                }
+                trackTransition.startProgress = Math.max(0, Math.min(1, prog));
                 lastClipProgress = -1;
                 viz.start();
             },
@@ -150,154 +166,143 @@
                 }
                 const width = canvas.width / dpr; const height = canvas.height / dpr; const centerY = height / 2; visualizerCtx.clearRect(0, 0, width, height);
 
-                // Handle Track Change Waveform Collapse/Expansion Animation
+                // Handle Redesigned Multi-Step Track Change Animation
                 if (trackTransition.active) {
                     const now = performance.now();
                     const elapsed = now - trackTransition.startTime;
+                    const seekEdge = document.getElementById('seek-edge-marker');
+                    const startP = trackTransition.startProgress;
+                    const isHovering = state.hoverProgress >= 0;
+                    const targetNormalH = isHovering ? 16 : 12;
 
                     if (elapsed >= trackTransition.duration) {
                         trackTransition.active = false;
+                        currentProgress = 0;
                         lastClipProgress = -1;
-                        if (canvas) canvas.style.clipPath = '';
-                        if (vizSeekTrack) vizSeekTrack.style.clipPath = '';
-                    } else {
-                        // Phase 1: Rapid Waveform Flattening
-                        if (elapsed < trackTransition.flattenDuration) {
-                            const flattenP = elapsed / trackTransition.flattenDuration;
-                            const ampScale = 1 - flattenP;
-                            visualizerCtx.beginPath();
-                            visualizerCtx.moveTo(0, centerY);
-                            for (let x = 0; x <= width; x++) {
-                                const baseWave = Math.sin((x / width) * 8 * Math.PI);
-                                visualizerCtx.lineTo(x, centerY + baseWave * 8 * ampScale);
-                            }
-                            visualizerCtx.lineWidth = 3;
-                            visualizerCtx.lineCap = 'round';
-                            visualizerCtx.lineJoin = 'round';
-                            visualizerCtx.strokeStyle = '#ffffff';
-                            visualizerCtx.shadowColor = 'transparent';
-                            visualizerCtx.shadowBlur = 0;
-                            visualizerCtx.stroke();
-                        } else {
-                            // Phase 2: Dual-Line Collapse and Expansion
-                            const animElapsed = elapsed - trackTransition.flattenDuration;
-                            const animTotal = trackTransition.duration - trackTransition.flattenDuration;
-                            const p = Math.min(1, Math.max(0, animElapsed / animTotal));
-                            // Smooth easeInOutQuad
-                            const ease = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
-                            const dir = trackTransition.direction;
-
-                            let oldX1, oldX2, newX1, newX2;
-
-                            if (dir === 'next') {
-                                // Collapsing line shrinks to left:
-                                // Left end stays pinned at 0 till the last
-                                if (ease < 0.85) {
-                                    oldX1 = 0;
-                                    oldX2 = width * (1 - ease / 0.85);
-                                } else {
-                                    // Almost a point width: slides off to left
-                                    const exitP = (ease - 0.85) / 0.15;
-                                    const ptW = 4;
-                                    const shift = exitP * 28;
-                                    oldX1 = -shift;
-                                    oldX2 = -shift + ptW * (1 - exitP);
-                                }
-
-                                // Incoming line simultaneously enters from right:
-                                // Right end stays pinned at width
-                                if (ease < 0.12) {
-                                    const enterP = ease / 0.12;
-                                    newX2 = width;
-                                    newX1 = width - (enterP * 6);
-                                } else {
-                                    const expandP = (ease - 0.12) / 0.88;
-                                    newX2 = width;
-                                    newX1 = width * (1 - expandP);
-                                }
-                            } else {
-                                // Prev: Collapsing line shrinks to right:
-                                // Right end stays pinned at width till the last
-                                if (ease < 0.85) {
-                                    oldX1 = width * (ease / 0.85);
-                                    oldX2 = width;
-                                } else {
-                                    // Almost a point width: slides off to right
-                                    const exitP = (ease - 0.85) / 0.15;
-                                    const ptW = 4;
-                                    const shift = exitP * 28;
-                                    oldX2 = width + shift;
-                                    oldX1 = width + shift - ptW * (1 - exitP);
-                                }
-
-                                // Incoming line simultaneously enters from left:
-                                // Left end stays pinned at 0
-                                if (ease < 0.12) {
-                                    const enterP = ease / 0.12;
-                                    newX1 = 0;
-                                    newX2 = enterP * 6;
-                                } else {
-                                    const expandP = (ease - 0.12) / 0.88;
-                                    newX1 = 0;
-                                    newX2 = width * expandP;
-                                }
-                            }
-
-                            // Keep canvas unclipped during transition for full line visibility
-                            if (canvas) canvas.style.clipPath = 'none';
-                            if (vizSeekTrack) vizSeekTrack.style.clipPath = 'none';
-
-                            // Draw unplayed background track guide
-                            visualizerCtx.beginPath();
-                            visualizerCtx.moveTo(0, centerY);
-                            visualizerCtx.lineTo(width, centerY);
-                            visualizerCtx.lineWidth = 3;
-                            visualizerCtx.lineCap = 'round';
-                            visualizerCtx.lineJoin = 'round';
-                            visualizerCtx.strokeStyle = 'rgba(255, 255, 255, 0.18)';
-                            visualizerCtx.stroke();
-
-                            // Draw collapsing old line
-                            if (oldX2 > oldX1) {
-                                visualizerCtx.beginPath();
-                                visualizerCtx.moveTo(Math.max(-50, oldX1), centerY);
-                                visualizerCtx.lineTo(Math.min(width + 50, oldX2), centerY);
-                                visualizerCtx.lineWidth = 3;
-                                visualizerCtx.lineCap = 'round';
-                                visualizerCtx.lineJoin = 'round';
-                                visualizerCtx.strokeStyle = `rgba(255, 255, 255, ${Math.max(0.15, 1 - ease * 0.8)})`;
-                                visualizerCtx.shadowColor = 'transparent';
-                                visualizerCtx.shadowBlur = 0;
-                                visualizerCtx.stroke();
-                            }
-
-                            // Draw incoming new line
-                            if (newX2 > newX1) {
-                                visualizerCtx.beginPath();
-                                visualizerCtx.moveTo(Math.max(-50, newX1), centerY);
-                                visualizerCtx.lineTo(Math.min(width + 50, newX2), centerY);
-                                visualizerCtx.lineWidth = 3;
-                                visualizerCtx.lineCap = 'round';
-                                visualizerCtx.lineJoin = 'round';
-                                visualizerCtx.strokeStyle = `rgba(255, 255, 255, ${0.35 + ease * 0.65})`;
-                                visualizerCtx.shadowColor = 'transparent';
-                                visualizerCtx.shadowBlur = 0;
-                                visualizerCtx.stroke();
-                            }
+                        if (canvas) canvas.style.clipPath = 'inset(0 100% 0 0)';
+                        if (vizSeekTrack) vizSeekTrack.style.clipPath = 'inset(0 0 0 0%)';
+                        if (seekEdge) {
+                            seekEdge.style.left = '0%';
+                            seekEdge.style.height = '';
+                            seekEdge.style.opacity = '';
                         }
+                    } else if (startP > 0.01 && elapsed < trackTransition.flattenDuration) {
+                        // ========================================================
+                        // STEP 1: Player flattens, and player head shrinks to a flat line (3px)
+                        // ========================================================
+                        const p1 = Math.min(1, elapsed / trackTransition.flattenDuration);
+                        const ease1 = p1 * (2 - p1); // smooth ease-out
+                        const ampScale = 1 - ease1;
 
-                        // Hide the seek edge marker during collapse animation
-                        const seekEdge = document.getElementById('seek-edge-marker');
-                        if (seekEdge) seekEdge.style.opacity = '0';
+                        if (canvas) canvas.style.clipPath = `inset(0 ${(1 - startP) * 100}% 0 0)`;
+                        if (vizSeekTrack) vizSeekTrack.style.clipPath = `inset(0 0 0 ${startP * 100}%)`;
+
+                        const playW = width * startP;
+                        const waveCount = Math.min(14, Math.max(2, playW * 0.03));
+                        visualizerCtx.beginPath();
+                        visualizerCtx.moveTo(0, centerY);
+                        for (let x = 0; x <= playW; x++) {
+                            const localProgress = x / (playW || 1);
+                            const taper = Math.sin(localProgress * Math.PI);
+                            const baseWave = Math.sin((x / width) * waveCount * Math.PI);
+                            const fastWave = Math.sin((x / width) * waveCount * 2.5 * Math.PI + time);
+                            const baseAmp = (centerY * 0.75) * ampScale;
+                            const detailAmp = (centerY * 0.25) * ampScale;
+                            visualizerCtx.lineTo(x, centerY + (baseWave * baseAmp + fastWave * detailAmp) * taper);
+                        }
+                        visualizerCtx.lineWidth = 3;
+                        visualizerCtx.lineCap = 'round';
+                        visualizerCtx.lineJoin = 'round';
+                        visualizerCtx.strokeStyle = '#ffffff';
+                        visualizerCtx.shadowColor = 'transparent';
+                        visualizerCtx.shadowBlur = 0;
+                        visualizerCtx.stroke();
+
+                        // Player head shrinks down vertically to 3px (flat line)
+                        if (seekEdge) {
+                            seekEdge.style.left = `${startP * 100}%`;
+                            const currentH = targetNormalH - (targetNormalH - 3) * ease1;
+                            seekEdge.style.height = `${currentH}px`;
+                            seekEdge.style.opacity = '1';
+                        }
 
                         requestAnimationFrame(viz.render);
                         return;
+                    } else if (startP > 0.01 && elapsed < trackTransition.flattenDuration + trackTransition.fadeDuration) {
+                        // ========================================================
+                        // STEP 2: The flat line fades to the grey color of the remaining progress line
+                        // ========================================================
+                        const elapsed2 = elapsed - trackTransition.flattenDuration;
+                        const p2 = Math.min(1, elapsed2 / trackTransition.fadeDuration);
+                        const ease2 = p2 < 0.5 ? 2 * p2 * p2 : 1 - Math.pow(-2 * p2 + 2, 2) / 2;
+
+                        if (canvas) canvas.style.clipPath = `inset(0 ${(1 - startP) * 100}% 0 0)`;
+                        if (vizSeekTrack) vizSeekTrack.style.clipPath = `inset(0 0 0 ${startP * 100}%)`;
+
+                        const playW = width * startP;
+                        visualizerCtx.beginPath();
+                        visualizerCtx.moveTo(0, centerY);
+                        visualizerCtx.lineTo(playW, centerY);
+                        visualizerCtx.lineWidth = 3;
+                        visualizerCtx.lineCap = 'round';
+                        visualizerCtx.lineJoin = 'round';
+
+                        // Fade alpha smoothly from 1.0 (solid white) to 0.18 (background grey)
+                        const lineAlpha = Math.max(0.18, 1.0 - ease2 * (1.0 - 0.18));
+                        visualizerCtx.strokeStyle = `rgba(255, 255, 255, ${lineAlpha})`;
+                        visualizerCtx.shadowColor = 'transparent';
+                        visualizerCtx.shadowBlur = 0;
+                        visualizerCtx.stroke();
+
+                        // Player head at startP is flat line (3px) and fades out
+                        if (seekEdge) {
+                            seekEdge.style.left = `${startP * 100}%`;
+                            seekEdge.style.height = '3px';
+                            seekEdge.style.opacity = String(Math.max(0, 1 - ease2));
+                        }
+
+                        requestAnimationFrame(viz.render);
+                        return;
+                    } else {
+                        // ========================================================
+                        // STEP 3: At 0%, player head animates in with expand/grow animation
+                        // (from a point 0px to full line), then works as it is.
+                        // ========================================================
+                        const elapsed3 = Math.max(0, elapsed - (startP > 0.01 ? (trackTransition.flattenDuration + trackTransition.fadeDuration) : 0));
+                        const p3 = Math.min(1, elapsed3 / trackTransition.growDuration);
+                        // Elastic / spring grow ease
+                        const ease3 = 1 - Math.pow(1 - p3, 3);
+
+                        currentProgress = 0;
+                        if (canvas) canvas.style.clipPath = 'inset(0 100% 0 0)';
+                        if (vizSeekTrack) vizSeekTrack.style.clipPath = 'inset(0 0 0 0%)';
+
+                        if (seekEdge) {
+                            seekEdge.style.left = '0%';
+                            seekEdge.style.opacity = '1';
+                            const growHeight = targetNormalH * ease3;
+                            seekEdge.style.height = `${growHeight}px`;
+                        }
+
+                        if (p3 < 1) {
+                            requestAnimationFrame(viz.render);
+                            return;
+                        }
+
+                        trackTransition.active = false;
+                        if (seekEdge) {
+                            seekEdge.style.height = '';
+                            seekEdge.style.opacity = '';
+                        }
                     }
                 }
 
-                // Restore seek edge marker opacity
+                // Restore seek edge marker styles when not transitioning
                 const seekEdge = document.getElementById('seek-edge-marker');
-                if (seekEdge) seekEdge.style.opacity = '1';
+                if (seekEdge && !trackTransition.active) {
+                    seekEdge.style.opacity = '1';
+                    if (!seekEdge.dataset.customHeight) seekEdge.style.height = '';
+                }
                 // Always update the clip-path so the progress line stays visible
                 if(vizSeekTrack && currentProgress !== lastClipProgress) {
                     // Use percentage clipping so the waveform edge always lands
