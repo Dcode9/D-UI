@@ -6,10 +6,14 @@
             --mobile-keyboard-lift: 0px;
         }
 
+        html {
+            background-color: #000;
+        }
+
         body {
             font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
             overflow: hidden; 
-            background-color: #050505; 
+            background-color: #000; 
             color: white;
             overscroll-behavior: none; 
             -webkit-font-smoothing: antialiased;
@@ -230,8 +234,28 @@
         }
 
         .mezzotint-surface {
+            position: relative;
+            overflow: hidden;
             backdrop-filter: var(--dtunes-optical-filter);
             -webkit-backdrop-filter: var(--dtunes-optical-filter);
+        }
+
+        .mezzotint-surface::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background-image: var(--mezzotint-grain-overlay);
+            background-repeat: repeat;
+            background-size: 160px 160px;
+            opacity: 0.38;
+            mix-blend-mode: overlay;
+            z-index: 0;
+        }
+
+        .mezzotint-surface > * {
+            position: relative;
+            z-index: 1;
         }
 
         /* Player Bar, User Menu, Navigation, Modals & Dropdown Rich Blurs */
@@ -258,6 +282,12 @@
             background: transparent !important;
             backdrop-filter: none !important;
             -webkit-backdrop-filter: none !important;
+        }
+
+        /* Keep the expanded queue (and its black panel) above the
+           player-bar shadow so the now-playing shadow stays behind it. */
+        #queue-anchor {
+            z-index: 60 !important;
         }
 
         #info-island,
@@ -663,7 +693,7 @@
         #album-art-glow { display: none; }
         @keyframes spin { from { --angle: 0deg; } to { --angle: 360deg; } }
         button.active-state { color: var(--accent-color); }
-        #background-playing { position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: 0; transition: opacity 1.5s ease, background 1.5s ease; }
+        #background-playing { display: none !important; }
 
         /* --- Desktop Queue Expansion Logic --- */
         #queue-blur-bg { 
@@ -682,26 +712,15 @@
             display: flex;
             flex-direction: column;
             border-radius: 1.25rem;
-            background: rgba(12, 12, 16, 0.78);
-            backdrop-filter: var(--dtunes-optical-filter);
-            -webkit-backdrop-filter: var(--dtunes-optical-filter);
+            background: #000;
             border: 1px solid var(--mezzotint-border);
             box-shadow: var(--mezzotint-shadow), inset 0 1px 0 var(--mezzotint-ridge);
             margin-top: 0.5rem;
             position: relative;
+            z-index: 30;
         }
         #queue-expandable-area::before {
-            content: "";
-            position: absolute;
-            inset: 0;
-            border-radius: inherit;
-            pointer-events: none;
-            background-image: var(--mezzotint-grain-overlay);
-            background-repeat: repeat;
-            background-size: 160px 160px;
-            opacity: 0.38;
-            mix-blend-mode: overlay;
-            z-index: 1;
+            display: none;
         }
         #queue-expandable-area > * {
             position: relative;
@@ -749,7 +768,7 @@
         #queue-expandable-area {
             border-radius: 1.5rem;
             margin-top: 0.6rem;
-            background: rgba(10, 10, 14, 0.72);
+            background: #000;
             border-color: rgba(255, 255, 255, 0.12);
             box-shadow: 0 24px 60px -22px rgba(0, 0, 0, 0.92), inset 0 1px 0 rgba(255, 255, 255, 0.2);
         }
@@ -757,7 +776,7 @@
 
         #queue-tabs.queue-panel-head {
             padding: 0.75rem 0.75rem 0.65rem 0.75rem;
-            background: linear-gradient(to bottom, rgba(255, 255, 255, 0.045), transparent);
+            background: #000;
             border-bottom-color: rgba(255, 255, 255, 0.07);
         }
 
@@ -769,7 +788,7 @@
             align-items: center;
             padding: 3px;
             border-radius: 9999px;
-            background: rgba(255, 255, 255, 0.055);
+            background: #000;
             border: 1px solid rgba(255, 255, 255, 0.09);
             box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
             isolation: isolate;
@@ -832,7 +851,7 @@
             padding: 6px 10px;
             border-radius: 9999px;
             border: 1px solid rgba(255, 255, 255, 0.09);
-            background: rgba(255, 255, 255, 0.04);
+            background: #000;
             color: rgba(255, 255, 255, 0.55);
             font-size: 10px;
             font-weight: 800;
@@ -2469,25 +2488,34 @@ button, input[type="range"], a, .scroll-card, .song-pill {
         }
 
 /* ========================================================
-   Exact D'UI component blur (GrainBlurSurface defaults)
-   blur(8.5px) + rgba(8, 8, 12, 0.65) + white/20 edge
+   Bottom player surfaces use the same Mezzotint grain blur
+   as the top header; the expanded queue stays solid black.
    ======================================================== */
 html[data-ui-mode="desktop"] #player-card,
 html[data-ui-mode="desktop"] #info-island,
 html[data-ui-mode="desktop"] #queue-preview-pill,
-html[data-ui-mode="desktop"] #queue-expandable-area,
 html[data-ui-mode="desktop"] .np-pill {
-    background: rgba(8, 8, 12, 0.65) !important;
-    backdrop-filter: blur(8.5px) !important;
-    -webkit-backdrop-filter: blur(8.5px) !important;
-    border: 1px solid rgba(255, 255, 255, 0.2) !important;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85), inset 0 1px 1px rgba(255, 255, 255, 0.25) !important;
+    background: var(--mezzotint-bg) !important;
+    backdrop-filter: var(--dtunes-optical-filter) !important;
+    -webkit-backdrop-filter: var(--dtunes-optical-filter) !important;
+    border: 1px solid var(--mezzotint-border) !important;
+    box-shadow: var(--mezzotint-shadow) !important;
 }
 html[data-ui-mode="desktop"] #player-card::before,
 html[data-ui-mode="desktop"] #info-island::before,
-html[data-ui-mode="desktop"] #queue-preview-pill::before,
+html[data-ui-mode="desktop"] #queue-preview-pill::before {
+    opacity: 0.38 !important;
+}
+
+html[data-ui-mode="desktop"] #queue-expandable-area {
+    background: #000 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    box-shadow: 0 24px 60px -22px rgba(0, 0, 0, 0.92), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+}
 html[data-ui-mode="desktop"] #queue-expandable-area::before {
-    opacity: 0 !important;
+    display: none !important;
 }
 
 html[data-ui-mode="desktop"] #info-island {
