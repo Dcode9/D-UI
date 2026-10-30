@@ -347,9 +347,15 @@
                 resetSeekbarAndTimes(track);
 
                 document.body.classList.add('has-active-track');
-                document.getElementById('queue-wrapper')?.classList.remove('preview-expanded', 'track-swap-out');
+                const swapWrap = document.getElementById('queue-wrapper');
+                if (swapWrap && swapWrap.dataset.trackSwap !== '1') {
+                    swapWrap.classList.remove('preview-expanded', 'track-swap-out');
+                }
                 document.getElementById('player-footer')?.classList.remove('translate-y-[150%]', 'opacity-0');
                 ui.updateMetadata(state.currentTrack, { loading: true });
+                if (swapWrap?.dataset.trackSwap === '1') {
+                    document.dispatchEvent(new CustomEvent('dtunes:swap-ready'));
+                }
                 ui.setPlayerLoading(true);
                 ui.updatePlayBtn();
                 ui.renderQueue();

@@ -319,6 +319,23 @@
             z-index: 1;
         }
 
+        /* Grain veil above the now-playing content: invisible at rest, it
+           blooms during a track swap so the old song dissolves into grain. */
+        #info-island::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            pointer-events: none;
+            background-image: var(--mezzotint-grain-overlay);
+            background-repeat: repeat;
+            background-size: 160px 160px;
+            opacity: 0;
+            mix-blend-mode: overlay;
+            z-index: 3;
+            transition: opacity 0.34s ease;
+        }
+
         #info-island > *,
         #queue-preview-pill > *,
         #player-card > * {
@@ -753,21 +770,64 @@
         #queue-wrapper.queue-expanded #btn-expand-queue { color: white; opacity: 1; width: 36px; }
         #queue-wrapper.queue-expanded #btn-expand-queue .np-chevron { transform: rotate(180deg); }
 
-        /* Morph Animation: now playing rises and fades; up next lands in its place */
-        #queue-wrapper.track-swap-out #queue-preview-slot { overflow: visible; max-height: none; }
+        /* Track Swap: the outgoing now playing and the UP NEXT caption dissolve
+           into the Mezzotint grain, while the preview pill holds its position
+           and is promoted into the now-playing slot in place. */
         #queue-wrapper.track-swap-out #info-island {
-            transform: translateY(-120%);
             opacity: 0;
             z-index: 4;
-            transition: transform 0.42s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s ease;
+            transition: opacity 0.34s ease !important;
         }
-        #queue-wrapper.track-swap-out #up-next-label { opacity: 0; transition: opacity 0.12s linear; }
+        #queue-wrapper.track-swap-out #info-island > * {
+            filter: blur(9px);
+            transition: filter 0.34s ease !important;
+        }
+        #queue-wrapper.track-swap-out #info-island::after {
+            opacity: 0.9;
+            transition: opacity 0.34s ease !important;
+        }
+        #queue-wrapper.track-swap-out #up-next-label {
+            opacity: 0;
+            filter: blur(8px);
+            transition: opacity 0.3s ease, filter 0.3s ease !important;
+        }
         #queue-wrapper.track-swap-out #queue-preview-pill {
             z-index: 6;
-            transform: translateY(calc(-1 * var(--np-swap-shift, 78px)));
-            transition: transform 0.46s cubic-bezier(0.22, 1, 0.36, 1) 0.04s;
+        }
+        #queue-wrapper.track-swap-promote #info-island {
+            transform: translateY(var(--np-promote-shift, 0px));
+            opacity: 0;
+            z-index: 4;
+        }
+        #queue-wrapper.track-swap-promote #info-island > * {
+            filter: blur(9px);
+        }
+        #queue-wrapper.track-swap-promote #info-island::after {
+            opacity: 0.9;
+        }
+        #queue-wrapper.track-swap-promote #up-next-label {
+            opacity: 0;
+            filter: blur(8px);
+        }
+        #queue-wrapper.track-swap-promote.track-swap-in #info-island {
+            opacity: 1;
+            transition: opacity 0.46s cubic-bezier(0.22, 1, 0.36, 1) !important;
+        }
+        #queue-wrapper.track-swap-promote.track-swap-in #info-island > * {
+            filter: blur(0px);
+            transition: filter 0.46s cubic-bezier(0.22, 1, 0.36, 1) !important;
+        }
+        #queue-wrapper.track-swap-promote.track-swap-in #info-island::after {
+            opacity: 0;
+            transition: opacity 0.46s ease !important;
+        }
+        #queue-wrapper.track-swap-promote.track-swap-in #queue-preview-pill {
+            opacity: 0;
+            transition: opacity 0.32s ease !important;
         }
         #queue-wrapper.track-swap-settle #info-island,
+        #queue-wrapper.track-swap-settle #info-island > *,
+        #queue-wrapper.track-swap-settle #info-island::after,
         #queue-wrapper.track-swap-settle #queue-preview-pill,
         #queue-wrapper.track-swap-settle #queue-preview-slot,
         #queue-wrapper.track-swap-settle #up-next-label {
