@@ -284,10 +284,11 @@
             -webkit-backdrop-filter: none !important;
         }
 
-        /* Keep the expanded queue (and its black panel) above the
-           player-bar shadow so the now-playing shadow stays behind it. */
-        #queue-anchor {
-            z-index: 60 !important;
+        /* Keep the queue column behind the bottom player bar so its blur
+           never washes over the player card. Inside the column the queue
+           still paints above the now-playing island. */
+        html[data-ui-mode="desktop"] #queue-anchor {
+            z-index: 40 !important;
         }
 
         #info-island,
@@ -712,7 +713,9 @@
             display: flex;
             flex-direction: column;
             border-radius: 1.25rem;
-            background: #000;
+            background: var(--mezzotint-bg);
+            backdrop-filter: var(--dtunes-optical-filter);
+            -webkit-backdrop-filter: var(--dtunes-optical-filter);
             border: 1px solid var(--mezzotint-border);
             box-shadow: var(--mezzotint-shadow), inset 0 1px 0 var(--mezzotint-ridge);
             margin-top: 0.5rem;
@@ -720,7 +723,17 @@
             z-index: 30;
         }
         #queue-expandable-area::before {
-            display: none;
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            pointer-events: none;
+            background-image: var(--mezzotint-grain-overlay);
+            background-repeat: repeat;
+            background-size: 160px 160px;
+            opacity: 0.38;
+            mix-blend-mode: overlay;
+            z-index: 1;
         }
         #queue-expandable-area > * {
             position: relative;
@@ -768,15 +781,15 @@
         #queue-expandable-area {
             border-radius: 1.5rem;
             margin-top: 0.6rem;
-            background: #000;
-            border-color: rgba(255, 255, 255, 0.12);
-            box-shadow: 0 24px 60px -22px rgba(0, 0, 0, 0.92), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            background: var(--mezzotint-bg);
+            border-color: var(--mezzotint-border);
+            box-shadow: var(--mezzotint-shadow);
         }
         #queue-wrapper.queue-expanded #queue-expandable-area { max-height: 480px; }
 
         #queue-tabs.queue-panel-head {
             padding: 0.75rem 0.75rem 0.65rem 0.75rem;
-            background: #000;
+            background: transparent;
             border-bottom-color: rgba(255, 255, 255, 0.07);
         }
 
@@ -2508,14 +2521,14 @@ html[data-ui-mode="desktop"] #queue-preview-pill::before {
 }
 
 html[data-ui-mode="desktop"] #queue-expandable-area {
-    background: #000 !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    border: 1px solid rgba(255, 255, 255, 0.12) !important;
-    box-shadow: 0 24px 60px -22px rgba(0, 0, 0, 0.92), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+    background: var(--mezzotint-bg) !important;
+    backdrop-filter: var(--dtunes-optical-filter) !important;
+    -webkit-backdrop-filter: var(--dtunes-optical-filter) !important;
+    border: 1px solid var(--mezzotint-border) !important;
+    box-shadow: var(--mezzotint-shadow) !important;
 }
 html[data-ui-mode="desktop"] #queue-expandable-area::before {
-    display: none !important;
+    opacity: 0.38 !important;
 }
 
 html[data-ui-mode="desktop"] #info-island {
