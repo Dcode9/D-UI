@@ -170,12 +170,51 @@
             }, true);
         };
 
+        if (typeof window !== 'undefined' && window.CSS && typeof CSS.registerProperty === 'function') {
+            try {
+                CSS.registerProperty({
+                    name: '--marquee-fade-left',
+                    syntax: '<number>',
+                    inherits: true,
+                    initialValue: 1,
+                });
+            } catch (_) {}
+            try {
+                CSS.registerProperty({
+                    name: '--marquee-fade-right',
+                    syntax: '<number>',
+                    inherits: true,
+                    initialValue: 0,
+                });
+            } catch (_) {}
+        }
+
+        let marqueeObserver = null;
+        const initMarqueeObserver = () => {
+            if (marqueeObserver || typeof IntersectionObserver === 'undefined') return;
+            marqueeObserver = new IntersectionObserver((entries) => {
+                for (let i = 0; i < entries.length; i++) {
+                    const entry = entries[i];
+                    const target = entry.target;
+                    const text = target.querySelector('.marquee-text');
+                    if (entry.isIntersecting) {
+                        target.classList.add('is-in-view');
+                        if (text) text.classList.add('is-in-view');
+                    } else {
+                        target.classList.remove('is-in-view');
+                        if (text) text.classList.remove('is-in-view');
+                    }
+                }
+            }, { rootMargin: '50px 0px' });
+        };
+
         let marqueeUpdateScheduled = false;
         const updateMarquees = () => {
             if (marqueeUpdateScheduled) return;
             marqueeUpdateScheduled = true;
             requestAnimationFrame(() => {
                 marqueeUpdateScheduled = false;
+                initMarqueeObserver();
                 if (typeof window.__stripTouchHoverClasses === 'function') window.__stripTouchHoverClasses();
                 const containers = document.querySelectorAll('.marquee-container');
                 const updates = [];
@@ -205,15 +244,18 @@
                         const dur = Math.max(3.5, dist / 18);
                         text.style.setProperty('--scroll-dist', `-${dist}px`);
                         text.style.setProperty('--scroll-dur', `${dur}s`);
+                        container.style.setProperty('--scroll-dur', `${dur}s`);
                         text.dataset.scrollWidth = String(scrollW);
                         container.dataset.clientWidth = String(clientW);
                         text.classList.add('is-overflowing');
                         container.classList.add('is-overflowing');
+                        if (marqueeObserver) marqueeObserver.observe(container);
                     } else {
-                        text.classList.remove('is-overflowing');
-                        container.classList.remove('is-overflowing');
+                        text.classList.remove('is-overflowing', 'is-in-view');
+                        container.classList.remove('is-overflowing', 'is-in-view');
                         text.dataset.scrollWidth = String(scrollW);
                         container.dataset.clientWidth = String(clientW);
+                        if (marqueeObserver) marqueeObserver.unobserve(container);
                     }
                 }
             });

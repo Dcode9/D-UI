@@ -136,9 +136,9 @@
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/color-thief/2.3.2/color-thief.umd.js?v=1789798237"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-    <script defer src="src/js/preload.js?v=1.5.3"></script>
+    <script defer src="src/js/preload.js?v=1.5.4"></script>
 
-    <link rel="stylesheet" href="src/css/styles.css?v=1.5.3">
+    <link rel="stylesheet" href="src/css/styles.css?v=1.5.4">
 
 </head>
 <body>
@@ -1424,9 +1424,9 @@
                     <div id="compact-swipe-next" class="mobile-swipe-preview" aria-hidden="true"></div>
 
                     <!-- Dedicated 10s Preview Slot for Morphing -->
-                    <div id="queue-preview-slot" class="w-full pointer-events-none hidden md:block">
-                        <div id="up-next-label" class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1 pl-2 drop-shadow-md transition-opacity duration-400">Up Next</div>
-                        <div id="queue-preview-pill" class="np-pill"></div>
+                    <div id="queue-preview-slot" class="w-full hidden md:block">
+                        <div id="up-next-label" class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1 pl-2 drop-shadow-md transition-opacity duration-300">Up Next</div>
+                        <div id="queue-preview-pill" class="np-pill cursor-pointer pointer-events-auto" onclick="player.triggerUpNextHandoff()"></div>
                     </div>
                 </div>
 
@@ -1512,7 +1512,7 @@
                     <input type="range" id="seek-bar" value="0" step="any" disabled class="custom-slider-input" aria-label="Seek track">
                 </div>
 
-                <button class="control-icon-btn btn-next-anim p-2 flex-shrink-0" onclick="player.next()" id="btn-next" disabled title="Next Track (L)" aria-label="Next">
+                <button class="control-icon-btn btn-next-anim p-2 flex-shrink-0" onclick="player.triggerUpNextHandoff ? player.triggerUpNextHandoff() : player.next()" id="btn-next" disabled title="Next Track (L)" aria-label="Next">
                     <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor">
                         <rect x="17.5" y="5" width="2.5" height="14" rx="1.25"/>
                         <path d="M5.2 6.02c-.98-.6-2.2.1-2.2 1.25v9.46c0 1.15 1.22 1.85 2.2 1.25L13.2 13.25c.93-.57.93-1.93 0-2.5L5.2 6.02z"/>
@@ -1785,25 +1785,25 @@
     <audio id="audio-el" crossorigin="anonymous" controls="true" preload="auto" playsinline webkit-playsinline style="position:fixed;top:-9999px;left:-9999px;opacity:0.001;pointer-events:none;width:1px;height:1px;"></audio>
 
     <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script defer src="src/js/dverseClient.js?v=1.5.3"></script>
-    <script defer src="src/js/ai.js?v=1.5.3"></script>
-    <script defer src="src/js/recommendationClient.js?v=1.5.3"></script>
-    <script defer src="src/js/utils.js?v=1.5.3"></script>
-    <script defer src="src/js/api.js?v=1.5.3"></script>
-    <script defer src="src/js/spotify.js?v=1.5.3"></script>
-    <script defer src="src/js/timer.js?v=1.5.3"></script>
-    <script defer src="src/js/state.js?v=1.5.3"></script>
-    <script defer src="src/js/context-menu.js?v=1.5.3"></script>
-    <script defer src="src/js/offline.js?v=1.5.3"></script>
-    <script defer src="src/js/player.js?v=1.5.3"></script>
-    <script defer src="src/js/visualizer.js?v=1.5.3"></script>
-    <script defer src="src/js/theme.js?v=1.5.3"></script>
-    <script defer src="src/js/lyrics.js?v=1.5.3"></script>
-    <script defer src="src/js/ui.js?v=1.5.3"></script>
-    <script defer src="src/js/search.js?v=1.5.3"></script>
-    <script defer src="src/js/ai-hub.js?v=1.5.3"></script>
-    <script defer src="src/js/main.js?v=1.5.3"></script>
-<script defer src="src/js/desktop.js?v=1.5.3"></script>
+    <script defer src="src/js/dverseClient.js?v=1.5.4"></script>
+    <script defer src="src/js/ai.js?v=1.5.4"></script>
+    <script defer src="src/js/recommendationClient.js?v=1.5.4"></script>
+    <script defer src="src/js/utils.js?v=1.5.4"></script>
+    <script defer src="src/js/api.js?v=1.5.4"></script>
+    <script defer src="src/js/spotify.js?v=1.5.4"></script>
+    <script defer src="src/js/timer.js?v=1.5.4"></script>
+    <script defer src="src/js/state.js?v=1.5.4"></script>
+    <script defer src="src/js/context-menu.js?v=1.5.4"></script>
+    <script defer src="src/js/offline.js?v=1.5.4"></script>
+    <script defer src="src/js/player.js?v=1.5.4"></script>
+    <script defer src="src/js/visualizer.js?v=1.5.4"></script>
+    <script defer src="src/js/theme.js?v=1.5.4"></script>
+    <script defer src="src/js/lyrics.js?v=1.5.4"></script>
+    <script defer src="src/js/ui.js?v=1.5.4"></script>
+    <script defer src="src/js/search.js?v=1.5.4"></script>
+    <script defer src="src/js/ai-hub.js?v=1.5.4"></script>
+    <script defer src="src/js/main.js?v=1.5.4"></script>
+<script defer src="src/js/desktop.js?v=1.5.4"></script>
 
 <script src="haptics.js" defer></script></body>
                     </html>

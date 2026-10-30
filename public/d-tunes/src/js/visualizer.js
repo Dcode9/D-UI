@@ -174,8 +174,8 @@
                             visualizerCtx.lineWidth = 2.5;
                             visualizerCtx.lineCap = 'round';
                             visualizerCtx.strokeStyle = '#ffffff';
-                            visualizerCtx.shadowColor = 'rgba(255, 255, 255, 0.7)';
-                            visualizerCtx.shadowBlur = 4;
+                            visualizerCtx.shadowColor = 'transparent';
+                            visualizerCtx.shadowBlur = 0;
                             visualizerCtx.stroke();
                         } else {
                             // Phase 2: Dual-Line Collapse and Expansion
@@ -263,8 +263,8 @@
                                 visualizerCtx.lineWidth = 3;
                                 visualizerCtx.lineCap = 'round';
                                 visualizerCtx.strokeStyle = `rgba(255, 255, 255, ${Math.max(0.15, 1 - ease * 0.8)})`;
-                                visualizerCtx.shadowColor = 'rgba(255, 255, 255, 0.7)';
-                                visualizerCtx.shadowBlur = 6;
+                                visualizerCtx.shadowColor = 'transparent';
+                                visualizerCtx.shadowBlur = 0;
                                 visualizerCtx.stroke();
                             }
 
@@ -276,8 +276,8 @@
                                 visualizerCtx.lineWidth = 3;
                                 visualizerCtx.lineCap = 'round';
                                 visualizerCtx.strokeStyle = `rgba(255, 255, 255, ${0.35 + ease * 0.65})`;
-                                visualizerCtx.shadowColor = 'rgba(255, 255, 255, 0.9)';
-                                visualizerCtx.shadowBlur = 8;
+                                visualizerCtx.shadowColor = 'transparent';
+                                visualizerCtx.shadowBlur = 0;
                                 visualizerCtx.stroke();
                             }
                         }
@@ -343,7 +343,7 @@
                     if (hoverIntensity > 0.01) { const hoverX = (isHovering ? state.hoverProgress : state.lastHoverProgress) * width; const dist = Math.abs(x - hoverX); if (dist < 60) interactionFactor = 1.0 - (hoverIntensity * (1.0 - (dist/60)*(dist/60)*(3-2*(dist/60)))); }
                     visualizerCtx.lineTo(x, centerY + (baseWave * baseAmplitude + fastWave * detailAmplitude) * taper * interactionFactor);
                 }
-                visualizerCtx.lineWidth = 2; visualizerCtx.strokeStyle = '#fff'; visualizerCtx.shadowColor = 'rgba(255, 255, 255, 0.7)'; visualizerCtx.shadowBlur = smoothedLow > 0.3 ? 4 : 0; visualizerCtx.stroke();
+                visualizerCtx.lineWidth = 2; visualizerCtx.strokeStyle = '#ffffff'; visualizerCtx.shadowColor = 'transparent'; visualizerCtx.shadowBlur = 0; visualizerCtx.stroke();
                 
                 requestAnimationFrame(viz.render);
             }

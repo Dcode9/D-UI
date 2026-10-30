@@ -87,7 +87,29 @@
                 const offlineUrl = (typeof offlineStore !== 'undefined' && offlineStore.isDownloaded(nextTrack.id))
                     ? await offlineStore.getPlayUrl(nextTrack.id).catch(() => null)
                     : null;
-                const freshDetails = nextTrack.url || offlineUrl ? null : await jiosaavnAPI.getSong(nextTrack.id);
+                let freshDetails = null;
+                if (!nextTrack.url && !offlineUrl) {
+                    const isValidSaavnId = typeof nextTrack.id === 'string' && /^[a-zA-Z0-9_-]{6,16}$/.test(nextTrack.id) && !nextTrack.id.startsWith('q');
+                    if (isValidSaavnId) {
+                        try {
+                            freshDetails = await Promise.race([
+                                jiosaavnAPI.getSong(nextTrack.id),
+                                new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 1800))
+                            ]);
+                        } catch (_) {}
+                    }
+                    if (!freshDetails?.url) {
+                        const searchQuery = `${nextTrack.name || nextTrack.title || ''} ${nextTrack.artist || ''}`.trim();
+                        if (searchQuery) {
+                            try {
+                                const searchResults = await jiosaavnAPI.searchSongs(searchQuery, 1);
+                                if (searchResults && searchResults.length > 0 && searchResults[0].url) {
+                                    freshDetails = searchResults[0];
+                                }
+                            } catch (_) {}
+                        }
+                    }
+                }
                 const playUrl = offlineUrl || freshDetails?.url || nextTrack.url;
                 if (!playUrl || state.nextTrackPreloadId !== nextTrack.id) return;
                 if (freshDetails) Object.assign(nextTrack, freshDetails, { url: playUrl });
@@ -464,7 +486,16 @@
                         }).catch(() => {});
                     } else {
                         // URL not in memory; fetch before playing
-                        let freshDetails = await jiosaavnAPI.getSong(track.id);
+                        let freshDetails = null;
+                        const isValidSaavnId = typeof track.id === 'string' && /^[a-zA-Z0-9_-]{6,16}$/.test(track.id) && !track.id.startsWith('q');
+                        if (isValidSaavnId) {
+                            try {
+                                freshDetails = await Promise.race([
+                                    jiosaavnAPI.getSong(track.id),
+                                    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 1800))
+                                ]);
+                            } catch (_) {}
+                        }
                         if (currentRequestId !== playRequestId) return;
 
                         let playUrl = freshDetails?.url || track.url;
@@ -484,6 +515,9 @@
                         
                         track = { ...track, ...freshDetails, url: playUrl };
                         state.currentTrack = track;
+                        if (state.queue && state.queue[state.idx]) {
+                            state.queue[state.idx] = { ...state.queue[state.idx], ...track };
+                        }
                         await setupAndStartPlayback(playUrl);
                     }
                 } catch (error) {
@@ -516,6 +550,43 @@
                 if (typeof lyricsManager !== 'undefined') lyricsManager.syncTime(targetTime, true);
                 if (typeof viz !== 'undefined') viz.start();
                 updateMediaPosition();
+            },
+            triggerUpNextHandoff: () => {
+                const wrap = document.getElementById('queue-wrapper');
+                const island = document.getElementById('info-island');
+                const pill = document.getElementById('queue-preview-pill');
+                const showingPreview = wrap && wrap.classList.contains('preview-expanded') && !state.queueExpanded;
+
+                if (!showingPreview || !island || !pill) {
+                    if (wrap) wrap.classList.remove('preview-expanded', 'track-swap-out');
+                    player.next();
+                    return;
+                }
+
+                if (state.isSwappingTrack) return;
+                state.isSwappingTrack = true;
+
+                // Add track-swap-out: current song and UP NEXT dissolve with Mezzotint Grain Blur in place,
+                // while the previewed song stays rock-solid in place.
+                wrap.classList.add('track-swap-out');
+
+                setTimeout(() => {
+                    const nextTrack = (typeof getUpcomingTrack === 'function') ? getUpcomingTrack() : null;
+                    if (nextTrack) {
+                        ui.updateMetadata(nextTrack);
+                    }
+                    // Instant settle: freeze transitions to prevent any flash/snap when resetting classes
+                    wrap.classList.add('track-swap-settle');
+                    wrap.classList.remove('track-swap-out', 'preview-expanded');
+                    wrap.style.removeProperty('--np-swap-shift');
+                    pill.dataset.trackId = '';
+                    state.isSwappingTrack = false;
+                    player.next();
+
+                    requestAnimationFrame(() => {
+                        wrap.classList.remove('track-swap-settle');
+                    });
+                }, 420);
             },
             next: (force = false) => {
                 if (typeof viz !== 'undefined' && viz.triggerTrackTransition) viz.triggerTrackTransition('next');

@@ -788,102 +788,18 @@
                     return;
                 }
 
-                const wrap = document.getElementById('queue-wrapper');
-                const advanceTrack = () => {
-                    if (state.repeat === 2) {
-                        audio.currentTime = 0;
-                        requestPlay();
-                        state.upNextTriggered = false;
-                    } else {
-                        player.next();
-                    }
-                };
-                const showingPreview = wrap && wrap.classList.contains('preview-expanded') && !state.queueExpanded;
-
-                if (!showingPreview || !wrap) {
-                    if (wrap) wrap.classList.remove('preview-expanded', 'track-swap-out');
-                    advanceTrack();
-                    return;
-                }
-
-                const island = document.getElementById('info-island');
-                const slot = document.getElementById('queue-preview-slot');
-                const pill = document.getElementById('queue-preview-pill');
-                const label = document.getElementById('up-next-label');
-                if (!island || !slot || !pill || !label) {
-                    wrap.classList.remove('preview-expanded', 'track-swap-out');
-                    advanceTrack();
-                    return;
-                }
-
-                // Repeat-one never promotes the preview; just restart the same
-                // track and drop the preview without sliding anything.
                 if (state.repeat === 2) {
-                    wrap.classList.remove('preview-expanded', 'track-swap-out');
-                    advanceTrack();
+                    audio.currentTime = 0;
+                    requestPlay();
+                    state.upNextTriggered = false;
                     return;
                 }
 
-                const hidden = document.visibilityState === 'hidden';
-                const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-                if (reduceMotion) {
-                    wrap.classList.remove('preview-expanded', 'track-swap-out');
-                    advanceTrack();
-                    return;
+                if (typeof player !== 'undefined' && player.triggerUpNextHandoff) {
+                    player.triggerUpNextHandoff();
+                } else {
+                    player.next();
                 }
-
-                // Phase 1: the outgoing now playing and the UP NEXT caption
-                // dissolve into the Mezzotint grain. The preview pill holds
-                // its position for the entire swap.
-                wrap.classList.add('track-swap-out');
-
-                setTimeout(() => {
-                    // A direct play (click, search, keyboard) during the fade
-                    // cancels the swap; don't advance over the user's choice.
-                    if (!wrap.classList.contains('preview-expanded') || !wrap.classList.contains('track-swap-out')) {
-                        return;
-                    }
-                    // Phase 2: freeze transitions and park the (invisible)
-                    // now-playing island exactly where the preview pill is.
-                    const slotStyle = getComputedStyle(slot);
-                    const promoteShift = slot.getBoundingClientRect().height + (parseFloat(slotStyle.marginTop) || 0);
-                    wrap.style.setProperty('--np-promote-shift', `${Math.max(0, promoteShift)}px`);
-                    wrap.classList.add('track-swap-settle', 'track-swap-promote');
-                    wrap.classList.remove('track-swap-out');
-                    wrap.dataset.trackSwap = '1';
-
-                    let crossfadeStarted = false;
-                    let fallbackTimer = 0;
-
-                    const finish = () => {
-                        window.clearTimeout(fallbackTimer);
-                        document.removeEventListener('dtunes:swap-ready', startCrossfade);
-                        wrap.classList.add('track-swap-settle');
-                        wrap.classList.remove('preview-expanded', 'track-swap-promote', 'track-swap-in', 'track-swap-out');
-                        wrap.style.removeProperty('--np-promote-shift');
-                        delete wrap.dataset.trackSwap;
-                        if (pill) pill.dataset.trackId = '';
-                        requestAnimationFrame(() => wrap.classList.remove('track-swap-settle'));
-                    };
-
-                    const startCrossfade = () => {
-                        if (crossfadeStarted) return;
-                        crossfadeStarted = true;
-                        window.clearTimeout(fallbackTimer);
-                        document.removeEventListener('dtunes:swap-ready', startCrossfade);
-                        requestAnimationFrame(() => {
-                            wrap.classList.remove('track-swap-settle');
-                            void wrap.offsetWidth;
-                            wrap.classList.add('track-swap-in');
-                            setTimeout(finish, hidden ? 0 : 480);
-                        });
-                    };
-
-                    document.addEventListener('dtunes:swap-ready', startCrossfade);
-                    fallbackTimer = window.setTimeout(startCrossfade, hidden ? 0 : 6000);
-
-                    advanceTrack();
-                }, hidden ? 0 : 340);
             });
 
             // Global Cross-Platform Keyboard Shortcuts (Windows / macOS / Web)

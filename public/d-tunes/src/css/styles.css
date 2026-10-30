@@ -1,3 +1,15 @@
+@property --marquee-fade-left {
+    syntax: '<number>';
+    inherits: true;
+    initial-value: 1;
+}
+
+@property --marquee-fade-right {
+    syntax: '<number>';
+    inherits: true;
+    initial-value: 0;
+}
+
 :root {
             --accent-color: #22d3ee;
             --accent-color-2: #2dd4bf;
@@ -452,18 +464,68 @@
         }
 
         /* --- Advanced Marquee Engine --- */
-        .marquee-container { width: 100%; overflow: hidden; display: flex; align-items: center; }
-        .marquee-container.is-overflowing {
-            mask-image: linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%);
-            -webkit-mask-image: linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%);
+        .marquee-container {
+            width: 100%;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            contain: paint inline-size;
+            --marquee-fade-left: 1;
+            --marquee-fade-right: 0;
+            --marquee-fade-size: 18px;
         }
-        .marquee-text { display: inline-block; white-space: nowrap; transform: translateZ(0); will-change: transform; }
-        .marquee-text.is-overflowing { animation: js-slide-text var(--scroll-dur, 5s) linear infinite alternate; }
-        .hover-pause:hover .marquee-text { animation-play-state: paused !important; }
+        .marquee-container.is-overflowing {
+            mask-image: linear-gradient(
+                to right,
+                rgba(0, 0, 0, var(--marquee-fade-left, 1)) 0px,
+                #000 var(--marquee-fade-size, 18px),
+                #000 calc(100% - var(--marquee-fade-size, 18px)),
+                rgba(0, 0, 0, var(--marquee-fade-right, 0)) 100%
+            );
+            -webkit-mask-image: linear-gradient(
+                to right,
+                rgba(0, 0, 0, var(--marquee-fade-left, 1)) 0px,
+                #000 var(--marquee-fade-size, 18px),
+                #000 calc(100% - var(--marquee-fade-size, 18px)),
+                rgba(0, 0, 0, var(--marquee-fade-right, 0)) 100%
+            );
+        }
+        .marquee-container.is-overflowing.is-in-view {
+            animation: marquee-mask-cycle var(--scroll-dur, 5s) linear infinite alternate;
+        }
+        .marquee-text {
+            display: inline-block;
+            white-space: nowrap;
+        }
+        .marquee-text.is-overflowing.is-in-view {
+            transform: translateZ(0);
+            will-change: transform;
+            animation: js-slide-text var(--scroll-dur, 5s) linear infinite alternate;
+        }
+        .hover-pause:hover .marquee-text,
+        .hover-pause:hover.marquee-container,
+        .hover-pause:hover .marquee-container {
+            animation-play-state: paused !important;
+        }
         
         @keyframes js-slide-text {
             0%, 15% { transform: translate3d(0, 0, 0); }
             85%, 100% { transform: translate3d(var(--scroll-dist), 0, 0); }
+        }
+
+        @keyframes marquee-mask-cycle {
+            0%, 15% {
+                --marquee-fade-left: 1;
+                --marquee-fade-right: 0;
+            }
+            30%, 70% {
+                --marquee-fade-left: 0;
+                --marquee-fade-right: 0;
+            }
+            85%, 100% {
+                --marquee-fade-left: 0;
+                --marquee-fade-right: 1;
+            }
         }
 
         /* --- Unified Song Pill --- */
@@ -770,60 +832,36 @@
         #queue-wrapper.queue-expanded #btn-expand-queue { color: white; opacity: 1; width: 36px; }
         #queue-wrapper.queue-expanded #btn-expand-queue .np-chevron { transform: rotate(180deg); }
 
-        /* Track Swap: the outgoing now playing and the UP NEXT caption dissolve
-           into the Mezzotint grain, while the preview pill holds its position
-           and is promoted into the now-playing slot in place. */
+        /* Track Swap: current song and UP NEXT caption dissolve with Mezzotint Grain Blur in place,
+           while the previewed song stays rock-solid in place and seamlessly becomes the now playing card. */
         #queue-wrapper.track-swap-out #info-island {
+            transform: none !important;
             opacity: 0;
+            filter: blur(14px);
             z-index: 4;
-            transition: opacity 0.34s ease !important;
+            pointer-events: none;
+            transition: opacity 0.42s cubic-bezier(0.4, 0, 0.2, 1), filter 0.42s cubic-bezier(0.4, 0, 0.2, 1) !important;
         }
         #queue-wrapper.track-swap-out #info-island > * {
-            filter: blur(9px);
-            transition: filter 0.34s ease !important;
+            filter: blur(10px);
+            opacity: 0;
+            transition: filter 0.4s ease, opacity 0.38s ease !important;
         }
         #queue-wrapper.track-swap-out #info-island::after {
-            opacity: 0.9;
-            transition: opacity 0.34s ease !important;
+            opacity: 1 !important;
+            transition: opacity 0.38s ease !important;
         }
         #queue-wrapper.track-swap-out #up-next-label {
+            transform: none !important;
             opacity: 0;
             filter: blur(8px);
-            transition: opacity 0.3s ease, filter 0.3s ease !important;
+            transition: opacity 0.34s ease, filter 0.34s ease !important;
         }
         #queue-wrapper.track-swap-out #queue-preview-pill {
+            transform: none !important;
+            opacity: 1 !important;
+            filter: none !important;
             z-index: 6;
-        }
-        #queue-wrapper.track-swap-promote #info-island {
-            transform: translateY(var(--np-promote-shift, 0px));
-            opacity: 0;
-            z-index: 4;
-        }
-        #queue-wrapper.track-swap-promote #info-island > * {
-            filter: blur(9px);
-        }
-        #queue-wrapper.track-swap-promote #info-island::after {
-            opacity: 0.9;
-        }
-        #queue-wrapper.track-swap-promote #up-next-label {
-            opacity: 0;
-            filter: blur(8px);
-        }
-        #queue-wrapper.track-swap-promote.track-swap-in #info-island {
-            opacity: 1;
-            transition: opacity 0.46s cubic-bezier(0.22, 1, 0.36, 1) !important;
-        }
-        #queue-wrapper.track-swap-promote.track-swap-in #info-island > * {
-            filter: blur(0px);
-            transition: filter 0.46s cubic-bezier(0.22, 1, 0.36, 1) !important;
-        }
-        #queue-wrapper.track-swap-promote.track-swap-in #info-island::after {
-            opacity: 0;
-            transition: opacity 0.46s ease !important;
-        }
-        #queue-wrapper.track-swap-promote.track-swap-in #queue-preview-pill {
-            opacity: 0;
-            transition: opacity 0.32s ease !important;
         }
         #queue-wrapper.track-swap-settle #info-island,
         #queue-wrapper.track-swap-settle #info-island > *,
