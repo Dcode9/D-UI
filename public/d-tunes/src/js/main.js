@@ -873,7 +873,7 @@
                         }
                         break;
                     case 'q':
-                        ui.toggleQueue();
+                        ui.toggleQueueBarButton();
                         break;
                     case 'e':
                         ui.toggleEqualizerModal();
@@ -893,7 +893,7 @@
                         ui.toggleLyricsModal(false);
                         ui.toggleEqualizerModal(false);
                         if (document.body.classList.contains('mobile-player-open')) ui.toggleMobilePlayer(false);
-                        if (state.queueExpanded && !deviceMode.isMobileUI()) ui.toggleQueue();
+                        if (state.queueExpanded && !deviceMode.isMobileUI()) ui.toggleQueue(false, true);
                         break;
                     case 'mediaplaypause':
                         player.togglePlay();
@@ -927,7 +927,7 @@
                     return;
                 }
                 if (state.queueExpanded && !deviceMode.isMobileUI()) {
-                    ui.toggleQueue();
+                    ui.toggleQueue(false, true);
                     return;
                 }
                 const currentView = ui.getCurrentView();
@@ -1187,6 +1187,26 @@
             deviceMode.apply();
             setupShelfNavButtons();
             if (window.msStoreManager && msStoreManager.init) msStoreManager.init();
+
+            // Queue Expansion on Scroll:
+            // When opened in partial mode via the expand button, scrolling down expands to sidebar mode.
+            // When snapped to top, sidebar mode activates. Scrolling up inside the list does NOT collapse it.
+            const qExpandArea = document.getElementById('queue-expandable-area');
+            if (qExpandArea) {
+                qExpandArea.addEventListener('wheel', (e) => {
+                    if (state.queueExpanded && state.queueMode === 'partial' && e.deltaY > 0) {
+                        ui.expandQueueToSidebar();
+                    }
+                }, { passive: true });
+
+                const handleListScroll = (e) => {
+                    if (state.queueExpanded && state.queueMode === 'partial' && e.target.scrollTop > 5) {
+                        ui.expandQueueToSidebar();
+                    }
+                };
+                document.getElementById('queue-list')?.addEventListener('scroll', handleListScroll, { passive: true });
+                document.getElementById('history-list')?.addEventListener('scroll', handleListScroll, { passive: true });
+            }
 
             window.addEventListener('resize', () => { 
                 deviceMode.apply(); 

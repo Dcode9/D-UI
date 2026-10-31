@@ -2859,3 +2859,73 @@ html[data-ui-mode="desktop"] #p-like-btn:hover {
     60% { transform: scale(1.08) rotate(4deg); }
     100% { transform: scale(1) rotate(0deg); }
 }
+
+/* ==========================================================================
+   QUEUE SIDEBAR MODE & UI ADJUSTMENT SIGNALS
+   ========================================================================== */
+:root {
+    --queue-sidebar-width: 24rem;
+    --queue-edge-padding: 90px;
+}
+
+html[data-ui-mode="desktop"] #queue-wrapper {
+    transition: height 0.42s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+html[data-ui-mode="desktop"] #queue-expandable-area {
+    transition: max-height 0.42s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.3s ease;
+}
+
+/* Partial Mode (from island expand chevron): dynamic height according to songs */
+html[data-ui-mode="desktop"] #queue-wrapper.queue-expanded:not(.queue-sidebar-mode) {
+    height: auto;
+}
+
+html[data-ui-mode="desktop"] #queue-wrapper.queue-expanded:not(.queue-sidebar-mode) #queue-expandable-area {
+    max-height: 480px;
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Sidebar Mode (from bar button or scroll snap):
+   Full height leaving the SAME amount of padding from top as bottom (90px) */
+html[data-ui-mode="desktop"] #queue-wrapper.queue-expanded.queue-sidebar-mode {
+    height: calc(100vh - (2 * var(--queue-edge-padding)));
+    height: calc(100dvh - (2 * var(--queue-edge-padding)));
+}
+
+html[data-ui-mode="desktop"] #queue-wrapper.queue-expanded.queue-sidebar-mode #queue-expandable-area {
+    flex: 1 1 0% !important;
+    min-height: 0 !important;
+    max-height: calc(100vh - (2 * var(--queue-edge-padding)) - 66px) !important;
+    max-height: calc(100dvh - (2 * var(--queue-edge-padding)) - 66px) !important;
+    height: 100% !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+html[data-ui-mode="desktop"] #queue-wrapper.queue-expanded.queue-sidebar-mode #queue-full-content {
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 1 0% !important;
+    min-height: 0 !important;
+}
+
+html[data-ui-mode="desktop"] #queue-wrapper.queue-expanded.queue-sidebar-mode #queue-list,
+html[data-ui-mode="desktop"] #queue-wrapper.queue-expanded.queue-sidebar-mode #history-list {
+    flex: 1 1 0% !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+}
+
+/* Signal to UI: Top banner Sign-In button shifts left when sidebar is active */
+#dverse-header-auth-button {
+    transition: transform 0.42s cubic-bezier(0.2, 0.8, 0.2, 1), background-color 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+body.queue-sidebar-active #dverse-header-auth-button {
+    transform: translateX(-388px);
+}

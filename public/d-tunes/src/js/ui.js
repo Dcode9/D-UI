@@ -2127,16 +2127,70 @@
                     mPauseBtn.className = playing ? 'flex' : 'hidden';
                 }
             },
-            toggleQueue: () => {
-                state.queueExpanded = !state.queueExpanded;
+            toggleQueue: (forceSidebar, forceClose) => {
                 const wrap = document.getElementById('queue-wrapper');
-                if (state.queueExpanded) {
-                    wrap.classList.add('queue-expanded');
-                    ui.switchQueueTab(state.activeQueueTab);
-                } else {
-                    wrap.classList.remove('queue-expanded');
+                if (!wrap) return;
+
+                if (forceClose || (state.queueExpanded && forceSidebar === undefined)) {
+                    state.queueExpanded = false;
+                    state.queueMode = null;
+                    wrap.classList.remove('queue-expanded', 'queue-sidebar-mode');
+                    document.body.classList.remove('queue-sidebar-active');
+                    document.querySelector('.mobile-queue-btn')?.classList.remove('queue-open');
+                    return;
                 }
-                document.querySelector('.mobile-queue-btn')?.classList.toggle('queue-open', state.queueExpanded);
+
+                state.queueExpanded = true;
+                wrap.classList.add('queue-expanded');
+                ui.switchQueueTab(state.activeQueueTab || 'upnext');
+
+                if (forceSidebar) {
+                    state.queueMode = 'sidebar';
+                    wrap.classList.add('queue-sidebar-mode');
+                    document.body.classList.add('queue-sidebar-active');
+                } else {
+                    state.queueMode = 'partial';
+                    wrap.classList.remove('queue-sidebar-mode');
+                    document.body.classList.remove('queue-sidebar-active');
+                }
+
+                document.querySelector('.mobile-queue-btn')?.classList.add('queue-open');
+            },
+            toggleQueueBarButton: () => {
+                if (state.queueExpanded) {
+                    ui.toggleQueue(false, true);
+                } else {
+                    ui.toggleQueue(true);
+                }
+            },
+            toggleQueueExpandButton: () => {
+                if (state.queueExpanded) {
+                    ui.toggleQueue(false, true);
+                } else {
+                    ui.toggleQueue(false);
+                }
+            },
+            expandQueueToSidebar: () => {
+                if (!state.queueExpanded || state.queueMode === 'sidebar') return;
+                const wrap = document.getElementById('queue-wrapper');
+                if (!wrap) return;
+
+                state.queueMode = 'sidebar';
+                wrap.classList.add('queue-sidebar-mode');
+                let snapped = false;
+                const onSnap = () => {
+                    if (snapped) return;
+                    snapped = true;
+                    wrap.removeEventListener('transitionend', onTransitionEnd);
+                    document.body.classList.add('queue-sidebar-active');
+                };
+                const onTransitionEnd = (e) => {
+                    if (e.target === wrap && (e.propertyName === 'height' || e.propertyName === 'max-height')) {
+                        onSnap();
+                    }
+                };
+                wrap.addEventListener('transitionend', onTransitionEnd);
+                setTimeout(onSnap, 380);
             },
             switchQueueTab: (tab) => {
                 state.activeQueueTab = tab;

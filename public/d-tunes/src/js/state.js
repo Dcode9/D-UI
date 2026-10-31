@@ -160,7 +160,7 @@
             quickPicks: [],
             discoverMixes: {},
             searchDebounce: null, hoverProgress: -1, lastHoverProgress: 0.5, isDragging: false, 
-            upNextTriggered: false, queueExpanded: false, activeQueueTab: 'upnext', mobileSearchOriginView: null, mobileQueueAutoOpened: false, nextTrackPreloadId: null,
+            upNextTriggered: false, queueExpanded: false, queueMode: null, activeQueueTab: 'upnext', mobileSearchOriginView: null, mobileQueueAutoOpened: false, nextTrackPreloadId: null,
             wasPlayingBeforeHidden: false, userPaused: false
         };
         window.state = state;
@@ -690,6 +690,7 @@
                 state.quickPicks = [];
                 state.discoverMixes = {};
                 state.queueExpanded = false;
+                state.queueMode = null;
 
                 if (typeof songStore !== 'undefined' && songStore.clear) songStore.clear();
 
