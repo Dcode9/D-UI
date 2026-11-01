@@ -1189,18 +1189,48 @@
             if (window.msStoreManager && msStoreManager.init) msStoreManager.init();
 
             // Queue Expansion on Scroll:
-            // When opened in partial mode via the expand button, scrolling down expands to sidebar mode.
-            // When snapped to top, sidebar mode activates. Scrolling up inside the list does NOT collapse it.
+            // When opened in partial mode via the expand button, scrolling operates normally.
+            // It seamlessly snaps into full sidebar mode when fully scrolled to expanded.
+            // Once snapped to the top, scrolling up inside the list does NOT collapse it.
             const qExpandArea = document.getElementById('queue-expandable-area');
             if (qExpandArea) {
+                let wheelAtBottomAccumulator = 0;
+                let wheelResetTimer = null;
+
+                const checkListFullyScrolled = (el) => {
+                    if (!el) return false;
+                    const maxScroll = el.scrollHeight - el.clientHeight;
+                    if (maxScroll <= 0) return true;
+                    return (el.scrollTop + el.clientHeight >= el.scrollHeight - 14);
+                };
+
                 qExpandArea.addEventListener('wheel', (e) => {
-                    if (state.queueExpanded && state.queueMode === 'partial' && e.deltaY > 0) {
-                        ui.expandQueueToSidebar();
+                    if (!state.queueExpanded || state.queueMode !== 'partial' || e.deltaY <= 0) {
+                        wheelAtBottomAccumulator = 0;
+                        return;
+                    }
+                    const activeList = state.activeQueueTab === 'history' 
+                        ? document.getElementById('history-list') 
+                        : document.getElementById('queue-list');
+
+                    if (checkListFullyScrolled(activeList)) {
+                        wheelAtBottomAccumulator += e.deltaY;
+                        clearTimeout(wheelResetTimer);
+                        wheelResetTimer = setTimeout(() => { wheelAtBottomAccumulator = 0; }, 320);
+                        if (wheelAtBottomAccumulator >= 80) {
+                            wheelAtBottomAccumulator = 0;
+                            ui.expandQueueToSidebar();
+                        }
+                    } else {
+                        wheelAtBottomAccumulator = 0;
                     }
                 }, { passive: true });
 
                 const handleListScroll = (e) => {
-                    if (state.queueExpanded && state.queueMode === 'partial' && e.target.scrollTop > 5) {
+                    if (!state.queueExpanded || state.queueMode !== 'partial') return;
+                    const target = e.target;
+                    const maxScroll = target.scrollHeight - target.clientHeight;
+                    if (maxScroll > 0 && (target.scrollTop + target.clientHeight >= target.scrollHeight - 8)) {
                         ui.expandQueueToSidebar();
                     }
                 };

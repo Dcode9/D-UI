@@ -205,12 +205,10 @@
             --mezzotint-grain-overlay: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='inkGrain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.875' numOctaves='1' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 0.18 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23inkGrain)'/%3E%3C/svg%3E");
         }
 
-        /* Every frosted surface now uses the real Mezzotint grain backdrop
-           filter instead of a smooth Gaussian blur. */
-        @supports (backdrop-filter: url(#dtunes-mezzotint-filter)) {
-            :root {
-                --dtunes-optical-filter: url(#dtunes-mezzotint-filter);
-            }
+        /* Use hardware-accelerated GPU blur to eliminate INP and render pauses,
+           while grain texture is rendered at 120fps via CSS overlay pseudo-elements. */
+        :root {
+            --dtunes-optical-filter: blur(20px);
         }
 
         /* --- Universal Mezzotint Glass & Blur Panels --- */
@@ -2921,11 +2919,32 @@ html[data-ui-mode="desktop"] #queue-wrapper.queue-expanded.queue-sidebar-mode #h
     overflow-y: auto !important;
 }
 
-/* Signal to UI: Top banner Sign-In button shifts left when sidebar is active */
-#dverse-header-auth-button {
+/* Signal to UI: Home Sign-In banner button shifts left when sidebar is active */
+.home-signin-banner-btn,
+#home-signin-banner-btn,
+#ai-hub-container div.p-6 > button,
+#ai-hub-container div.md\:p-8 > button {
     transition: transform 0.42s cubic-bezier(0.2, 0.8, 0.2, 1), background-color 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease !important;
 }
 
-body.queue-sidebar-active #dverse-header-auth-button {
-    transform: translateX(-388px);
+body.queue-sidebar-active .home-signin-banner-btn,
+body.queue-sidebar-active #home-signin-banner-btn,
+body.queue-sidebar-active #ai-hub-container div.p-6 > button,
+body.queue-sidebar-active #ai-hub-container div.md\:p-8 > button {
+    transform: translateX(-390px);
+}
+
+/* Hardware-accelerated compositing for interactive controls (eliminates INP / render latency) */
+.control-icon-btn,
+#btn-play,
+#btn-expand-queue,
+.queue-tab-btn,
+#volume-control-wrapper,
+#volume-slider,
+#volume-edge-marker {
+    will-change: transform;
+    transform: translateZ(0);
+}
+.np-chevron {
+    will-change: transform;
 }

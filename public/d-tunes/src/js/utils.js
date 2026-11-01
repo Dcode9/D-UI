@@ -209,10 +209,15 @@
         };
 
         let marqueeUpdateScheduled = false;
+        const scheduleMarqueeRun = typeof window.requestIdleCallback === 'function'
+            ? (fn) => window.requestIdleCallback(fn, { timeout: 80 })
+            : (fn) => setTimeout(fn, 16);
+
         const updateMarquees = () => {
             if (marqueeUpdateScheduled) return;
             marqueeUpdateScheduled = true;
-            requestAnimationFrame(() => {
+            scheduleMarqueeRun(() => {
+                requestAnimationFrame(() => {
                 marqueeUpdateScheduled = false;
                 initMarqueeObserver();
                 if (typeof window.__stripTouchHoverClasses === 'function') window.__stripTouchHoverClasses();
@@ -258,6 +263,7 @@
                         if (marqueeObserver) marqueeObserver.unobserve(container);
                     }
                 }
+            });
             });
         };
 
