@@ -1188,50 +1188,78 @@
             setupShelfNavButtons();
             if (window.msStoreManager && msStoreManager.init) msStoreManager.init();
 
-            // Queue Expansion on Scroll:
-            // When opened in partial mode via the expand button, scrolling operates normally.
-            // It seamlessly snaps into full sidebar mode when fully scrolled to expanded.
+            // Queue & History Expansion on Scroll:
+            // In Queue (Up Next): scroll down to sidebar mode happens at the END of the list.
+            // In History: scroll up to sidebar mode happens at the START of the list (scrolling up at top).
             // Once snapped to the top, scrolling up inside the list does NOT collapse it.
             const qExpandArea = document.getElementById('queue-expandable-area');
             if (qExpandArea) {
-                let wheelAtBottomAccumulator = 0;
+                let wheelAccumulator = 0;
                 let wheelResetTimer = null;
 
-                const checkListFullyScrolled = (el) => {
-                    if (!el) return false;
-                    const maxScroll = el.scrollHeight - el.clientHeight;
-                    if (maxScroll <= 0) return true;
-                    return (el.scrollTop + el.clientHeight >= el.scrollHeight - 14);
-                };
-
                 qExpandArea.addEventListener('wheel', (e) => {
-                    if (!state.queueExpanded || state.queueMode !== 'partial' || e.deltaY <= 0) {
-                        wheelAtBottomAccumulator = 0;
+                    if (!state.queueExpanded || state.queueMode !== 'partial') {
+                        wheelAccumulator = 0;
                         return;
                     }
-                    const activeList = state.activeQueueTab === 'history' 
+                    const isHistory = (state.activeQueueTab === 'history');
+                    const activeList = isHistory 
                         ? document.getElementById('history-list') 
                         : document.getElementById('queue-list');
 
-                    if (checkListFullyScrolled(activeList)) {
-                        wheelAtBottomAccumulator += e.deltaY;
-                        clearTimeout(wheelResetTimer);
-                        wheelResetTimer = setTimeout(() => { wheelAtBottomAccumulator = 0; }, 320);
-                        if (wheelAtBottomAccumulator >= 80) {
-                            wheelAtBottomAccumulator = 0;
-                            ui.expandQueueToSidebar();
+                    if (!activeList) return;
+
+                    if (isHistory) {
+                        // In History: scroll up to sidebar mode happens at the START of the list (scrolling up)
+                        const atStart = (activeList.scrollTop <= 8);
+                        if (atStart && e.deltaY < 0) {
+                            wheelAccumulator += Math.abs(e.deltaY);
+                            clearTimeout(wheelResetTimer);
+                            wheelResetTimer = setTimeout(() => { wheelAccumulator = 0; }, 320);
+                            if (wheelAccumulator >= 50) {
+                                wheelAccumulator = 0;
+                                ui.expandQueueToSidebar();
+                            }
+                        } else {
+                            wheelAccumulator = 0;
                         }
                     } else {
-                        wheelAtBottomAccumulator = 0;
+                        // In Queue (Up Next): scroll down to sidebar mode happens at the END of the list
+                        const maxScroll = activeList.scrollHeight - activeList.clientHeight;
+                        const atEnd = (maxScroll <= 0) || (activeList.scrollTop + activeList.clientHeight >= activeList.scrollHeight - 14);
+                        if (atEnd && e.deltaY > 0) {
+                            wheelAccumulator += e.deltaY;
+                            clearTimeout(wheelResetTimer);
+                            wheelResetTimer = setTimeout(() => { wheelAccumulator = 0; }, 320);
+                            if (wheelAccumulator >= 60) {
+                                wheelAccumulator = 0;
+                                ui.expandQueueToSidebar();
+                            }
+                        } else {
+                            wheelAccumulator = 0;
+                        }
                     }
                 }, { passive: true });
 
+                let prevHistoryScrollTop = 0;
                 const handleListScroll = (e) => {
                     if (!state.queueExpanded || state.queueMode !== 'partial') return;
                     const target = e.target;
-                    const maxScroll = target.scrollHeight - target.clientHeight;
-                    if (maxScroll > 0 && (target.scrollTop + target.clientHeight >= target.scrollHeight - 8)) {
-                        ui.expandQueueToSidebar();
+                    const isHistory = (target.id === 'history-list');
+
+                    if (isHistory) {
+                        // In History: scrolling up to the start triggers sidebar mode
+                        const scrollingUp = target.scrollTop < prevHistoryScrollTop;
+                        prevHistoryScrollTop = target.scrollTop;
+                        if (scrollingUp && target.scrollTop <= 6) {
+                            ui.expandQueueToSidebar();
+                        }
+                    } else {
+                        // In Queue: scrolling down to the end triggers sidebar mode
+                        const maxScroll = target.scrollHeight - target.clientHeight;
+                        if (maxScroll > 0 && (target.scrollTop + target.clientHeight >= target.scrollHeight - 8)) {
+                            ui.expandQueueToSidebar();
+                        }
                     }
                 };
                 document.getElementById('queue-list')?.addEventListener('scroll', handleListScroll, { passive: true });

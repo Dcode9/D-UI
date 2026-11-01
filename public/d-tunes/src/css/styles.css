@@ -205,10 +205,11 @@
             --mezzotint-grain-overlay: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='inkGrain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.875' numOctaves='1' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 0.18 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23inkGrain)'/%3E%3C/svg%3E");
         }
 
-        /* Use hardware-accelerated GPU blur to eliminate INP and render pauses,
-           while grain texture is rendered at 120fps via CSS overlay pseudo-elements. */
-        :root {
-            --dtunes-optical-filter: blur(20px);
+        /* Authentic procedural ink grain optical filter applied everywhere */
+        @supports (backdrop-filter: url(#dtunes-mezzotint-filter)) {
+            :root {
+                --dtunes-optical-filter: url(#dtunes-mezzotint-filter);
+            }
         }
 
         /* --- Universal Mezzotint Glass & Blur Panels --- */
@@ -222,6 +223,7 @@
             transform: translateZ(0);
             backface-visibility: hidden;
             overflow: hidden;
+            isolation: isolate;
         }
 
         .glass-panel::before {
@@ -2757,8 +2759,8 @@ html[data-ui-mode="desktop"] #p-like-btn:hover {
     overflow: hidden;
     box-sizing: border-box;
     background: rgba(8, 8, 12, 0.65);
-    backdrop-filter: blur(8.5px);
-    -webkit-backdrop-filter: blur(8.5px);
+    backdrop-filter: var(--dtunes-optical-filter);
+    -webkit-backdrop-filter: var(--dtunes-optical-filter);
     border: 1px solid rgba(255, 255, 255, 0.2);
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85), inset 0 1px 1px rgba(255, 255, 255, 0.25);
 }
@@ -2940,8 +2942,7 @@ body.queue-sidebar-active #ai-hub-container div.md\:p-8 > button {
 #btn-expand-queue,
 .queue-tab-btn,
 #volume-control-wrapper,
-#volume-slider,
-#volume-edge-marker {
+#volume-slider {
     will-change: transform;
     transform: translateZ(0);
 }
