@@ -2157,40 +2157,18 @@
                 document.querySelector('.mobile-queue-btn')?.classList.add('queue-open');
             },
             toggleQueueBarButton: () => {
-                if (state.queueExpanded) {
+                if (state.queueExpanded && state.queueMode === 'sidebar') {
                     ui.toggleQueue(false, true);
                 } else {
                     ui.toggleQueue(true);
                 }
             },
             toggleQueueExpandButton: () => {
-                if (state.queueExpanded) {
+                if (state.queueExpanded && state.queueMode === 'partial') {
                     ui.toggleQueue(false, true);
                 } else {
                     ui.toggleQueue(false);
                 }
-            },
-            expandQueueToSidebar: () => {
-                if (!state.queueExpanded || state.queueMode === 'sidebar') return;
-                const wrap = document.getElementById('queue-wrapper');
-                if (!wrap) return;
-
-                state.queueMode = 'sidebar';
-                wrap.classList.add('queue-sidebar-mode');
-                let snapped = false;
-                const onSnap = () => {
-                    if (snapped) return;
-                    snapped = true;
-                    wrap.removeEventListener('transitionend', onTransitionEnd);
-                    document.body.classList.add('queue-sidebar-active');
-                };
-                const onTransitionEnd = (e) => {
-                    if (e.target === wrap && (e.propertyName === 'height' || e.propertyName === 'max-height')) {
-                        onSnap();
-                    }
-                };
-                wrap.addEventListener('transitionend', onTransitionEnd);
-                setTimeout(onSnap, 380);
             },
             switchQueueTab: (tab) => {
                 state.activeQueueTab = tab;

@@ -2869,11 +2869,12 @@ html[data-ui-mode="desktop"] #p-like-btn:hover {
 }
 
 html[data-ui-mode="desktop"] #queue-wrapper {
-    transition: height 0.42s cubic-bezier(0.2, 0.8, 0.2, 1);
+    height: auto;
 }
 
 html[data-ui-mode="desktop"] #queue-expandable-area {
     transition: max-height 0.42s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.3s ease;
+    overflow: hidden;
 }
 
 /* Partial Mode (from island expand chevron): dynamic height according to songs */
@@ -2887,38 +2888,35 @@ html[data-ui-mode="desktop"] #queue-wrapper.queue-expanded:not(.queue-sidebar-mo
     pointer-events: auto;
 }
 
-/* Sidebar Mode (from bar button or scroll snap):
-   Full height leaving the SAME amount of padding from top as bottom (90px) */
+/* Sidebar Mode (from bar button):
+   Full height leaving the SAME amount of padding from top as bottom (90px).
+   Shares the exact same expand animation as the expand button. */
 html[data-ui-mode="desktop"] #queue-wrapper.queue-expanded.queue-sidebar-mode {
-    height: calc(100vh - (2 * var(--queue-edge-padding)));
-    height: calc(100dvh - (2 * var(--queue-edge-padding)));
+    height: auto;
 }
 
 html[data-ui-mode="desktop"] #queue-wrapper.queue-expanded.queue-sidebar-mode #queue-expandable-area {
-    flex: 1 1 0% !important;
-    min-height: 0 !important;
-    max-height: calc(100vh - (2 * var(--queue-edge-padding)) - 66px) !important;
-    max-height: calc(100dvh - (2 * var(--queue-edge-padding)) - 66px) !important;
-    height: 100% !important;
-    opacity: 1 !important;
-    pointer-events: auto !important;
-    display: flex !important;
-    flex-direction: column !important;
+    max-height: calc(100vh - (2 * var(--queue-edge-padding)) - 66px);
+    max-height: calc(100dvh - (2 * var(--queue-edge-padding)) - 66px);
+    opacity: 1;
+    pointer-events: auto;
+    display: flex;
+    flex-direction: column;
 }
 
 html[data-ui-mode="desktop"] #queue-wrapper.queue-expanded.queue-sidebar-mode #queue-full-content {
-    height: 100% !important;
-    display: flex !important;
-    flex-direction: column !important;
-    flex: 1 1 0% !important;
-    min-height: 0 !important;
+    height: calc(100vh - (2 * var(--queue-edge-padding)) - 66px);
+    height: calc(100dvh - (2 * var(--queue-edge-padding)) - 66px);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
 }
 
 html[data-ui-mode="desktop"] #queue-wrapper.queue-expanded.queue-sidebar-mode #queue-list,
 html[data-ui-mode="desktop"] #queue-wrapper.queue-expanded.queue-sidebar-mode #history-list {
-    flex: 1 1 0% !important;
-    min-height: 0 !important;
-    overflow-y: auto !important;
+    flex: 1 1 0%;
+    min-height: 0;
+    overflow-y: auto;
 }
 
 /* Signal to UI: Home Sign-In banner button shifts left when sidebar is active */
