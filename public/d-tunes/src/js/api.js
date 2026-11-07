@@ -175,7 +175,135 @@
                     source: 'jiosaavn'
                 };
             },
-            isStreamingUrl: (url) => !!(url && (url.startsWith('http://') || url.startsWith('https://')))
+            isStreamingUrl: (url) => !!(url && (url.startsWith('http://') || url.startsWith('https://'))),
+            getSongDetails: async (trackOrId) => {
+                if (typeof navigator !== 'undefined' && !navigator.onLine) return null;
+                if (!trackOrId) return null;
+                const id = typeof trackOrId === 'object' ? trackOrId.id : trackOrId;
+                const track = typeof trackOrId === 'object' ? trackOrId : null;
+                const cacheKey = `song_intel_${id || ''}_${track?.name || ''}_${track?.artist || ''}`;
+                if (!window.__songIntelCache) window.__songIntelCache = new Map();
+                if (window.__songIntelCache.has(cacheKey)) {
+                    return window.__songIntelCache.get(cacheKey);
+                }
+
+                let details = null;
+
+                // 1. If ID exists, query JioSaavn /songs/{id}
+                if (id) {
+                    try {
+                        const data = await jiosaavnAPI.fetchWithRetry(`${JIOSAAVN_API}/songs/${encodeURIComponent(id)}`);
+                        if (data && data.data && data.data.length > 0) {
+                            const s = data.data[0];
+                            const rawName = s.name || s.title || track?.name || 'Unknown';
+                            const rawArtist = s.artists?.primary?.map(a => a.name).join(', ') || s.primaryArtists || track?.artist || 'Unknown Artist';
+                            const allArtists = s.artists?.all?.map(a => `${a.name}${a.role ? ` (${a.role})` : ''}`).join(', ') || '';
+                            const releaseYear = s.year || (s.releaseDate ? s.releaseDate.split('-')[0] : '');
+                            const albumName = s.album?.name || s.album || (track?.album || 'Single');
+                            const labelName = s.label || 'Independent';
+                            const language = s.language ? (s.language.charAt(0).toUpperCase() + s.language.slice(1)) : 'Original';
+                            const durationSec = s.duration || track?.duration || 0;
+                            const playCount = s.playCount ? Number(s.playCount).toLocaleString() : null;
+                            const artwork = sanitizeImageUrl(s.image?.[2]?.url || s.image?.[1]?.url || s.image?.[0]?.url || track?.img || FALLBACK_ART);
+
+                            details = {
+                                id: s.id,
+                                title: utils.decodeHtml(rawName),
+                                artist: utils.decodeHtml(rawArtist),
+                                allArtists: utils.decodeHtml(allArtists),
+                                album: utils.decodeHtml(albumName),
+                                year: releaseYear,
+                                releaseDate: s.releaseDate || releaseYear,
+                                label: utils.decodeHtml(labelName),
+                                language: language,
+                                genre: 'Music',
+                                duration: durationSec,
+                                playCount: playCount,
+                                copyright: utils.decodeHtml(s.copyright || ''),
+                                explicit: Boolean(s.explicitContent),
+                                hasLyrics: Boolean(s.hasLyrics),
+                                artwork: artwork,
+                                source: 'JioSaavn Official'
+                            };
+                        }
+                    } catch (e) {
+                        console.warn('[getSongDetails] JioSaavn lookup error:', e);
+                    }
+                }
+
+                // 2. Query iTunes Search API to augment genre, release date, and label
+                const queryTerm = track ? `${track.name} ${track.artist}` : (details ? `${details.title} ${details.artist}` : null);
+                if (queryTerm) {
+                    try {
+                        const itunesRes = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(queryTerm)}&entity=song&limit=1`);
+                        if (itunesRes.ok) {
+                            const itunesData = await itunesRes.json();
+                            if (itunesData.results && itunesData.results.length > 0) {
+                                const it = itunesData.results[0];
+                                const itYear = it.releaseDate ? it.releaseDate.slice(0, 4) : '';
+                                const itDate = it.releaseDate ? it.releaseDate.slice(0, 10) : '';
+                                const itArtwork = it.artworkUrl100 ? sanitizeImageUrl(it.artworkUrl100.replace('100x100bb', '600x600bb')) : null;
+
+                                if (!details) {
+                                    details = {
+                                        id: it.trackId || id,
+                                        title: it.trackName || track?.name || 'Unknown',
+                                        artist: it.artistName || track?.artist || 'Unknown',
+                                        allArtists: it.artistName,
+                                        album: it.collectionName || 'Single',
+                                        year: itYear,
+                                        releaseDate: itDate,
+                                        label: it.collectionCensoredName || it.artistName,
+                                        genre: it.primaryGenreName || 'Music',
+                                        language: 'Original',
+                                        duration: Math.round((it.trackTimeMillis || 0) / 1000) || (track?.duration || 0),
+                                        playCount: null,
+                                        copyright: '',
+                                        explicit: it.trackExplicitness === 'explicit',
+                                        hasLyrics: false,
+                                        artwork: itArtwork || (track ? sanitizeImageUrl(track.img) : FALLBACK_ART),
+                                        source: 'Apple Music'
+                                    };
+                                } else {
+                                    if (it.primaryGenreName) details.genre = it.primaryGenreName;
+                                    if (!details.releaseDate && itDate) details.releaseDate = itDate;
+                                    if ((!details.year || details.year === 'Unknown') && itYear) details.year = itYear;
+                                    if ((!details.album || details.album === 'Single') && it.collectionName) details.album = it.collectionName;
+                                    if (itArtwork && (!details.artwork || details.artwork.includes('DTunes.svg'))) details.artwork = itArtwork;
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('[getSongDetails] iTunes lookup error:', e);
+                    }
+                }
+
+                // 3. Fallback object if external lookup failed
+                if (!details && track) {
+                    details = {
+                        id: track.id,
+                        title: track.name || 'Unknown Track',
+                        artist: track.artist || 'Unknown Artist',
+                        allArtists: track.artist || '',
+                        album: track.album || 'Digital Single',
+                        year: track.year || '',
+                        releaseDate: track.year || 'Available on D-Tunes',
+                        label: 'Digital Release',
+                        genre: 'Music',
+                        language: 'Stereo',
+                        duration: track.duration || 0,
+                        playCount: null,
+                        copyright: '',
+                        explicit: false,
+                        hasLyrics: false,
+                        artwork: sanitizeImageUrl(track.img || FALLBACK_ART),
+                        source: 'D-Tunes Library'
+                    };
+                }
+
+                if (details) window.__songIntelCache.set(cacheKey, details);
+                return details;
+            }
         };
 
 

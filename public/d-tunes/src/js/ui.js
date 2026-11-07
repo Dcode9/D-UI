@@ -706,7 +706,10 @@
                 state.equalizer = { ...FLAT_EQUALIZER };
                 state.forYouSongs = [];
                 state.queueExpanded = false;
-                document.getElementById('queue-wrapper').classList.remove('queue-expanded', 'preview-expanded', 'track-swap-out');
+                state.songDetailsExpanded = false;
+                document.getElementById('queue-wrapper')?.classList.remove('queue-expanded', 'has-song-details', 'preview-expanded', 'track-swap-out');
+                document.getElementById('info-island')?.classList.remove('details-expanded');
+                document.body.classList.remove('queue-sidebar-active');
                 document.getElementById('player-footer').classList.add('translate-y-[150%]', 'opacity-0');
                 document.body.classList.remove('mobile-player-open');
                 document.getElementById('p-title').textContent = 'Not Playing';
@@ -2127,48 +2130,155 @@
                     mPauseBtn.className = playing ? 'flex' : 'hidden';
                 }
             },
-            toggleQueue: (forceSidebar, forceClose) => {
+            toggleQueue: (forceState) => {
                 const wrap = document.getElementById('queue-wrapper');
                 if (!wrap) return;
 
-                if (forceClose || (state.queueExpanded && forceSidebar === undefined)) {
+                const willExpand = (typeof forceState === 'boolean') ? forceState : !state.queueExpanded;
+
+                if (!willExpand) {
                     state.queueExpanded = false;
                     state.queueMode = null;
-                    wrap.classList.remove('queue-expanded', 'queue-sidebar-mode');
-                    document.body.classList.remove('queue-sidebar-active');
+                    wrap.classList.remove('queue-expanded');
+                    document.getElementById('btn-queue-desktop')?.classList.remove('active-state');
+                    if (!state.songDetailsExpanded) {
+                        document.body.classList.remove('queue-sidebar-active');
+                    }
                     document.querySelector('.mobile-queue-btn')?.classList.remove('queue-open');
                     return;
                 }
 
                 state.queueExpanded = true;
                 wrap.classList.add('queue-expanded');
+                document.getElementById('btn-queue-desktop')?.classList.add('active-state');
+                document.body.classList.add('queue-sidebar-active');
                 ui.switchQueueTab(state.activeQueueTab || 'upnext');
-
-                if (forceSidebar) {
-                    state.queueMode = 'sidebar';
-                    wrap.classList.add('queue-sidebar-mode');
-                    document.body.classList.add('queue-sidebar-active');
-                } else {
-                    state.queueMode = 'partial';
-                    wrap.classList.remove('queue-sidebar-mode');
-                    document.body.classList.remove('queue-sidebar-active');
-                }
-
                 document.querySelector('.mobile-queue-btn')?.classList.add('queue-open');
             },
             toggleQueueBarButton: () => {
-                if (state.queueExpanded && state.queueMode === 'sidebar') {
-                    ui.toggleQueue(false, true);
-                } else {
-                    ui.toggleQueue(true);
-                }
+                ui.toggleQueue();
             },
             toggleQueueExpandButton: () => {
-                if (state.queueExpanded && state.queueMode === 'partial') {
-                    ui.toggleQueue(false, true);
-                } else {
-                    ui.toggleQueue(false);
+                ui.toggleQueue();
+            },
+            toggleSongDetails: async (e) => {
+                if (e) {
+                    try { e.stopPropagation(); } catch (_) {}
                 }
+                const infoIsland = document.getElementById('info-island');
+                const queueWrap = document.getElementById('queue-wrapper');
+                if (!infoIsland) return;
+
+                if (!state.currentTrack) {
+                    ui.showToast('Play a song to view details', 'info');
+                    return;
+                }
+
+                const willOpen = !state.songDetailsExpanded;
+                state.songDetailsExpanded = willOpen;
+
+                if (!willOpen) {
+                    infoIsland.classList.remove('details-expanded');
+                    queueWrap?.classList.remove('has-song-details');
+                    if (!state.queueExpanded) {
+                        document.body.classList.remove('queue-sidebar-active');
+                    }
+                    return;
+                }
+
+                infoIsland.classList.add('details-expanded');
+                queueWrap?.classList.add('has-song-details');
+                document.body.classList.add('queue-sidebar-active');
+                await ui.loadSongDetails(state.currentTrack);
+            },
+            loadSongDetails: async (track) => {
+                if (!track) return;
+                const skeleton = document.getElementById('song-details-skeleton');
+                const content = document.getElementById('song-details-content');
+                if (skeleton) skeleton.classList.remove('hidden');
+                if (content) content.classList.add('hidden');
+
+                try {
+                    const details = (window.jiosaavnAPI && window.jiosaavnAPI.getSongDetails)
+                        ? await window.jiosaavnAPI.getSongDetails(track)
+                        : null;
+                    if (state.currentTrack && (state.currentTrack.id === track.id || state.currentTrack.name === track.name)) {
+                        ui.renderSongDetails(details);
+                    }
+                } catch (e) {
+                    console.error('[loadSongDetails] Error:', e);
+                    ui.renderSongDetails(null);
+                }
+            },
+            renderSongDetails: (details) => {
+                const skeleton = document.getElementById('song-details-skeleton');
+                const content = document.getElementById('song-details-content');
+                if (!content) return;
+
+                if (!details) {
+                    if (skeleton) skeleton.classList.add('hidden');
+                    content.classList.remove('hidden');
+                    content.innerHTML = '<div class="text-xs text-gray-400 py-3 text-center">No metadata available for this track.</div>';
+                    return;
+                }
+
+                const albumName = utils.escapeHtml(details.album || 'Single');
+                const releaseYear = utils.escapeHtml(details.releaseDate || details.year || 'Unknown');
+                const genreLang = utils.escapeHtml((details.genre || 'Music') + ' · ' + (details.language || 'Original'));
+                const labelName = utils.escapeHtml(details.label || 'Digital Release');
+                const durationFormatted = utils.formatTime(details.duration || 0);
+                const playCountStr = details.playCount ? (details.playCount + ' streams') : null;
+                const sourceBadge = utils.escapeHtml(details.source || 'D-Tunes');
+
+                content.innerHTML = `
+                    <div class="grid grid-cols-2 gap-2 text-left">
+                        <div class="flex items-start gap-2 bg-white/[0.04] rounded-xl p-2 border border-white/5 min-w-0">
+                            <svg class="w-3.5 h-3.5 text-purple-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg>
+                            <div class="min-w-0 flex-1">
+                                <div class="text-[9px] text-gray-400 uppercase font-bold tracking-wider leading-none mb-1">Album</div>
+                                <div class="text-[11px] font-medium text-white truncate" title="${albumName}">${albumName}</div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start gap-2 bg-white/[0.04] rounded-xl p-2 border border-white/5 min-w-0">
+                            <svg class="w-3.5 h-3.5 text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                            <div class="min-w-0 flex-1">
+                                <div class="text-[9px] text-gray-400 uppercase font-bold tracking-wider leading-none mb-1">Released</div>
+                                <div class="text-[11px] font-medium text-white truncate" title="${releaseYear}">${releaseYear}</div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start gap-2 bg-white/[0.04] rounded-xl p-2 border border-white/5 min-w-0">
+                            <svg class="w-3.5 h-3.5 text-emerald-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/></svg>
+                            <div class="min-w-0 flex-1">
+                                <div class="text-[9px] text-gray-400 uppercase font-bold tracking-wider leading-none mb-1">Genre & Lang</div>
+                                <div class="text-[11px] font-medium text-white truncate" title="${genreLang}">${genreLang}</div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start gap-2 bg-white/[0.04] rounded-xl p-2 border border-white/5 min-w-0">
+                            <svg class="w-3.5 h-3.5 text-amber-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                            <div class="min-w-0 flex-1">
+                                <div class="text-[9px] text-gray-400 uppercase font-bold tracking-wider leading-none mb-1">Label</div>
+                                <div class="text-[11px] font-medium text-white truncate" title="${labelName}">${labelName}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between pt-1 px-1 text-[10px] text-gray-400">
+                        <div class="flex items-center gap-2">
+                            <span class="flex items-center gap-1 font-mono">
+                                <svg class="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                ${durationFormatted}
+                            </span>
+                            ${playCountStr ? ('<span class="flex items-center gap-1 text-rose-400 font-medium">· <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>' + playCountStr + '</span>') : ''}
+                        </div>
+                        <span class="text-[9px] font-mono uppercase tracking-wider text-gray-500">${sourceBadge}</span>
+                    </div>
+                `;
+
+                if (skeleton) skeleton.classList.add('hidden');
+                content.classList.remove('hidden');
             },
             switchQueueTab: (tab) => {
                 state.activeQueueTab = tab;

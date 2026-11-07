@@ -893,7 +893,8 @@
                         ui.toggleLyricsModal(false);
                         ui.toggleEqualizerModal(false);
                         if (document.body.classList.contains('mobile-player-open')) ui.toggleMobilePlayer(false);
-                        if (state.queueExpanded && !deviceMode.isMobileUI()) ui.toggleQueue(false, true);
+                        if (state.songDetailsExpanded) { ui.toggleSongDetails(); return; }
+                        if (state.queueExpanded && !deviceMode.isMobileUI()) ui.toggleQueue(false);
                         break;
                     case 'mediaplaypause':
                         player.togglePlay();

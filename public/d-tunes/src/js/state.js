@@ -160,7 +160,7 @@
             quickPicks: [],
             discoverMixes: {},
             searchDebounce: null, hoverProgress: -1, lastHoverProgress: 0.5, isDragging: false, 
-            upNextTriggered: false, queueExpanded: false, queueMode: null, activeQueueTab: 'upnext', mobileSearchOriginView: null, mobileQueueAutoOpened: false, nextTrackPreloadId: null,
+            upNextTriggered: false, queueExpanded: false, songDetailsExpanded: false, queueMode: null, activeQueueTab: 'upnext', mobileSearchOriginView: null, mobileQueueAutoOpened: false, nextTrackPreloadId: null,
             wasPlayingBeforeHidden: false, userPaused: false
         };
         window.state = state;
@@ -690,6 +690,7 @@
                 state.quickPicks = [];
                 state.discoverMixes = {};
                 state.queueExpanded = false;
+                state.songDetailsExpanded = false;
                 state.queueMode = null;
 
                 if (typeof songStore !== 'undefined' && songStore.clear) songStore.clear();
@@ -738,7 +739,9 @@
                 cloudLibrary._loadedUserId = null;
 
                 // Reset UI elements
-                document.getElementById('queue-wrapper')?.classList.remove('queue-expanded', 'preview-expanded', 'track-swap-out');
+                document.getElementById('queue-wrapper')?.classList.remove('queue-expanded', 'has-song-details', 'preview-expanded', 'track-swap-out');
+                document.getElementById('info-island')?.classList.remove('details-expanded');
+                document.body.classList.remove('queue-sidebar-active');
                 document.getElementById('player-footer')?.classList.add('translate-y-[150%]', 'opacity-0');
                 document.body.classList.remove('mobile-player-open');
                 const title = document.getElementById('p-title');

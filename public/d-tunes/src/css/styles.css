@@ -2144,7 +2144,7 @@ html[data-ui-mode="mobile"] body.mobile-player-open #queue-tabs .queue-tab-switc
     display: none !important;
 }
 html[data-ui-mode="mobile"] body.mobile-player-open #queue-tabs::before {
-    content: "Up Next";
+    content: "Queue";
     font-size: 10px;
     font-weight: 800;
     letter-spacing: 0.12em;
@@ -2861,7 +2861,7 @@ html[data-ui-mode="desktop"] #p-like-btn:hover {
 }
 
 /* ==========================================================================
-   QUEUE SIDEBAR MODE & UI ADJUSTMENT SIGNALS
+   QUEUE 2-STATE EXPANSION, SONG DETAILS & DYNAMIC HEIGHT LOGIC
    ========================================================================== */
 :root {
     --queue-sidebar-width: 24rem;
@@ -2872,54 +2872,100 @@ html[data-ui-mode="desktop"] #queue-wrapper {
     height: auto;
 }
 
+/* Now Playing Solo Island Transition */
+html[data-ui-mode="desktop"] #info-island {
+    transition: border-radius 0.42s cubic-bezier(0.2, 0.8, 0.2, 1),
+                background-color 0.3s ease,
+                box-shadow 0.42s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Solo Island Song Details Expanded */
+html[data-ui-mode="desktop"] #info-island.details-expanded {
+    border-radius: 1.5rem !important;
+    background: rgba(18, 18, 22, 0.88);
+    box-shadow: 0 24px 50px -12px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+#song-details-drawer {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    pointer-events: none;
+    transition: max-height 0.42s cubic-bezier(0.2, 0.8, 0.2, 1),
+                opacity 0.3s ease,
+                margin-top 0.42s cubic-bezier(0.2, 0.8, 0.2, 1);
+    margin-top: 0;
+}
+
+#info-island.details-expanded #song-details-drawer {
+    max-height: 280px;
+    opacity: 1;
+    pointer-events: auto;
+    margin-top: 0.5rem;
+}
+
+/* Song Title cursor and hover interaction */
+#p-title {
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.2s ease;
+}
+#p-title:hover {
+    color: var(--accent-color);
+}
+#info-island.details-expanded #p-title {
+    color: var(--accent-color);
+}
+
+/* Expandable Queue Container */
 html[data-ui-mode="desktop"] #queue-expandable-area {
     transition: max-height 0.42s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.3s ease;
     overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    pointer-events: none;
 }
 
-/* Partial Mode (from island expand chevron): dynamic height according to songs */
-html[data-ui-mode="desktop"] #queue-wrapper.queue-expanded:not(.queue-sidebar-mode) {
+/* State: Queue Expanded (Single expanded state for both buttons) */
+html[data-ui-mode="desktop"] #queue-wrapper.queue-expanded {
     height: auto;
 }
 
-html[data-ui-mode="desktop"] #queue-wrapper.queue-expanded:not(.queue-sidebar-mode) #queue-expandable-area {
-    max-height: 480px;
-    opacity: 1;
-    pointer-events: auto;
-}
-
-/* Sidebar Mode (from bar button):
-   Full height leaving the SAME amount of padding from top as bottom (90px).
-   Shares the exact same expand animation as the expand button. */
-html[data-ui-mode="desktop"] #queue-wrapper.queue-expanded.queue-sidebar-mode {
-    height: auto;
-}
-
-html[data-ui-mode="desktop"] #queue-wrapper.queue-expanded.queue-sidebar-mode #queue-expandable-area {
-    max-height: calc(100vh - (2 * var(--queue-edge-padding)) - 66px);
-    max-height: calc(100dvh - (2 * var(--queue-edge-padding)) - 66px);
+html[data-ui-mode="desktop"] #queue-wrapper.queue-expanded #queue-expandable-area {
+    /* Full sidebar height available minus compact pill height (~58px) and margins */
+    max-height: calc(100vh - (2 * var(--queue-edge-padding)) - 66px - 74px);
+    max-height: calc(100dvh - (2 * var(--queue-edge-padding)) - 66px - 74px);
     opacity: 1;
     pointer-events: auto;
     display: flex;
     flex-direction: column;
 }
 
-html[data-ui-mode="desktop"] #queue-wrapper.queue-expanded.queue-sidebar-mode #queue-full-content {
-    height: calc(100vh - (2 * var(--queue-edge-padding)) - 66px);
-    height: calc(100dvh - (2 * var(--queue-edge-padding)) - 66px);
+/* When Song Details is expanded in full height condition:
+   The Player shrinks to make room for the Song details solo island */
+html[data-ui-mode="desktop"] #queue-wrapper.queue-expanded.has-song-details #queue-expandable-area {
+    max-height: calc(100vh - (2 * var(--queue-edge-padding)) - 66px - 280px);
+    max-height: calc(100dvh - (2 * var(--queue-edge-padding)) - 66px - 280px);
+}
+
+/* Content dynamically wraps according to song count:
+   If few songs, height is small; if many songs, height reaches max-height and scrolls */
+html[data-ui-mode="desktop"] #queue-wrapper.queue-expanded #queue-full-content {
+    max-height: 100%;
     display: flex;
     flex-direction: column;
     min-height: 0;
+    width: 100%;
 }
 
-html[data-ui-mode="desktop"] #queue-wrapper.queue-expanded.queue-sidebar-mode #queue-list,
-html[data-ui-mode="desktop"] #queue-wrapper.queue-expanded.queue-sidebar-mode #history-list {
-    flex: 1 1 0%;
+html[data-ui-mode="desktop"] #queue-wrapper.queue-expanded #queue-list,
+html[data-ui-mode="desktop"] #queue-wrapper.queue-expanded #history-list {
+    flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;
 }
 
-/* Signal to UI: Home Sign-In banner button shifts left when sidebar is active */
+/* Signal to UI: Home Sign-In banner button shifts left when sidebar/expanded player is active */
 .home-signin-banner-btn,
 #home-signin-banner-btn,
 #ai-hub-container div.p-6 > button,
