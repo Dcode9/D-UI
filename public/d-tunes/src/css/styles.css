@@ -975,32 +975,97 @@
         .segmented-tabs > button.is-active svg,
         .segmented-tabs > button.active svg { opacity: 1; }
 
-        .queue-tab-switch { width: 218px; max-width: 62%; flex-shrink: 0; }
+        .queue-tab-switch {
+            width: fit-content !important;
+            max-width: none !important;
+            display: inline-flex !important;
+            align-items: center;
+            position: relative;
+            padding: 3px;
+            border-radius: 9999px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
+            flex-shrink: 0;
+        }
+        .queue-tab-switch::before {
+            content: "";
+            position: absolute;
+            top: 3px;
+            bottom: 3px;
+            left: 0;
+            width: var(--pill-w, 90px);
+            transform: translateX(var(--pill-x, 3px));
+            border-radius: 9999px;
+            background: #ffffff;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+            transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1), width 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+            z-index: 0;
+            pointer-events: none;
+        }
+        .queue-tab-btn {
+            position: relative;
+            z-index: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            padding: 5px 14px;
+            width: auto !important;
+            flex: 0 0 auto !important;
+            border: none;
+            background: transparent;
+            border-radius: 9999px;
+            font-family: var(--font-sans);
+            font-size: 11.5px;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+            color: rgba(255, 255, 255, 0.55);
+            cursor: pointer;
+            white-space: nowrap;
+            transition: color 0.2s ease;
+        }
+        .queue-tab-btn:hover {
+            color: rgba(255, 255, 255, 0.88);
+        }
+        .queue-tab-btn.is-active {
+            color: #08080b !important;
+        }
+        .queue-tab-btn svg {
+            width: 14px;
+            height: 14px;
+            flex-shrink: 0;
+            transition: color 0.2s ease, opacity 0.2s ease;
+        }
+        .queue-tab-btn.is-active svg {
+            color: #08080b !important;
+            opacity: 1;
+        }
 
         .queue-clear-btn {
             display: inline-flex;
             align-items: center;
             gap: 5px;
-            padding: 6px 10px;
+            padding: 5px 12px;
             border-radius: 9999px;
-            border: 1px solid rgba(255, 255, 255, 0.09);
-            background: #000;
-            color: rgba(255, 255, 255, 0.55);
-            font-size: 10px;
-            font-weight: 800;
-            letter-spacing: 0.07em;
-            text-transform: uppercase;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.04);
+            color: rgba(255, 255, 255, 0.65);
+            font-family: var(--font-sans);
+            font-size: 11.5px;
+            font-weight: 600;
+            letter-spacing: -0.01em;
             cursor: pointer;
             transition: color 0.2s ease, background 0.2s ease, border-color 0.2s ease, transform 0.12s ease;
         }
-        .queue-clear-btn svg { width: 12px; height: 12px; }
+        .queue-clear-btn svg { width: 13px; height: 13px; }
         .queue-clear-btn:hover:not(:disabled) {
             color: #ffb4b4;
             border-color: rgba(248, 113, 113, 0.35);
-            background: rgba(248, 113, 113, 0.1);
+            background: rgba(248, 113, 113, 0.12);
         }
-        .queue-clear-btn:active:not(:disabled) { transform: scale(0.95); }
-        .queue-clear-btn:disabled { opacity: 0.35; pointer-events: none; }
+        .queue-clear-btn:active:not(:disabled) { transform: scale(0.96); }
+        .queue-clear-btn:disabled { opacity: 0.3; pointer-events: none; }
         .queue-clear-btn.hidden { display: none; }
 
         .queue-panel-list {
@@ -1011,16 +1076,18 @@
             scrollbar-gutter: stable;
         }
         .queue-section-label {
-            font-size: 9.5px;
-            font-weight: 800;
-            letter-spacing: 0.12em;
+            font-family: var(--font-sans);
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
             text-transform: uppercase;
-            color: rgba(255, 255, 255, 0.42);
+            color: rgba(255, 255, 255, 0.45);
             padding: 0.35rem 0.55rem 0.3rem;
         }
         .queue-section-label.queue-section-date {
-            color: color-mix(in srgb, var(--accent-color) 82%, white 18%);
-            padding-top: 0.7rem;
+            color: #ffffff !important;
+            font-weight: 700;
+            padding-top: 0.75rem;
         }
         .queue-empty-state {
             margin: 0.25rem;
@@ -1484,8 +1551,20 @@ html[data-ui-mode="mobile"] .scroll-card .opacity-0.group-hover\:opacity-100 {
     border-radius: 0.75rem;
 }
 .queue-drag-handle:active { cursor: grabbing; }
-.queue-reorder-row.is-dragging { opacity: 0.55; }
-.queue-reorder-row.drag-over { outline: 1px solid var(--accent-color); background: color-mix(in srgb, var(--accent-color) 12%, #121212); }
+.queue-reorder-row {
+    transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.2s ease, background-color 0.2s ease;
+    border-radius: 9999px;
+}
+.queue-reorder-row.is-dragging {
+    opacity: 0.35;
+    transform: scale(0.98);
+}
+.queue-reorder-row.drag-over {
+    outline: none !important;
+    border: none !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
 
 .liked-songs-art { border-color: color-mix(in srgb, var(--accent-color) 20%, transparent); }
 .liked-songs-art:hover { border-color: color-mix(in srgb, var(--accent-color) 60%, transparent); }
@@ -2865,7 +2944,7 @@ html[data-ui-mode="desktop"] #p-like-btn:hover {
    ========================================================================== */
 :root {
     --queue-sidebar-width: 24rem;
-    --queue-edge-padding: 90px;
+    --queue-edge-padding: 24px;
 }
 
 html[data-ui-mode="desktop"] #queue-wrapper {
@@ -2932,9 +3011,9 @@ html[data-ui-mode="desktop"] #queue-wrapper.queue-expanded {
 }
 
 html[data-ui-mode="desktop"] #queue-wrapper.queue-expanded #queue-expandable-area {
-    /* Full sidebar height available minus compact pill height (~58px) and margins */
-    max-height: calc(100vh - (2 * var(--queue-edge-padding)) - 66px - 74px);
-    max-height: calc(100dvh - (2 * var(--queue-edge-padding)) - 66px - 74px);
+    /* Full sidebar height leaving clean padding (~16px) below the top header */
+    max-height: calc(100vh - 256px);
+    max-height: calc(100dvh - 256px);
     opacity: 1;
     pointer-events: auto;
     display: flex;
@@ -2944,8 +3023,8 @@ html[data-ui-mode="desktop"] #queue-wrapper.queue-expanded #queue-expandable-are
 /* When Song Details is expanded in full height condition:
    The Player shrinks to make room for the Song details solo island */
 html[data-ui-mode="desktop"] #queue-wrapper.queue-expanded.has-song-details #queue-expandable-area {
-    max-height: calc(100vh - (2 * var(--queue-edge-padding)) - 66px - 280px);
-    max-height: calc(100dvh - (2 * var(--queue-edge-padding)) - 66px - 280px);
+    max-height: calc(100vh - 460px);
+    max-height: calc(100dvh - 460px);
 }
 
 /* Content dynamically wraps according to song count:

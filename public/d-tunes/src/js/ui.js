@@ -2218,62 +2218,63 @@
                 if (!details) {
                     if (skeleton) skeleton.classList.add('hidden');
                     content.classList.remove('hidden');
-                    content.innerHTML = '<div class="text-xs text-gray-400 py-3 text-center">No metadata available for this track.</div>';
+                    content.innerHTML = '<div class="text-xs text-zinc-400 py-3 text-center font-sans">No metadata available for this track.</div>';
                     return;
                 }
 
                 const albumName = utils.escapeHtml(details.album || 'Single');
                 const releaseYear = utils.escapeHtml(details.releaseDate || details.year || 'Unknown');
-                const genreLang = utils.escapeHtml((details.genre || 'Music') + ' · ' + (details.language || 'Original'));
+                const genreLang = utils.escapeHtml((details.genre || 'Music') + (details.language && details.language !== 'Unknown' && details.language !== 'Original' ? (' · ' + details.language) : ''));
                 const labelName = utils.escapeHtml(details.label || 'Digital Release');
                 const durationFormatted = utils.formatTime(details.duration || 0);
                 const playCountStr = details.playCount ? (details.playCount + ' streams') : null;
-                const sourceBadge = utils.escapeHtml(details.source || 'D-Tunes');
 
                 content.innerHTML = `
-                    <div class="grid grid-cols-2 gap-2 text-left">
-                        <div class="flex items-start gap-2 bg-white/[0.04] rounded-xl p-2 border border-white/5 min-w-0">
-                            <svg class="w-3.5 h-3.5 text-purple-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg>
+                    <div class="grid grid-cols-2 gap-2 text-left font-sans">
+                        <div class="flex items-start gap-2.5 bg-white/[0.03] hover:bg-white/[0.05] rounded-xl p-2.5 border border-white/[0.08] min-w-0 transition-colors">
+                            <svg class="w-3.5 h-3.5 text-zinc-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg>
                             <div class="min-w-0 flex-1">
-                                <div class="text-[9px] text-gray-400 uppercase font-bold tracking-wider leading-none mb-1">Album</div>
-                                <div class="text-[11px] font-medium text-white truncate" title="${albumName}">${albumName}</div>
+                                <div class="text-[9.5px] text-zinc-400 uppercase font-semibold tracking-wider leading-none mb-1">Album</div>
+                                <div class="text-[11.5px] font-medium text-white truncate" title="${albumName}">${albumName}</div>
                             </div>
                         </div>
 
-                        <div class="flex items-start gap-2 bg-white/[0.04] rounded-xl p-2 border border-white/5 min-w-0">
-                            <svg class="w-3.5 h-3.5 text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        <div class="flex items-start gap-2.5 bg-white/[0.03] hover:bg-white/[0.05] rounded-xl p-2.5 border border-white/[0.08] min-w-0 transition-colors">
+                            <svg class="w-3.5 h-3.5 text-zinc-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                             <div class="min-w-0 flex-1">
-                                <div class="text-[9px] text-gray-400 uppercase font-bold tracking-wider leading-none mb-1">Released</div>
-                                <div class="text-[11px] font-medium text-white truncate" title="${releaseYear}">${releaseYear}</div>
+                                <div class="text-[9.5px] text-zinc-400 uppercase font-semibold tracking-wider leading-none mb-1">Released</div>
+                                <div class="text-[11.5px] font-medium text-white truncate" title="${releaseYear}">${releaseYear}</div>
                             </div>
                         </div>
 
-                        <div class="flex items-start gap-2 bg-white/[0.04] rounded-xl p-2 border border-white/5 min-w-0">
-                            <svg class="w-3.5 h-3.5 text-emerald-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/></svg>
+                        <div class="flex items-start gap-2.5 bg-white/[0.03] hover:bg-white/[0.05] rounded-xl p-2.5 border border-white/[0.08] min-w-0 transition-colors">
+                            <svg class="w-3.5 h-3.5 text-zinc-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/></svg>
                             <div class="min-w-0 flex-1">
-                                <div class="text-[9px] text-gray-400 uppercase font-bold tracking-wider leading-none mb-1">Genre & Lang</div>
-                                <div class="text-[11px] font-medium text-white truncate" title="${genreLang}">${genreLang}</div>
+                                <div class="text-[9.5px] text-zinc-400 uppercase font-semibold tracking-wider leading-none mb-1">Genre & Lang</div>
+                                <div class="text-[11.5px] font-medium text-white truncate" title="${genreLang}">${genreLang}</div>
                             </div>
                         </div>
 
-                        <div class="flex items-start gap-2 bg-white/[0.04] rounded-xl p-2 border border-white/5 min-w-0">
-                            <svg class="w-3.5 h-3.5 text-amber-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                        <div class="flex items-start gap-2.5 bg-white/[0.03] hover:bg-white/[0.05] rounded-xl p-2.5 border border-white/[0.08] min-w-0 transition-colors">
+                            <svg class="w-3.5 h-3.5 text-zinc-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
                             <div class="min-w-0 flex-1">
-                                <div class="text-[9px] text-gray-400 uppercase font-bold tracking-wider leading-none mb-1">Label</div>
-                                <div class="text-[11px] font-medium text-white truncate" title="${labelName}">${labelName}</div>
+                                <div class="text-[9.5px] text-zinc-400 uppercase font-semibold tracking-wider leading-none mb-1">Label</div>
+                                <div class="text-[11.5px] font-medium text-white truncate" title="${labelName}">${labelName}</div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="flex items-center justify-between pt-1 px-1 text-[10px] text-gray-400">
-                        <div class="flex items-center gap-2">
-                            <span class="flex items-center gap-1 font-mono">
-                                <svg class="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    <div class="flex items-center justify-between pt-1.5 px-0.5 text-[11px] font-sans">
+                        <div class="flex items-center gap-2 text-zinc-400 font-medium">
+                            <span class="flex items-center gap-1.5 font-mono">
+                                <svg class="w-3 h-3 text-zinc-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                                 ${durationFormatted}
                             </span>
-                            ${playCountStr ? ('<span class="flex items-center gap-1 text-rose-400 font-medium">· <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>' + playCountStr + '</span>') : ''}
+                            ${playCountStr ? ('<span class="text-zinc-600">·</span><span class="text-zinc-300 font-mono">' + playCountStr + '</span>') : ''}
                         </div>
-                        <span class="text-[9px] font-mono uppercase tracking-wider text-gray-500">${sourceBadge}</span>
+                        <div class="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-mono tracking-wider uppercase bg-white/[0.06] text-zinc-300 border border-white/10">
+                            320 KBPS HI-FI
+                        </div>
                     </div>
                 `;
 
@@ -2286,6 +2287,14 @@
                 const tabUpNext = document.getElementById('tab-upnext');
                 const tabHist = document.getElementById('tab-history');
                 const tabSwitch = document.getElementById('queue-tab-switch');
+
+                const activeBtn = isUpNext ? tabUpNext : tabHist;
+                if (tabSwitch && activeBtn) {
+                    const left = activeBtn.offsetLeft;
+                    const width = activeBtn.offsetWidth;
+                    tabSwitch.style.setProperty('--pill-x', `${left}px`);
+                    tabSwitch.style.setProperty('--pill-w', `${width}px`);
+                }
                 const qList = document.getElementById('queue-list');
                 const hList = document.getElementById('history-list');
                 const clearQ = document.getElementById('btn-clear-queue');
@@ -2359,7 +2368,7 @@
                 if (clearBtn) {
                     clearBtn.disabled = manualCount + autoCount === 0;
                     const clearLabel = document.getElementById('btn-clear-queue-label');
-                    if (clearLabel) clearLabel.textContent = manualCount > 0 ? `Clear (${manualCount})` : 'Clear';
+                    if (clearLabel) clearLabel.textContent = 'Clear';
                 }
                 const totalQueueCount = manualCount + autoCount;
                 const badge = document.getElementById('queue-badge-count');
