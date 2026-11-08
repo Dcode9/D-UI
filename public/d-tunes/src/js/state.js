@@ -739,7 +739,13 @@
                 cloudLibrary._loadedUserId = null;
 
                 // Reset UI elements
-                document.getElementById('queue-wrapper')?.classList.remove('queue-expanded', 'has-song-details', 'preview-expanded', 'track-swap-out');
+                const sWrap = document.getElementById('queue-wrapper');
+                if (sWrap) {
+                    sWrap.classList.remove('queue-expanded', 'has-song-details', 'preview-expanded', 'track-swap-out');
+                    sWrap.style.height = '';
+                }
+                const sExpand = document.getElementById('queue-expandable-area');
+                if (sExpand) sExpand.style.maxHeight = '0px';
                 document.getElementById('info-island')?.classList.remove('details-expanded');
                 document.body.classList.remove('queue-sidebar-active');
                 document.getElementById('player-footer')?.classList.add('translate-y-[150%]', 'opacity-0');

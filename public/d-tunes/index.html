@@ -743,10 +743,10 @@
     </div>
 
     <!-- TOP HEADER -->
-    <header class="fixed top-0 left-0 right-0 z-40 glass-panel md:rounded-2xl md:top-4 md:left-6 md:right-6 px-4 md:px-6 py-2 md:py-3 flex items-center justify-between gap-4 shadow-xl border-t-0 md:border-t">
+    <header class="fixed top-0 left-0 right-0 z-40 glass-panel md:rounded-full md:top-6 md:left-6 md:right-6 md:h-[58px] px-4 md:px-5 py-2 md:py-0 flex items-center justify-between gap-4 shadow-xl border-t-0 md:border">
         <div id="app-logo" class="flex items-center gap-2.5 text-xl md:text-2xl font-bold text-white cursor-pointer w-auto flex-shrink-0 min-w-max relative z-50 pointer-events-auto" onclick="ui.goHome();">
-            <img src="DTunes.svg" alt="D'Tunes logo" class="w-8 h-8 md:w-10 md:h-10 object-contain">
-            <span>D'Tunes</span>
+            <img src="DTunes.svg" alt="D'Tunes logo" class="w-8 h-8 md:w-9 md:h-9 object-contain">
+            <span class="text-base md:text-lg font-bold tracking-tight">D'Tunes</span>
             <button onclick="event.stopPropagation(); ui.toggleChangelogModal(true);" class="beta-label hover:scale-105 active:scale-95 transition cursor-pointer" aria-label="D'Tunes beta version changelog">Beta 1.4</button>
         </div>
 
@@ -756,13 +756,13 @@
         <!-- Account Area (Profile & Settings) -->
         <div id="header-account" class="relative flex items-center justify-end gap-2 w-auto md:w-56 flex-shrink-0">
             <!-- Sleep Timer Badge -->
-            <button id="sleep-timer-badge" onclick="ui.toggleSleepTimerModal(true)" class="hidden items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-xs font-mono font-bold hover:scale-105 transition" title="Sleep Timer Active">
+            <button id="sleep-timer-badge" onclick="ui.toggleSleepTimerModal(true)" class="hidden items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-500/25 text-xs font-mono font-bold hover:scale-105 active:scale-95 transition" title="Sleep Timer Active">
                 <span>⏳</span>
                 <span id="sleep-timer-badge-text">00:00</span>
             </button>
 
-            <button id="dverse-header-auth-button" class="desktop-auth-button hidden rounded-full bg-[var(--accent-color)] px-4 py-2 text-sm font-black text-black shadow-lg shadow-cyan-500/20 hover:scale-105 transition" onclick="cloudLibrary.toggleAuth()">Sign in</button>
-            <button class="w-8 h-8 md:w-10 md:h-10 rounded-full border border-white/20 overflow-hidden hover:border-[var(--accent-color)] transition cursor-pointer" onclick="document.getElementById('profile-dropdown').classList.toggle('hidden')">
+            <button id="dverse-header-auth-button" class="desktop-auth-button hidden rounded-full bg-[var(--accent-color)] px-4 py-1.5 text-xs font-black text-black shadow-md shadow-cyan-500/20 hover:scale-105 active:scale-95 transition" onclick="cloudLibrary.toggleAuth()">Sign in</button>
+            <button class="w-9 h-9 md:w-9 md:h-9 rounded-full border border-white/15 overflow-hidden hover:border-[var(--accent-color)] active:scale-95 transition cursor-pointer flex-shrink-0 flex items-center justify-center" onclick="document.getElementById('profile-dropdown').classList.toggle('hidden')" aria-label="Open profile menu">
                 <img src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22100%22%20height%3D%22100%22%20viewBox%3D%220%200%20100%20100%22%3E%3Crect%20width%3D%22100%22%20height%3D%22100%22%20rx%3D%2250%22%20fill%3D%22%23172329%22%2F%3E%3Ccircle%20cx%3D%2250%22%20cy%3D%2236%22%20r%3D%2216%22%20fill%3D%22%23a5c8cd%22%2F%3E%3Cpath%20d%3D%22M20%2088c0-23%2013-34%2030-34s30%2011%2030%2034%22%20fill%3D%22%23a5c8cd%22%2F%3E%3C%2Fsvg%3E" id="header-avatar" class="w-full h-full object-cover" referrerpolicy="no-referrer" onerror="this.onerror=null; if(window.ui?.avatarFallback) this.src=window.ui.avatarFallback();">
             </button>
             
@@ -811,14 +811,14 @@
     </header>
 
     <!-- SEARCH WRAPPER MOVED OUTSIDE HEADER TO PREVENT BACKDROP-FILTER CONTAINMENT OVERRIDES -->
-    <div id="search-positioner" class="fixed top-0 left-0 right-0 z-[45] pointer-events-none md:top-4 md:left-6 md:right-6 px-4 md:px-6 py-2 md:py-3 flex items-center justify-between gap-4">
+    <div id="search-positioner" class="fixed top-0 left-0 right-0 z-[45] pointer-events-none md:top-6 md:left-6 md:right-6 md:h-[58px] px-4 md:px-5 py-2 md:py-0 flex items-center justify-between gap-4">
         <!-- Spacer matching left logo -->
         <div class="w-auto md:w-52 lg:w-60 flex-shrink-0 hidden md:block pointer-events-none"></div>
         
         <div class="flex-1 flex justify-center w-full min-w-0 pointer-events-none" id="search-wrapper">
             <div id="search-shell" class="flex items-center gap-2 w-full max-w-2xl min-w-0 relative pointer-events-auto">
-                <button class="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 items-center justify-center text-gray-300 hover:text-white transition flex-shrink-0 hidden md:flex" onclick="ui.switchView('home')" title="Home">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                <button class="top-nav-btn control-icon-btn hidden md:flex" onclick="ui.switchView('home')" title="Home" aria-label="Go to Home">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V20a1.5 1.5 0 0 1-1.5 1.5h-5A1.5 1.5 0 0 1 13 20v-4.5a1 1 0 0 0-1-1 1 1 0 0 0-1 1V20a1.5 1.5 0 0 1-1.5 1.5h-5A1.5 1.5 0 0 1 3 20v-9.5Z"/></svg>
                 </button>
                 
                 <div class="relative flex-1 flex items-center min-w-0">
@@ -832,8 +832,8 @@
                     </div>
                 </div>
 
-                <button class="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 items-center justify-center text-gray-300 hover:text-white transition flex-shrink-0 hidden md:flex" onclick="ui.scrollToLibrary()" title="Library">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h10m-10 4h6"/></svg>
+                <button class="top-nav-btn control-icon-btn hidden md:flex" onclick="ui.scrollToLibrary()" title="Library" aria-label="Scroll to Library">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 11h16M4 16h10"/></svg>
                 </button>
             </div>
         </div>

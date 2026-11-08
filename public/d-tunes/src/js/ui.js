@@ -709,7 +709,13 @@
                 state.forYouSongs = [];
                 state.queueExpanded = false;
                 state.songDetailsExpanded = false;
-                document.getElementById('queue-wrapper')?.classList.remove('queue-expanded', 'has-song-details', 'preview-expanded', 'track-swap-out');
+                const rWrap = document.getElementById('queue-wrapper');
+                if (rWrap) {
+                    rWrap.classList.remove('queue-expanded', 'has-song-details', 'preview-expanded', 'track-swap-out');
+                    rWrap.style.height = '';
+                }
+                const rExpand = document.getElementById('queue-expandable-area');
+                if (rExpand) rExpand.style.maxHeight = '0px';
                 document.getElementById('info-island')?.classList.remove('details-expanded');
                 document.body.classList.remove('queue-sidebar-active');
                 document.getElementById('player-footer').classList.add('translate-y-[150%]', 'opacity-0');
@@ -2190,18 +2196,24 @@
                 const queueExpand = document.getElementById('queue-expandable-area');
                 if (!queueWrap || !queueExpand) return;
 
-                const headerBottom = header ? header.getBoundingClientRect().bottom : 80;
+                const headerBottom = header ? header.getBoundingClientRect().bottom : 82;
                 const playerCardTop = playerCard ? playerCard.getBoundingClientRect().top : (window.innerHeight - 82);
                 const infoIslandHeight = infoIsland ? infoIsland.offsetHeight : 58;
 
-                // Exactly 16px padding below header when queue/history reaches full height:
-                const availableH = playerCardTop - headerBottom - 16 - 8;
-                const maxQueueH = Math.max(160, Math.floor(availableH - infoIslandHeight - 8));
+                // Full sidebar height from 16px below top header down to 8px above player card:
+                const wrapFullH = Math.max(260, Math.floor((playerCardTop - 8) - (headerBottom + 16)));
+                const maxQueueH = Math.max(140, Math.floor(wrapFullH - infoIslandHeight - 8));
 
-                queueWrap.style.setProperty('--queue-max-height', `${maxQueueH}px`);
-                queueExpand.style.setProperty('--queue-max-height', `${maxQueueH}px`);
+                queueWrap.style.setProperty('--queue-full-height', wrapFullH + 'px');
+                queueWrap.style.setProperty('--queue-max-height', maxQueueH + 'px');
+                queueExpand.style.setProperty('--queue-max-height', maxQueueH + 'px');
+
                 if (queueWrap.classList.contains('queue-expanded')) {
-                    queueExpand.style.maxHeight = `${maxQueueH}px`;
+                    queueWrap.style.height = wrapFullH + 'px';
+                    queueExpand.style.maxHeight = maxQueueH + 'px';
+                } else {
+                    queueWrap.style.height = '';
+                    queueExpand.style.maxHeight = '0px';
                 }
             },
             updatePlayBtn: () => {
@@ -2240,6 +2252,9 @@
                     state.queueExpanded = false;
                     state.sidebarMode = null;
                     wrap.classList.remove('queue-expanded', 'sidebar-show-lyrics');
+                    wrap.style.height = '';
+                    const queueExpand = document.getElementById('queue-expandable-area');
+                    if (queueExpand) queueExpand.style.maxHeight = '0px';
                     document.getElementById('btn-queue-desktop')?.classList.remove('active-state', 'is-active');
                     document.getElementById('btn-lyrics')?.classList.remove('is-active');
                     if (!state.songDetailsExpanded) {
@@ -2272,6 +2287,9 @@
                     state.sidebarMode = null;
                     state.queueExpanded = false;
                     wrap.classList.remove('queue-expanded', 'sidebar-show-lyrics');
+                    wrap.style.height = '';
+                    const queueExpand = document.getElementById('queue-expandable-area');
+                    if (queueExpand) queueExpand.style.maxHeight = '0px';
                     document.getElementById('btn-lyrics')?.classList.remove('is-active');
                     document.getElementById('btn-queue-desktop')?.classList.remove('active-state', 'is-active');
                     if (!state.songDetailsExpanded) {
