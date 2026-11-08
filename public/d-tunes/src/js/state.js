@@ -160,7 +160,7 @@
             quickPicks: [],
             discoverMixes: {},
             searchDebounce: null, hoverProgress: -1, lastHoverProgress: 0.5, isDragging: false, 
-            upNextTriggered: false, queueExpanded: false, songDetailsExpanded: false, queueMode: null, activeQueueTab: 'upnext', mobileSearchOriginView: null, mobileQueueAutoOpened: false, nextTrackPreloadId: null,
+            upNextTriggered: false, queueExpanded: false, songDetailsExpanded: false, queueMode: null, sidebarMode: 'queue', fullscreenMode: false, fullscreenTab: 'split', activeQueueTab: 'upnext', mobileSearchOriginView: null, mobileQueueAutoOpened: false, nextTrackPreloadId: null,
             wasPlayingBeforeHidden: false, userPaused: false
         };
         window.state = state;

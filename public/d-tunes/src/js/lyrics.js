@@ -118,28 +118,39 @@
                 }
             },
 
-            setIndicator: () => {
+            setIndicator: (hasLyrics) => {
                 const data = lyricsManager.currentLyrics;
-                const available = Boolean(data && !data.instrumental && (data.syncedLyrics || data.plainLyrics));
+                const available = hasLyrics !== undefined ? hasLyrics : Boolean(data && !data.instrumental && (data.syncedLyrics || data.plainLyrics));
                 document.getElementById('btn-lyrics')?.classList.toggle('lyrics-unavailable', !available);
                 document.getElementById('m-tab-lyrics')?.classList.toggle('lyrics-unavailable', !available);
+                const syncBadge = document.getElementById('sidebar-lyrics-sync-badge');
+                if (syncBadge) {
+                    if (data && data.syncedLyrics) {
+                        syncBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-[var(--accent-color)] animate-pulse"></span>Synced';
+                    } else if (data && data.plainLyrics) {
+                        syncBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-zinc-400"></span>Plain';
+                    } else {
+                        syncBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-zinc-600"></span>Unavailable';
+                    }
+                }
                 if (!available && document.body.dataset.mobileTab === 'lyrics' && typeof ui !== 'undefined' && ui.switchMobilePlayerTab) {
                     ui.switchMobilePlayerTab('track');
                 }
             },
 
             renderLoading: () => {
-                const placeholder = '<div class="text-gray-400 my-auto text-sm flex flex-col items-center gap-3 py-10"><svg class="w-8 h-8 text-gray-500 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/></svg><span>Searching synchronized lyrics...</span></div>';
-                const desktopCont = document.getElementById('lyrics-scroll-container');
-                if (desktopCont) desktopCont.innerHTML = placeholder;
-                const mobileCont = document.getElementById('mobile-lyrics-scroll');
-                if (mobileCont) mobileCont.innerHTML = placeholder;
+                const placeholder = '<div class="text-zinc-400 my-auto text-sm flex flex-col items-center gap-3 py-10"><svg class="w-8 h-8 text-zinc-500 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg><span>Searching synchronized lyrics...</span></div>';
+                ['lyrics-scroll-container', 'mobile-lyrics-scroll', 'sidebar-lyrics-scroll', 'fullscreen-lyrics-scroll'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.innerHTML = placeholder;
+                });
             },
 
             updateUI: () => {
                 const lyrics = lyricsManager.currentLyrics;
-                const desktopCont = document.getElementById('lyrics-scroll-container');
-                const mobileCont = document.getElementById('mobile-lyrics-scroll');
+                const containers = ['lyrics-scroll-container', 'mobile-lyrics-scroll', 'sidebar-lyrics-scroll', 'fullscreen-lyrics-scroll']
+                    .map(id => document.getElementById(id))
+                    .filter(Boolean);
 
                 const titleEl = document.getElementById('lyrics-modal-title');
                 const artistEl = document.getElementById('lyrics-modal-artist');
@@ -149,16 +160,14 @@
                 if (artImg && state.currentTrack) artImg.src = state.currentTrack.img || 'DTunes.svg';
 
                 if (!lyrics) {
-                    const emptyHtml = '<div class="text-gray-400 my-auto text-sm py-16 flex flex-col items-center gap-3"><svg class="w-10 h-10 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span class="font-semibold text-gray-300">No lyrics available for this track</span><span class="text-xs text-gray-500">Lyrics match based on track title and artist name</span></div>';
-                    if (desktopCont) desktopCont.innerHTML = emptyHtml;
-                    if (mobileCont) mobileCont.innerHTML = emptyHtml;
+                    const emptyHtml = '<div class="text-zinc-400 my-auto text-sm py-16 flex flex-col items-center gap-3"><svg class="w-10 h-10 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span class="font-semibold text-zinc-300">No lyrics available for this track</span><span class="text-xs text-zinc-500">Lyrics match based on track title and artist name</span></div>';
+                    containers.forEach(c => c.innerHTML = emptyHtml);
                     return;
                 }
 
                 if (lyrics.instrumental) {
-                    const instHtml = '<div class="text-gray-400 my-auto text-sm py-16 flex flex-col items-center gap-3"><svg class="w-8 h-8 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 19V6l12-2v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z"/></svg><span class="font-bold text-white text-base">Instrumental Piece</span><span class="text-xs text-gray-400">This track has no vocal lyrics. Enjoy the music!</span></div>';
-                    if (desktopCont) desktopCont.innerHTML = instHtml;
-                    if (mobileCont) mobileCont.innerHTML = instHtml;
+                    const instHtml = '<div class="text-zinc-400 my-auto text-sm py-16 flex flex-col items-center gap-3"><svg class="w-8 h-8 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 19V6l12-2v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z"/></svg><span class="font-bold text-white text-base">Instrumental Piece</span><span class="text-xs text-zinc-400">This track has no vocal lyrics. Enjoy the music!</span></div>';
+                    containers.forEach(c => c.innerHTML = instHtml);
                     return;
                 }
 
@@ -168,17 +177,15 @@
                             ${utils.escapeHtml(line.text)}
                         </div>
                     `).join('');
-                    if (desktopCont) desktopCont.innerHTML = markup;
-                    if (mobileCont) mobileCont.innerHTML = markup;
+                    containers.forEach(c => c.innerHTML = markup);
                     lyricsManager.activeLineIndex = -1;
                     lyricsManager.syncTime(audio.currentTime || 0, true);
                     return;
                 }
 
                 if (lyrics.plainLyrics) {
-                    const plainHtml = `<div class="plain-lyrics-text">${utils.escapeHtml(lyrics.plainLyrics)}</div>`;
-                    if (desktopCont) desktopCont.innerHTML = plainHtml;
-                    if (mobileCont) mobileCont.innerHTML = plainHtml;
+                    const plainHtml = `<div class="plain-lyrics-text p-4 text-zinc-300 leading-relaxed font-sans text-sm whitespace-pre-wrap">${utils.escapeHtml(lyrics.plainLyrics)}</div>`;
+                    containers.forEach(c => c.innerHTML = plainHtml);
                 }
             },
 
@@ -224,7 +231,9 @@
                 };
 
                 updateContainer('lyrics-scroll-container');
-                updateContainer('mobile-lyrics-container');
+                updateContainer('mobile-lyrics-scroll');
+                updateContainer('sidebar-lyrics-scroll');
+                updateContainer('fullscreen-lyrics-scroll');
             }
         };
 

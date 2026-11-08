@@ -490,36 +490,7 @@
 
             document.addEventListener('mobile-player-opened', resetExpandedPlayerScroll);
 
-            let queueDragSource = null;
-            document.addEventListener('dragstart', (e) => {
-                const row = e.target.closest('.queue-reorder-row');
-                if (!row) return;
-                queueDragSource = { section: row.dataset.queueSection, index: Number(row.dataset.queueIndex) };
-                row.classList.add('is-dragging');
-                e.dataTransfer.effectAllowed = 'move';
-                e.dataTransfer.setData('text/plain', JSON.stringify(queueDragSource));
-            });
-            document.addEventListener('dragover', (e) => {
-                const row = e.target.closest('.queue-reorder-row');
-                if (!row || !queueDragSource) return;
-                e.preventDefault();
-                row.classList.add('drag-over');
-            });
-            document.addEventListener('dragleave', (e) => {
-                e.target.closest('.queue-reorder-row')?.classList.remove('drag-over');
-            });
-            document.addEventListener('drop', (e) => {
-                const row = e.target.closest('.queue-reorder-row');
-                if (!row || !queueDragSource) return;
-                e.preventDefault();
-                ui.reorderQueueItem(queueDragSource.section, queueDragSource.index, row.dataset.queueSection, Number(row.dataset.queueIndex));
-                document.querySelectorAll('.queue-reorder-row').forEach(el => el.classList.remove('drag-over', 'is-dragging'));
-                queueDragSource = null;
-            });
-            document.addEventListener('dragend', () => {
-                document.querySelectorAll('.queue-reorder-row').forEach(el => el.classList.remove('drag-over', 'is-dragging'));
-                queueDragSource = null;
-            });
+            // Native drag listeners replaced with smooth pointer reorder system in ui.initQueuePointerReorder
 
             let swipeSongStart = null;
             document.addEventListener('touchstart', (e) => {
@@ -764,6 +735,16 @@
                     const currTimeEl = document.getElementById('seek-current-time');
                     const durTimeEl = document.getElementById('seek-duration-time');
                     if (currTimeEl) currTimeEl.textContent = utils.formatTime(audio.currentTime || 0);
+                    if (state.fullscreenMode) {
+                        const fsCurr = document.getElementById('fs-curr-time');
+                        const fsDur = document.getElementById('fs-dur-time');
+                        const fsSeek = document.getElementById('fs-seek-progress');
+                        if (fsCurr) fsCurr.textContent = utils.formatTime(audio.currentTime || 0);
+                        if (fsDur) fsDur.textContent = utils.formatTime(audio.duration || 0);
+                        if (fsSeek && Number.isFinite(audio.duration) && audio.duration > 0) {
+                            fsSeek.style.width = `${(audio.currentTime / audio.duration) * 100}%`;
+                        }
+                    }
                     if (durTimeEl) durTimeEl.textContent = utils.formatTime(audio.duration || 0);
 
                     if ('mediaSession' in navigator && typeof navigator.mediaSession.setPositionState === 'function' && state.currentTrack) {
@@ -869,7 +850,15 @@
                         if (e.shiftKey) {
                             player.seek(audio.currentTime + 10);
                         } else {
-                            ui.toggleLyricsModal();
+                            ui.toggleSidebarLyrics();
+                        }
+                        break;
+                    case 'f':
+                        ui.toggleFullscreenPlayer();
+                        break;
+                    case 'escape':
+                        if (state.fullscreenMode) {
+                            ui.toggleFullscreenPlayer(false);
                         }
                         break;
                     case 'q':

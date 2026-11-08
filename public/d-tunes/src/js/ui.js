@@ -158,6 +158,8 @@
                     document.body.classList.add('mobile-player-open');
                     ui.switchMobilePlayerTab('track');
                     if (ui.updateAlbumCarouselPeeks) ui.updateAlbumCarouselPeeks();
+                if (ui.initQueuePointerReorder) ui.initQueuePointerReorder();
+                if (state.fullscreenMode && ui.updateFullscreenQueue) ui.updateFullscreenQueue();
                     requestAnimationFrame(resizeCanvas);
                     setTimeout(resizeCanvas, 120);
                     setTimeout(resizeCanvas, 320);
@@ -1991,6 +1993,7 @@
                     if (artImg.complete && artImg.naturalWidth > 0) applyDynamicTrackTheme(artImg);
                 }
                 ui.setPlayerLoading(!!options.loading);
+                if (ui.updateFullscreenPlayer) ui.updateFullscreenPlayer();
                 const likeBtn = document.getElementById('p-like-btn');
                 const isLiked = state.likedIds.some(item => (typeof item === 'string' ? item === track.id : item.id === track.id));
                 likeBtn.className = isLiked ? 'np-like is-liked text-red-500' : 'np-like text-gray-400 hover:text-white';
@@ -2032,6 +2035,8 @@
                 }
                 updateMarquees();
                 if (ui.updateAlbumCarouselPeeks) ui.updateAlbumCarouselPeeks();
+                if (ui.initQueuePointerReorder) ui.initQueuePointerReorder();
+                if (state.fullscreenMode && ui.updateFullscreenQueue) ui.updateFullscreenQueue();
             },
             toggleLyricsModal: (expand) => {
                 const modal = document.getElementById('lyrics-modal');
@@ -2129,18 +2134,26 @@
                     mPlayBtn.className = playing ? 'hidden' : 'flex';
                     mPauseBtn.className = playing ? 'flex' : 'hidden';
                 }
+                const fsPlayIcon = document.getElementById('fs-icon-play');
+                const fsPauseIcon = document.getElementById('fs-icon-pause');
+                if (fsPlayIcon && fsPauseIcon) {
+                    fsPlayIcon.classList.toggle('hidden', playing);
+                    fsPauseIcon.classList.toggle('hidden', !playing);
+                }
             },
             toggleQueue: (forceState) => {
                 const wrap = document.getElementById('queue-wrapper');
                 if (!wrap) return;
 
-                const willExpand = (typeof forceState === 'boolean') ? forceState : !state.queueExpanded;
+                const isCurrentlyQueue = state.queueExpanded && state.sidebarMode !== 'lyrics';
+                const willExpand = (typeof forceState === 'boolean') ? forceState : !isCurrentlyQueue;
 
                 if (!willExpand) {
                     state.queueExpanded = false;
-                    state.queueMode = null;
-                    wrap.classList.remove('queue-expanded');
-                    document.getElementById('btn-queue-desktop')?.classList.remove('active-state');
+                    state.sidebarMode = null;
+                    wrap.classList.remove('queue-expanded', 'sidebar-show-lyrics');
+                    document.getElementById('btn-queue-desktop')?.classList.remove('active-state', 'is-active');
+                    document.getElementById('btn-lyrics')?.classList.remove('is-active');
                     if (!state.songDetailsExpanded) {
                         document.body.classList.remove('queue-sidebar-active');
                     }
@@ -2148,12 +2161,47 @@
                     return;
                 }
 
+                // Expand or switch to Queue mode inside exact container
+                state.sidebarMode = 'queue';
                 state.queueExpanded = true;
+                wrap.classList.remove('sidebar-show-lyrics');
                 wrap.classList.add('queue-expanded');
-                document.getElementById('btn-queue-desktop')?.classList.add('active-state');
+                document.getElementById('btn-queue-desktop')?.classList.add('active-state', 'is-active');
+                document.getElementById('btn-lyrics')?.classList.remove('is-active');
                 document.body.classList.add('queue-sidebar-active');
                 ui.switchQueueTab(state.activeQueueTab || 'upnext');
                 document.querySelector('.mobile-queue-btn')?.classList.add('queue-open');
+            },
+            toggleSidebarLyrics: async (forceState) => {
+                const wrap = document.getElementById('queue-wrapper');
+                if (!wrap) return;
+
+                const isCurrentlyLyrics = state.queueExpanded && state.sidebarMode === 'lyrics';
+                const willOpen = (typeof forceState === 'boolean') ? forceState : !isCurrentlyLyrics;
+
+                if (!willOpen) {
+                    state.sidebarMode = null;
+                    state.queueExpanded = false;
+                    wrap.classList.remove('queue-expanded', 'sidebar-show-lyrics');
+                    document.getElementById('btn-lyrics')?.classList.remove('is-active');
+                    document.getElementById('btn-queue-desktop')?.classList.remove('active-state', 'is-active');
+                    if (!state.songDetailsExpanded) {
+                        document.body.classList.remove('queue-sidebar-active');
+                    }
+                    return;
+                }
+
+                // Expand or switch to Lyrics mode inside exact container
+                state.sidebarMode = 'lyrics';
+                state.queueExpanded = true;
+                wrap.classList.add('queue-expanded', 'sidebar-show-lyrics');
+                document.getElementById('btn-lyrics')?.classList.add('is-active');
+                document.getElementById('btn-queue-desktop')?.classList.remove('active-state', 'is-active');
+                document.body.classList.add('queue-sidebar-active');
+
+                if (state.currentTrack && window.lyricsManager) {
+                    await lyricsManager.fetchLyricsForTrack(state.currentTrack);
+                }
             },
             toggleQueueBarButton: () => {
                 ui.toggleQueue();
@@ -2391,6 +2439,8 @@
                 listEl.innerHTML = html === '' ? '<div class="queue-empty-state">Queue is empty. Add songs and they will appear here instantly.</div>' : html;
                 updateMarquees();
                 if (ui.updateAlbumCarouselPeeks) ui.updateAlbumCarouselPeeks();
+                if (ui.initQueuePointerReorder) ui.initQueuePointerReorder();
+                if (state.fullscreenMode && ui.updateFullscreenQueue) ui.updateFullscreenQueue();
             },
             renderHistory: () => {
                 const histEl = document.getElementById('history-list');
@@ -2417,6 +2467,285 @@
                 
                 histEl.innerHTML = html;
                 updateMarquees();
+            },
+            initQueuePointerReorder: () => {
+                const list = document.getElementById('queue-list');
+                if (!list) return;
+
+                let activeDrag = null;
+
+                const onPointerDown = (e) => {
+                    const handle = e.target.closest('.queue-drag-handle');
+                    const row = e.target.closest('.queue-reorder-row');
+                    if (!row || !handle) return;
+                    if (!handle.contains(e.target)) return;
+
+                    const section = row.dataset.queueSection;
+                    const fromIndex = Number(row.dataset.queueIndex);
+                    if (!Number.isInteger(fromIndex)) return;
+
+                    const allRows = Array.from(list.querySelectorAll(`.queue-reorder-row[data-queue-section="${section}"]`));
+                    if (allRows.length <= 1) return;
+
+                    e.preventDefault();
+                    try { handle.setPointerCapture(e.pointerId); } catch (_) {}
+
+                    const rowRect = row.getBoundingClientRect();
+                    const rowHeight = rowRect.height || 54;
+                    const startY = e.clientY;
+                    const itemTops = allRows.map(r => r.getBoundingClientRect().top);
+
+                    row.classList.add('is-pointer-dragging');
+                    row.style.zIndex = '60';
+
+                    activeDrag = {
+                        pointerId: e.pointerId,
+                        handle,
+                        row,
+                        section,
+                        fromIndex,
+                        currentIndex: fromIndex,
+                        rowHeight,
+                        startY,
+                        allRows,
+                        itemTops
+                    };
+
+                    const onPointerMove = (moveEvt) => {
+                        if (!activeDrag || moveEvt.pointerId !== activeDrag.pointerId) return;
+                        const deltaY = moveEvt.clientY - activeDrag.startY;
+                        activeDrag.row.style.transform = `translateY(${deltaY}px)`;
+
+                        const currentCenterY = activeDrag.itemTops[activeDrag.fromIndex] + deltaY + activeDrag.rowHeight / 2;
+                        let targetIndex = activeDrag.fromIndex;
+
+                        for (let i = 0; i < activeDrag.allRows.length; i++) {
+                            const top = activeDrag.itemTops[i];
+                            const bottom = top + activeDrag.rowHeight;
+                            if (currentCenterY >= top && currentCenterY <= bottom) {
+                                targetIndex = i;
+                                break;
+                            } else if (i === 0 && currentCenterY < top) {
+                                targetIndex = 0;
+                                break;
+                            } else if (i === activeDrag.allRows.length - 1 && currentCenterY > bottom) {
+                                targetIndex = activeDrag.allRows.length - 1;
+                                break;
+                            }
+                        }
+
+                        if (targetIndex !== activeDrag.currentIndex) {
+                            activeDrag.currentIndex = targetIndex;
+                            activeDrag.allRows.forEach((r, idx) => {
+                                if (idx === activeDrag.fromIndex) return;
+                                let shift = 0;
+                                if (activeDrag.fromIndex < activeDrag.currentIndex) {
+                                    if (idx > activeDrag.fromIndex && idx <= activeDrag.currentIndex) {
+                                        shift = -activeDrag.rowHeight;
+                                    }
+                                } else if (activeDrag.fromIndex > activeDrag.currentIndex) {
+                                    if (idx >= activeDrag.currentIndex && idx < activeDrag.fromIndex) {
+                                        shift = activeDrag.rowHeight;
+                                    }
+                                }
+                                r.style.transition = 'transform 0.24s cubic-bezier(0.2, 0.8, 0.2, 1)';
+                                r.style.transform = shift ? `translateY(${shift}px)` : 'none';
+                            });
+                        }
+                    };
+
+                    const onPointerUp = (upEvt) => {
+                        if (!activeDrag || upEvt.pointerId !== activeDrag.pointerId) return;
+                        window.removeEventListener('pointermove', onPointerMove);
+                        window.removeEventListener('pointerup', onPointerUp);
+                        window.removeEventListener('pointercancel', onPointerUp);
+
+                        try { activeDrag.handle.releasePointerCapture(upEvt.pointerId); } catch (_) {}
+
+                        const { row: draggedRow, fromIndex: fIdx, currentIndex: cIdx, section: s, rowHeight: rh, allRows: rows } = activeDrag;
+                        activeDrag = null;
+
+                        const finalShift = (cIdx - fIdx) * rh;
+                        draggedRow.classList.remove('is-pointer-dragging');
+                        draggedRow.classList.add('is-landing');
+                        draggedRow.style.transition = 'transform 0.24s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.25s ease';
+                        draggedRow.style.transform = `translateY(${finalShift}px)`;
+                        draggedRow.style.boxShadow = '0 0 0 rgba(0,0,0,0)';
+
+                        setTimeout(() => {
+                            rows.forEach(r => {
+                                r.style.transform = '';
+                                r.style.transition = '';
+                                r.style.boxShadow = '';
+                                r.style.zIndex = '';
+                                r.classList.remove('is-landing', 'is-pointer-dragging');
+                            });
+                            if (fIdx !== cIdx) {
+                                ui.reorderQueueItem(s, fIdx, s, cIdx);
+                            }
+                        }, 250);
+                    };
+
+                    window.addEventListener('pointermove', onPointerMove, { passive: false });
+                    window.addEventListener('pointerup', onPointerUp, { passive: false });
+                    window.addEventListener('pointercancel', onPointerUp, { passive: false });
+                };
+
+                list.removeEventListener('pointerdown', list._pointerDownHandler);
+                list._pointerDownHandler = onPointerDown;
+                list.addEventListener('pointerdown', onPointerDown);
+            },
+            toggleFullscreenPlayer: (forceState) => {
+                const fsEl = document.getElementById('fullscreen-player');
+                const fsContainer = document.getElementById('fullscreen-container');
+                if (!fsEl || !fsContainer) return;
+
+                const willOpen = (typeof forceState === 'boolean') ? forceState : !state.fullscreenMode;
+
+                const sourceEl = document.getElementById('info-island') || document.getElementById('queue-wrapper') || document.body;
+                const rect = sourceEl.getBoundingClientRect();
+                const originX = rect.left + rect.width / 2;
+                const originY = rect.top + rect.height / 2;
+                const scaleX = Math.max(0.15, rect.width / (window.innerWidth || 1));
+                const scaleY = Math.max(0.15, rect.height / (window.innerHeight || 1));
+                const deltaX = originX - window.innerWidth / 2;
+                const deltaY = originY - window.innerHeight / 2;
+
+                if (!willOpen) {
+                    state.fullscreenMode = false;
+                    fsContainer.style.transition = 'transform 0.42s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease, border-radius 0.42s ease';
+                    fsContainer.style.transform = `translate(${deltaX}px, ${deltaY}px) scale(${scaleX}, ${scaleY})`;
+                    fsContainer.style.borderRadius = '1.75rem';
+                    fsContainer.style.opacity = '0';
+                    fsEl.classList.remove('is-active');
+
+                    setTimeout(() => {
+                        if (!state.fullscreenMode) {
+                            fsEl.classList.add('hidden');
+                            fsContainer.style.transform = '';
+                            fsContainer.style.borderRadius = '';
+                            fsContainer.style.opacity = '';
+                        }
+                    }, 420);
+                    return;
+                }
+
+                state.fullscreenMode = true;
+                ui.updateFullscreenPlayer();
+                ui.updateFullscreenQueue();
+                ui.setFullscreenTab(state.fullscreenTab || 'split');
+
+                // Start from exact dock bounds
+                fsContainer.style.transition = 'none';
+                fsContainer.style.transformOrigin = 'center center';
+                fsContainer.style.transform = `translate(${deltaX}px, ${deltaY}px) scale(${scaleX}, ${scaleY})`;
+                fsContainer.style.borderRadius = '1.75rem';
+                fsContainer.style.opacity = '0.35';
+                fsEl.classList.remove('hidden');
+
+                // Force reflow
+                void fsEl.offsetWidth;
+
+                // Animate smoothly to fullscreen
+                fsEl.classList.add('is-active');
+                fsContainer.style.transition = 'transform 0.48s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease, border-radius 0.48s ease';
+                fsContainer.style.transform = 'none';
+                fsContainer.style.borderRadius = '0px';
+                fsContainer.style.opacity = '1';
+
+                if (state.currentTrack && window.lyricsManager && lyricsManager.syncTime) {
+                    lyricsManager.syncTime(audio.currentTime || 0, true);
+                }
+            },
+            setFullscreenTab: (tab = 'split') => {
+                state.fullscreenTab = tab;
+                const body = document.getElementById('fullscreen-body');
+                if (body) body.setAttribute('data-view', tab);
+
+                const tabs = ['lyrics', 'split', 'queue'];
+                tabs.forEach(t => {
+                    const btn = document.getElementById(`fs-tab-${t}`);
+                    if (btn) btn.classList.toggle('is-active', t === tab);
+                });
+
+                if (tab === 'queue') {
+                    ui.updateFullscreenQueue();
+                } else if (tab === 'lyrics' || tab === 'split') {
+                    if (state.currentTrack && window.lyricsManager && lyricsManager.syncTime) {
+                        lyricsManager.syncTime(audio.currentTime || 0, true);
+                    }
+                }
+            },
+            updateFullscreenPlayer: () => {
+                const track = state.currentTrack;
+                if (!track) return;
+
+                const miniArt = document.getElementById('fullscreen-mini-art');
+                const miniTitle = document.getElementById('fullscreen-mini-title');
+                const miniArtist = document.getElementById('fullscreen-mini-artist');
+                const heroImg = document.getElementById('fullscreen-hero-img');
+                const heroTitle = document.getElementById('fullscreen-hero-title');
+                const heroArtist = document.getElementById('fullscreen-hero-artist');
+
+                const title = track.name || track.title || 'Unknown Track';
+                const artist = track.artist || 'Unknown Artist';
+                const art = sanitizeImageUrl(track.img || 'DTunes.svg');
+
+                if (miniTitle) miniTitle.textContent = title;
+                if (miniArtist) miniArtist.textContent = artist;
+                if (miniArt) miniArt.src = art;
+
+                if (heroTitle) heroTitle.textContent = title;
+                if (heroArtist) heroArtist.textContent = artist;
+                if (heroImg) heroImg.src = art;
+
+                const playBtn = document.getElementById('fs-btn-play');
+                const playIcon = document.getElementById('fs-icon-play');
+                const pauseIcon = document.getElementById('fs-icon-pause');
+                if (playBtn && playIcon && pauseIcon) {
+                    playIcon.classList.toggle('hidden', state.playing);
+                    pauseIcon.classList.toggle('hidden', !state.playing);
+                }
+
+                document.getElementById('fs-btn-shuffle')?.classList.toggle('active-state', !!state.shuffle);
+                document.getElementById('fs-btn-repeat')?.classList.toggle('active-state', !!state.repeat);
+            },
+            updateFullscreenQueue: () => {
+                const queueCont = document.getElementById('fullscreen-queue-list');
+                const countCont = document.getElementById('fullscreen-queue-count');
+                if (!queueCont) return;
+
+                const manual = state.userQueue || [];
+                const auto = (state.queue || []).slice(state.idx + 1);
+                const allSongs = [...manual, ...auto];
+
+                if (countCont) countCont.textContent = `${allSongs.length} track${allSongs.length === 1 ? '' : 's'}`;
+
+                if (allSongs.length === 0) {
+                    queueCont.innerHTML = '<div class="text-zinc-500 text-xs py-8 text-center">Queue is empty</div>';
+                    return;
+                }
+
+                queueCont.innerHTML = allSongs.slice(0, 40).map((s, idx) => `
+                    <div class="flex items-center justify-between p-2 rounded-xl hover:bg-white/5 transition cursor-pointer group" onclick="playSongById('${songStore.add(s)}')">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <img src="${sanitizeImageUrl(s.img || 'DTunes.svg')}" class="w-9 h-9 rounded-lg object-cover flex-shrink-0" alt="">
+                            <div class="min-w-0">
+                                <div class="text-xs font-semibold text-white truncate group-hover:text-[var(--accent-color)] transition-colors">${utils.escapeHtml(s.name || s.title || '')}</div>
+                                <div class="text-[11px] text-zinc-400 truncate mt-0.5">${utils.escapeHtml(s.artist || '')}</div>
+                            </div>
+                        </div>
+                        <span class="text-[11px] font-mono text-zinc-500">${utils.formatTime(s.duration || 0)}</span>
+                    </div>
+                `).join('');
+            },
+            handleFullscreenSeek: (e) => {
+                const track = document.getElementById('fs-seek-track');
+                if (!track || !Number.isFinite(audio.duration) || audio.duration <= 0) return;
+                const rect = track.getBoundingClientRect();
+                const clickX = e.clientX - rect.left;
+                const ratio = Math.max(0, Math.min(1, clickX / rect.width));
+                player.seek(ratio * audio.duration);
             },
             updateAlbumCarouselPeeks: () => {
                 const prevCard = document.getElementById('peek-prev-card');
