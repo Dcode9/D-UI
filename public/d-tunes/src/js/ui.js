@@ -2081,40 +2081,128 @@
                 updateMarquees();
             },
             morphPlayIcon: (playing) => {
-                const btn = document.getElementById('btn-play');
-                const path = btn?.querySelector('.pp-poly');
-                if (!btn || !path) return;
+                const buttons = [
+                    document.getElementById('btn-play'),
+                    document.getElementById('fs-btn-play')
+                ].filter(Boolean);
+                const paths = buttons.map(b => b.querySelector('.pp-poly')).filter(Boolean);
+                if (paths.length === 0) return;
+
+                buttons.forEach(b => {
+                    b.classList.toggle('is-playing', playing);
+                    b.classList.toggle('is-paused', !playing);
+                    b.setAttribute('aria-label', playing ? 'Pause' : 'Play');
+                });
+
                 if (ui._ppPlaying === playing) return;
                 const first = ui._ppPlaying === undefined;
                 ui._ppPlaying = playing;
-                btn.classList.toggle('is-playing', playing);
-                btn.classList.toggle('is-paused', !playing);
-                btn.setAttribute('aria-label', playing ? 'Pause' : 'Play');
-                const PLAY = [8.3, 5, 12.58, 7.7, 12.58, 16.3, 8.3, 19, 12.58, 7.7, 19.4, 12, 19.4, 12, 12.58, 16.3];
-                const PAUSE = [6.2, 4.6, 10, 4.6, 10, 19.4, 6.2, 19.4, 14, 4.6, 17.8, 4.6, 17.8, 19.4, 14, 19.4];
+
+                // 36 coordinate values per shape (18 points for 6 cubic bezier segments each)
+                // In Pause: two rounded vertical pill capsules
+                const PAUSE = [
+                    // Subpath 1: Left pill
+                    5.8, 6.6,
+                    5.8, 5.5, 6.7, 4.6, 7.8, 4.6,
+                    8.9, 4.6, 9.8, 5.5, 9.8, 6.6,
+                    9.8, 10.0, 9.8, 14.0, 9.8, 17.4,
+                    9.8, 18.5, 8.9, 19.4, 7.8, 19.4,
+                    6.7, 19.4, 5.8, 18.5, 5.8, 17.4,
+                    5.8, 14.0, 5.8, 10.0,
+                    // Subpath 2: Right pill
+                    14.2, 6.6,
+                    14.2, 5.5, 15.1, 4.6, 16.2, 4.6,
+                    17.3, 4.6, 18.2, 5.5, 18.2, 6.6,
+                    18.2, 10.0, 18.2, 14.0, 18.2, 17.4,
+                    18.2, 18.5, 17.3, 19.4, 16.2, 19.4,
+                    15.1, 19.4, 14.2, 18.5, 14.2, 17.4,
+                    14.2, 14.0, 14.2, 10.0
+                ];
+
+                // In Play: the two shapes melt together to form the rounded play triangle
+                const PLAY = [
+                    // Subpath 1: Left base & shoulders of play triangle
+                    7.0, 7.4,
+                    7.0, 6.2, 7.8, 5.3, 8.9, 6.0,
+                    10.2, 6.8, 11.5, 7.6, 12.0, 8.0,
+                    12.0, 10.5, 12.0, 13.5, 12.0, 16.0,
+                    11.5, 16.4, 10.2, 17.2, 8.9, 18.0,
+                    7.8, 18.7, 7.0, 17.8, 7.0, 16.6,
+                    7.0, 13.5, 7.0, 10.5,
+                    // Subpath 2: Right apex tip of play triangle
+                    12.0, 8.0,
+                    13.2, 8.8, 15.6, 10.2, 17.5, 11.2,
+                    18.8, 11.8, 18.8, 12.2, 17.5, 12.8,
+                    15.6, 13.8, 13.2, 15.2, 12.0, 16.0,
+                    12.0, 16.0, 12.0, 16.0, 12.0, 16.0,
+                    12.0, 12.0, 12.0, 12.0, 12.0, 8.0,
+                    12.0, 8.0, 12.0, 8.0
+                ];
+
                 const target = playing ? PAUSE : PLAY;
-                if (!ui._ppFrom) ui._ppFrom = PLAY.slice();
-                if (first && !playing) {
-                    ui._ppFrom = PLAY.slice();
-                    path.setAttribute('d', ui._ppPath(ui._ppFrom));
+                if (!ui._ppFrom) ui._ppFrom = (first ? (playing ? PAUSE : PLAY) : target).slice();
+
+                if (first) {
+                    ui._ppFrom = target.slice();
+                    const d = ui._ppPath(ui._ppFrom);
+                    paths.forEach(p => p.setAttribute('d', d));
                     return;
                 }
+
                 const start = ui._ppFrom.slice();
                 const t0 = performance.now();
                 if (ui._ppFrame) cancelAnimationFrame(ui._ppFrame);
-                const ease = (t) => 1 - Math.pow(1 - t, 3);
+
+                // Smooth organic spring easing
+                const ease = (t) => 1 - Math.pow(1 - t, 3.2);
+
                 const step = (now) => {
                     const p = Math.min(1, (now - t0) / 280);
                     const e = ease(p);
-                    for (let i = 0; i < 16; i++) ui._ppFrom[i] = start[i] + (target[i] - start[i]) * e;
-                    path.setAttribute('d', ui._ppPath(ui._ppFrom));
+                    for (let i = 0; i < start.length; i++) {
+                        ui._ppFrom[i] = start[i] + (target[i] - start[i]) * e;
+                    }
+                    const d = ui._ppPath(ui._ppFrom);
+                    paths.forEach(pathEl => pathEl.setAttribute('d', d));
                     if (p < 1) ui._ppFrame = requestAnimationFrame(step);
                 };
                 ui._ppFrame = requestAnimationFrame(step);
             },
             _ppPath: (pts) => {
-                const xy = (i) => `${pts[i * 2].toFixed(2)} ${pts[i * 2 + 1].toFixed(2)}`;
-                return `M${xy(0)} L${xy(1)} L${xy(2)} L${xy(3)} Z M${xy(4)} L${xy(5)} L${xy(6)} L${xy(7)} Z`;
+                const sub = (offset) => {
+                    const p = (i) => pts[offset + i].toFixed(2);
+                    return `M ${p(0)} ${p(1)} ` +
+                           `C ${p(2)} ${p(3)}, ${p(4)} ${p(5)}, ${p(6)} ${p(7)} ` +
+                           `C ${p(8)} ${p(9)}, ${p(10)} ${p(11)}, ${p(12)} ${p(13)} ` +
+                           `C ${p(14)} ${p(15)}, ${p(16)} ${p(17)}, ${p(18)} ${p(19)} ` +
+                           `C ${p(20)} ${p(21)}, ${p(22)} ${p(23)}, ${p(24)} ${p(25)} ` +
+                           `C ${p(26)} ${p(27)}, ${p(28)} ${p(29)}, ${p(30)} ${p(31)} ` +
+                           `C ${p(32)} ${p(33)}, ${p(34)} ${p(35)}, ${p(0)} ${p(1)} Z`;
+                };
+                return `${sub(0)} ${sub(36)}`;
+            },
+            adjustQueueMaxHeight: () => {
+                if (typeof window === 'undefined') return;
+                const header = document.querySelector('header');
+                const playerCard = document.getElementById('player-card');
+                const infoIsland = document.getElementById('info-island');
+                const queueWrap = document.getElementById('queue-wrapper');
+                const queueExpand = document.getElementById('queue-expandable-area');
+                if (!queueWrap || !queueExpand) return;
+
+                const headerBottom = header ? header.getBoundingClientRect().bottom : 80;
+                const playerCardTop = playerCard ? playerCard.getBoundingClientRect().top : (window.innerHeight - 82);
+                const infoIslandHeight = infoIsland ? infoIsland.offsetHeight : 58;
+
+                // Exactly 16px padding below header when queue/history reaches full height:
+                const availableH = playerCardTop - headerBottom - 16 - 8;
+                const maxQueueH = Math.max(160, Math.floor(availableH - infoIslandHeight - 8));
+
+                queueWrap.style.setProperty('--queue-max-height', `${maxQueueH}px`);
+                queueExpand.style.setProperty('--queue-max-height', `${maxQueueH}px`);
+                if (queueWrap.classList.contains('queue-expanded')) {
+                    queueExpand.style.maxHeight = `${maxQueueH}px`;
+                }
             },
             updatePlayBtn: () => {
                 // Audio element is the source of truth: if not paused and not ended, it IS playing.
@@ -2166,6 +2254,7 @@
                 state.queueExpanded = true;
                 wrap.classList.remove('sidebar-show-lyrics');
                 wrap.classList.add('queue-expanded');
+                ui.adjustQueueMaxHeight();
                 document.getElementById('btn-queue-desktop')?.classList.add('active-state', 'is-active');
                 document.getElementById('btn-lyrics')?.classList.remove('is-active');
                 document.body.classList.add('queue-sidebar-active');
@@ -2195,6 +2284,7 @@
                 state.sidebarMode = 'lyrics';
                 state.queueExpanded = true;
                 wrap.classList.add('queue-expanded', 'sidebar-show-lyrics');
+                ui.adjustQueueMaxHeight();
                 document.getElementById('btn-lyrics')?.classList.add('is-active');
                 document.getElementById('btn-queue-desktop')?.classList.remove('active-state', 'is-active');
                 document.body.classList.add('queue-sidebar-active');
@@ -2228,6 +2318,7 @@
                 if (!willOpen) {
                     infoIsland.classList.remove('details-expanded');
                     queueWrap?.classList.remove('has-song-details');
+                    ui.adjustQueueMaxHeight();
                     if (!state.queueExpanded) {
                         document.body.classList.remove('queue-sidebar-active');
                     }
@@ -2420,10 +2511,8 @@
                 }
                 const totalQueueCount = manualCount + autoCount;
                 const badge = document.getElementById('queue-badge-count');
-                if (badge) {
-                    badge.textContent = manualCount > 0 ? String(manualCount) : String(totalQueueCount);
-                    badge.classList.toggle('hidden', totalQueueCount === 0);
-                }
+                if (badge) badge.remove();
+                ui.adjustQueueMaxHeight();
                 let html = '';
                 if (state.userQueue.length > 0) {
                     html += `<div class="queue-section-label">Queued by you</div>`;
@@ -2726,26 +2815,49 @@
                     return;
                 }
 
-                queueCont.innerHTML = allSongs.slice(0, 40).map((s, idx) => `
-                    <div class="flex items-center justify-between p-2 rounded-xl hover:bg-white/5 transition cursor-pointer group" onclick="playSongById('${songStore.add(s)}')">
+                queueCont.innerHTML = allSongs.slice(0, 50).map((s, idx) => {
+                    const isLiked = (typeof player !== 'undefined' && player.isLiked) ? player.isLiked(s.id) : (Array.isArray(state.likedIds) ? state.likedIds.includes(String(s.id)) : false);
+                    return `
+                    <div class="swipe-song np-row flex items-center justify-between p-2.5 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/5 hover:border-white/10 transition-all cursor-pointer group" onclick="playSongById('${songStore.add(s)}')">
                         <div class="flex items-center gap-3 min-w-0">
-                            <img src="${sanitizeImageUrl(s.img || 'DTunes.svg')}" class="w-9 h-9 rounded-lg object-cover flex-shrink-0" alt="">
+                            <span class="text-[11px] font-mono text-zinc-500 w-5 text-center group-hover:text-white transition-colors">${idx + 1}</span>
+                            <img src="${sanitizeImageUrl(s.img || 'DTunes.svg')}" class="w-10 h-10 rounded-xl object-cover shadow-md flex-shrink-0" alt="">
                             <div class="min-w-0">
                                 <div class="text-xs font-semibold text-white truncate group-hover:text-[var(--accent-color)] transition-colors">${utils.escapeHtml(s.name || s.title || '')}</div>
                                 <div class="text-[11px] text-zinc-400 truncate mt-0.5">${utils.escapeHtml(s.artist || '')}</div>
                             </div>
                         </div>
-                        <span class="text-[11px] font-mono text-zinc-500">${utils.formatTime(s.duration || 0)}</span>
-                    </div>
-                `).join('');
+                        <div class="flex items-center gap-3 flex-shrink-0">
+                            <button onclick="player.toggleLike('${s.id}'); event.stopPropagation();" class="text-zinc-500 hover:text-white p-1 rounded-full transition active:scale-90 ${isLiked ? 'text-[var(--accent-color)]' : ''}" title="Like">
+                                <svg class="heart-glyph" width="15" height="15" viewBox="0 0 24 24" fill="${isLiked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                            </button>
+                            <span class="text-[11px] font-mono text-zinc-500">${utils.formatTime(s.duration || 0)}</span>
+                        </div>
+                    </div>`;
+                }).join('');
             },
             handleFullscreenSeek: (e) => {
-                const track = document.getElementById('fs-seek-track');
+                const track = document.getElementById('fs-seek-bar-container') || document.getElementById('fs-seek-track');
                 if (!track || !Number.isFinite(audio.duration) || audio.duration <= 0) return;
                 const rect = track.getBoundingClientRect();
                 const clickX = e.clientX - rect.left;
                 const ratio = Math.max(0, Math.min(1, clickX / rect.width));
                 player.seek(ratio * audio.duration);
+            },
+            handleFullscreenSeekHover: (e) => {
+                const track = document.getElementById('fs-seek-bar-container');
+                const tooltip = document.getElementById('fs-seek-tooltip');
+                if (!track || !tooltip || !Number.isFinite(audio.duration) || audio.duration <= 0) return;
+                const rect = track.getBoundingClientRect();
+                const offsetX = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
+                const ratio = offsetX / rect.width;
+                tooltip.textContent = utils.formatTime(ratio * audio.duration);
+                tooltip.style.left = `${offsetX}px`;
+                tooltip.classList.add('visible');
+            },
+            handleFullscreenSeekLeave: () => {
+                const tooltip = document.getElementById('fs-seek-tooltip');
+                if (tooltip) tooltip.classList.remove('visible');
             },
             updateAlbumCarouselPeeks: () => {
                 const prevCard = document.getElementById('peek-prev-card');

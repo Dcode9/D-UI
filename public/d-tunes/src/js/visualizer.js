@@ -355,6 +355,17 @@
                     visualizerCtx.lineTo(x, centerY + (baseWave * baseAmplitude + fastWave * detailAmplitude) * taper * interactionFactor);
                 }
                 visualizerCtx.lineWidth = 3; visualizerCtx.lineCap = 'round'; visualizerCtx.lineJoin = 'round'; visualizerCtx.strokeStyle = '#ffffff'; visualizerCtx.shadowColor = 'transparent'; visualizerCtx.shadowBlur = 0; visualizerCtx.stroke();
+
+                if (state.fullscreenMode) {
+                    const fsCanvas = document.getElementById('fs-visualizer-canvas');
+                    if (fsCanvas && canvas) {
+                        const fsCtx = fsCanvas.getContext('2d');
+                        if (fsCtx) {
+                            fsCtx.clearRect(0, 0, fsCanvas.width, fsCanvas.height);
+                            fsCtx.drawImage(canvas, 0, 0, fsCanvas.width, fsCanvas.height);
+                        }
+                    }
+                }
                 
                 requestAnimationFrame(viz.render);
             }

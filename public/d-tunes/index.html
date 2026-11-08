@@ -138,7 +138,7 @@
 
     <script defer src="src/js/preload.js?v=1.6.5"></script>
 
-    <link rel="stylesheet" href="src/css/styles.css?v=1.6.5">
+    <link rel="stylesheet" href="src/css/styles.css?v=1.6.6">
 
 </head>
 <body>
@@ -1367,7 +1367,7 @@
                 <button id="m-tab-lyrics" class="mobile-tab-btn lyrics-unavailable" role="tab" aria-selected="false" onclick="ui.switchMobilePlayerTab('lyrics')">Lyrics</button>
             </div>
             <button class="text-gray-300 hover:text-white transition p-2 rounded-full bg-white/10 active:scale-95 flex items-center justify-center" onclick="ui.toggleEqualizerModal(true)" aria-label="Open Equalizer">
-                <svg class="w-5 h-5 text-[var(--accent-color)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3"/><rect x="2" y="10" width="4" height="4" rx="2" fill="currentColor"/><rect x="10" y="5" width="4" height="4" rx="2" fill="currentColor"/><rect x="18" y="12" width="4" height="4" rx="2" fill="currentColor"/></svg>
             </button>
         </div>
 
@@ -1539,7 +1539,7 @@
             <div class="flex items-center flex-shrink-0" id="player-left-group">
                 <button onclick="player.togglePlay()" id="btn-play" class="btn-mezzotint-play is-paused" disabled aria-label="Play">
                     <svg class="pp-glyph" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
-                        <path class="pp-poly" fill="currentColor" d="M8.3 5 L12.58 7.7 L12.58 16.3 L8.3 19 Z M12.58 7.7 L19.4 12 L19.4 12 L12.58 16.3 Z"/>
+                        <path class="pp-poly" fill="currentColor" d="M 7.00 7.40 C 7.00 6.20, 7.80 5.30, 8.90 6.00 C 10.20 6.80, 11.50 7.60, 12.00 8.00 C 12.00 10.50, 12.00 13.50, 12.00 16.00 C 11.50 16.40, 10.20 17.20, 8.90 18.00 C 7.80 18.70, 7.00 17.80, 7.00 16.60 C 7.00 13.50, 7.00 10.50, 7.00 7.40 Z M 12.00 8.00 C 13.20 8.80, 15.60 10.20, 17.50 11.20 C 18.80 11.80, 18.80 12.20, 17.50 12.80 C 15.60 13.80, 13.20 15.20, 12.00 16.00 C 12.00 16.00, 12.00 16.00, 12.00 16.00 C 12.00 12.00, 12.00 12.00, 12.00 8.00 C 12.00 8.00, 12.00 8.00, 12.00 8.00 Z"/>
                     </svg>
                 </button>
                 <div class="flex items-center gap-1 ml-1 mr-2">
@@ -1605,21 +1605,19 @@
                     </svg>
                 </button>
                 <button onclick="ui.toggleEqualizerModal(true)" id="btn-equalizer" class="control-icon-btn p-2" title="Studio Equalizer & Bass Control (E)" aria-label="Equalizer">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                        <line x1="6" y1="3" x2="6" y2="21"/>
-                        <line x1="12" y1="3" x2="12" y2="21"/>
-                        <line x1="18" y1="3" x2="18" y2="21"/>
-                        <rect x="4" y="11" width="4" height="4" rx="2" fill="currentColor"/>
-                        <rect x="10" y="6" width="4" height="4" rx="2" fill="currentColor"/>
-                        <rect x="16" y="13" width="4" height="4" rx="2" fill="currentColor"/>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3"/>
+                        <rect x="2" y="10" width="4" height="4" rx="2" fill="currentColor"/>
+                        <rect x="10" y="5" width="4" height="4" rx="2" fill="currentColor"/>
+                        <rect x="18" y="12" width="4" height="4" rx="2" fill="currentColor"/>
                     </svg>
                 </button>
                 <button onclick="ui.toggleQueueBarButton()" id="btn-queue-desktop" class="control-icon-btn p-2 relative hidden md:flex" title="Queue (Q)" aria-label="Queue">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                        <line x1="4" y1="6" x2="20" y2="6"/>
-                        <line x1="4" y1="12" x2="16" y2="12"/>
-                        <line x1="4" y1="18" x2="13" y2="18"/>
-                        <circle cx="18.5" cy="16.5" r="2.5" fill="currentColor"/>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 6.5v11"/>
+                        <path d="M9 7h11"/>
+                        <path d="M9 12h11"/>
+                        <path d="M9 17h7"/>
                     </svg>
                 </button>
 
@@ -1956,33 +1954,51 @@
             </div>
 
             <!-- Footer Player Bar in Fullscreen -->
-            <div class="fullscreen-footer w-full flex flex-col items-center gap-3 flex-shrink-0 z-10">
+            <div class="fullscreen-footer w-full flex flex-col items-center gap-3.5 flex-shrink-0 z-10">
                 <div class="w-full max-w-4xl flex items-center gap-4">
                     <span id="fs-curr-time" class="text-xs font-mono text-zinc-400 w-10 text-right">0:00</span>
-                    <div class="flex-1 relative cursor-pointer py-2" id="fs-seek-track" onclick="ui.handleFullscreenSeek(event)">
-                        <div class="h-1.5 w-full bg-white/10 rounded-full overflow-hidden relative">
-                            <div id="fs-seek-progress" class="h-full bg-[var(--accent-color)] rounded-full transition-all duration-75" style="width: 0%;"></div>
-                        </div>
+                    <div id="fs-seek-bar-container" class="custom-slider-container flex-1 h-[36px] relative flex items-center cursor-pointer group" onclick="ui.handleFullscreenSeek(event)" onmousemove="ui.handleFullscreenSeekHover(event)" onmouseleave="ui.handleFullscreenSeekLeave()">
+                        <div id="fs-seek-tooltip" class="custom-seek-tooltip">0:00</div>
+                        <div id="fs-seek-bar-track" class="slider-track-bg"></div>
+                        <canvas id="fs-visualizer-canvas"></canvas>
+                        <div id="fs-seek-edge-marker" class="slider-rounded-edge" style="left: 0%;"></div>
                     </div>
                     <span id="fs-dur-time" class="text-xs font-mono text-zinc-400 w-10">0:00</span>
                 </div>
 
-                <div class="flex items-center justify-center gap-6">
-                    <button onclick="player.toggleShuffle()" class="control-icon-btn p-2.5 rounded-full hover:bg-white/10 text-zinc-300 hover:text-white transition" id="fs-btn-shuffle" title="Shuffle">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h4.5a.5.5 0 0 1 .5.5V8"/><path d="M4 20l7.2-7.2m1.6-1.6L21 3.5"/><path d="M21 16v4.5a.5.5 0 0 1-.5.5H16"/><path d="M14.8 14.8l6.2 6.2M4 4l7.2 7.2"/></svg>
+                <div class="flex items-center justify-center gap-7">
+                    <button onclick="player.toggleShuffle()" class="control-icon-btn btn-shuffle-anim p-2.5" id="fs-btn-shuffle" title="Shuffle (S)" aria-label="Shuffle">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M16 3h4.5a.5.5 0 0 1 .5.5V8"/>
+                            <path d="M4 20l7.2-7.2m1.6-1.6L21 3.5"/>
+                            <path d="M21 16v4.5a.5.5 0 0 1-.5.5H16"/>
+                            <path d="M14.8 14.8l6.2 6.2M4 4l7.2 7.2"/>
+                        </svg>
                     </button>
-                    <button onclick="player.previous()" class="control-icon-btn p-2.5 rounded-full hover:bg-white/10 text-zinc-300 hover:text-white transition" title="Previous">
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 20L9 12l10-8v16zM5 19V5"/></svg>
+                    <button onclick="player.prev()" class="control-icon-btn btn-prev-anim p-2.5 flex-shrink-0" title="Previous Track (K)" aria-label="Previous">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                            <rect x="4" y="5" width="2.5" height="14" rx="1.25"/>
+                            <path d="M18.8 6.02c.98-.6 2.2.1 2.2 1.25v9.46c0 1.15-1.22 1.85-2.2 1.25L10.8 13.25c-.93-.57-.93-1.93 0-2.5L18.8 6.02z"/>
+                        </svg>
                     </button>
-                    <button onclick="player.togglePlay()" id="fs-btn-play" class="w-14 h-14 rounded-full bg-white text-black flex items-center justify-center shadow-2xl hover:scale-105 active:scale-95 transition cursor-pointer" title="Play / Pause">
-                        <svg id="fs-icon-play" class="w-6 h-6 ml-0.5" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-                        <svg id="fs-icon-pause" class="w-6 h-6 hidden" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                    <button onclick="player.togglePlay()" id="fs-btn-play" class="btn-mezzotint-play fs-btn-mezzotint-play is-paused" aria-label="Play">
+                        <svg class="pp-glyph" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true">
+                            <path class="pp-poly" fill="currentColor" d="M 7.00 7.40 C 7.00 6.20, 7.80 5.30, 8.90 6.00 C 10.20 6.80, 11.50 7.60, 12.00 8.00 C 12.00 10.50, 12.00 13.50, 12.00 16.00 C 11.50 16.40, 10.20 17.20, 8.90 18.00 C 7.80 18.70, 7.00 17.80, 7.00 16.60 C 7.00 13.50, 7.00 10.50, 7.00 7.40 Z M 12.00 8.00 C 13.20 8.80, 15.60 10.20, 17.50 11.20 C 18.80 11.80, 18.80 12.20, 17.50 12.80 C 15.60 13.80, 13.20 15.20, 12.00 16.00 C 12.00 16.00, 12.00 16.00, 12.00 16.00 C 12.00 12.00, 12.00 12.00, 12.00 8.00 C 12.00 8.00, 12.00 8.00, 12.00 8.00 Z"/>
+                        </svg>
                     </button>
-                    <button onclick="player.next()" class="control-icon-btn p-2.5 rounded-full hover:bg-white/10 text-zinc-300 hover:text-white transition" title="Next">
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4l10 8-10 8V4zM19 5v14"/></svg>
+                    <button onclick="player.next()" class="control-icon-btn btn-next-anim p-2.5 flex-shrink-0" title="Next Track (L)" aria-label="Next">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                            <rect x="17.5" y="5" width="2.5" height="14" rx="1.25"/>
+                            <path d="M5.2 6.02c-.98-.6-2.2.1-2.2 1.25v9.46c0 1.15 1.22 1.85 2.2 1.25L13.2 13.25c.93-.57.93-1.93 0-2.5L5.2 6.02z"/>
+                        </svg>
                     </button>
-                    <button onclick="player.toggleRepeat()" class="control-icon-btn p-2.5 rounded-full hover:bg-white/10 text-zinc-300 hover:text-white transition" id="fs-btn-repeat" title="Repeat">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l3.5 3.5L17 9"/><path d="M3.5 11.5V9a4.5 4.5 0 0 1 4.5-4.5H20"/><path d="M7 22l-3.5-3.5L7 15"/><path d="M20.5 12.5V15a4.5 4.5 0 0 1-4.5 4.5H4"/></svg>
+                    <button onclick="player.toggleRepeat()" class="control-icon-btn btn-repeat-anim p-2.5" id="fs-btn-repeat" title="Repeat (R)" aria-label="Repeat">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M17 2l3.5 3.5L17 9"/>
+                            <path d="M3.5 11.5V9a4.5 4.5 0 0 1 4.5-4.5H20"/>
+                            <path d="M7 22l-3.5-3.5L7 15"/>
+                            <path d="M20.5 12.5V15a4.5 4.5 0 0 1-4.5 4.5H4"/>
+                        </svg>
                     </button>
                 </div>
             </div>

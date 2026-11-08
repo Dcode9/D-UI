@@ -47,9 +47,18 @@
             vizSeekTrack = document.getElementById('seek-bar-track');
             resizeCanvas = () => {
                 const container = document.getElementById('seek-bar-container'); const dpr = Math.min(window.devicePixelRatio || 1, 2);
-                vCanvas.width = container.offsetWidth * dpr; vCanvas.height = container.offsetHeight * dpr;
-                visualizerCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+                if (container && vCanvas) {
+                    vCanvas.width = container.offsetWidth * dpr; vCanvas.height = container.offsetHeight * dpr;
+                    visualizerCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+                }
+                const fsContainer = document.getElementById('fs-seek-bar-container');
+                const fsCanvas = document.getElementById('fs-visualizer-canvas');
+                if (fsContainer && fsCanvas) {
+                    fsCanvas.width = fsContainer.offsetWidth * dpr;
+                    fsCanvas.height = fsContainer.offsetHeight * dpr;
+                }
                 lastClipProgress = -1; // Force clipPath update on resize
+                if (window.ui && ui.adjustQueueMaxHeight) ui.adjustQueueMaxHeight();
             };
             resizeCanvas(); window.addEventListener('resize', resizeCanvas);
             if (window.ResizeObserver) {
@@ -738,11 +747,16 @@
                     if (state.fullscreenMode) {
                         const fsCurr = document.getElementById('fs-curr-time');
                         const fsDur = document.getElementById('fs-dur-time');
-                        const fsSeek = document.getElementById('fs-seek-progress');
+                        const fsSeekEdge = document.getElementById('fs-seek-edge-marker');
+                        const fsVisualizer = document.getElementById('fs-visualizer-canvas');
+                        const fsSeekOld = document.getElementById('fs-seek-progress');
                         if (fsCurr) fsCurr.textContent = utils.formatTime(audio.currentTime || 0);
                         if (fsDur) fsDur.textContent = utils.formatTime(audio.duration || 0);
-                        if (fsSeek && Number.isFinite(audio.duration) && audio.duration > 0) {
-                            fsSeek.style.width = `${(audio.currentTime / audio.duration) * 100}%`;
+                        if (Number.isFinite(audio.duration) && audio.duration > 0) {
+                            const pct = (audio.currentTime / audio.duration) * 100;
+                            if (fsSeekEdge) fsSeekEdge.style.left = `${pct}%`;
+                            if (fsVisualizer) fsVisualizer.style.clipPath = `inset(0 ${100 - pct}% 0 0)`;
+                            if (fsSeekOld) fsSeekOld.style.width = `${pct}%`;
                         }
                     }
                     if (durTimeEl) durTimeEl.textContent = utils.formatTime(audio.duration || 0);
