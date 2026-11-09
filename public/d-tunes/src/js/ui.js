@@ -252,10 +252,25 @@
                     searchManager.addToRecentSearches(song);
                 }
                 playSongById(storeId);
-                document.getElementById('search-dropdown').classList.remove('active');
+                document.getElementById('search-dropdown')?.classList.remove('active');
+                document.getElementById('search-input')?.blur();
                 if (deviceMode.isMobileUI() && document.body.classList.contains('mobile-search-open')) {
                     ui.closeMobileSearch({ clearQuickState: true, restoreOrigin: false });
                 }
+            },
+
+            toggleProfileDropdown: (e) => {
+                if (e) {
+                    try { e.stopPropagation(); } catch (_) {}
+                }
+                const dd = document.getElementById('profile-dropdown');
+                if (!dd) return;
+                const isClosed = dd.classList.contains('hidden');
+                dd.classList.toggle('hidden', !isClosed);
+            },
+
+            closeProfileDropdown: () => {
+                document.getElementById('profile-dropdown')?.classList.add('hidden');
             },
 
             toggleModal: (show) => {
@@ -315,9 +330,9 @@
                 chipBtns.forEach(btn => {
                     const label = text.split(':')[0].trim().substring(0, 8);
                     if (btn.textContent.includes(label)) {
-                        btn.classList.add('border-[var(--accent-color)]/50', 'bg-[var(--accent-color)]/10', 'text-[var(--accent-color)]');
+                        btn.classList.add('border-[var(--accent-color)]/50', 'bg-white/10', 'text-white');
                     } else {
-                        btn.classList.remove('border-[var(--accent-color)]/50', 'bg-[var(--accent-color)]/10', 'text-[var(--accent-color)]');
+                        btn.classList.remove('border-[var(--accent-color)]/50', 'bg-white/10', 'text-white');
                     }
                 });
             },
@@ -438,10 +453,10 @@
                     <button type="button" data-color="${color}" class="w-8 h-8 rounded-full border-2 ${playlistCoverDraft.color === color ? 'border-white scale-110' : 'border-transparent'} transition" style="background:${color}"></button>
                 `).join('');
                 iconEl.innerHTML = Object.keys(PLAYLIST_COVER_ICONS).map((name) => `
-                    <button type="button" data-icon="${name}" class="w-10 h-10 rounded-xl flex items-center justify-center ${playlistCoverDraft.icon === name ? 'bg-[var(--accent-color)] text-black' : 'bg-white/10 text-white'} transition">${PLAYLIST_COVER_ICONS[name]}</button>
+                    <button type="button" data-icon="${name}" class="w-10 h-10 rounded-xl flex items-center justify-center ${playlistCoverDraft.icon === name ? 'bg-white text-black font-bold' : 'bg-white/10 text-white'} transition">${PLAYLIST_COVER_ICONS[name]}</button>
                 `).join('');
                 shapeEl.innerHTML = PLAYLIST_COVER_SHAPES.map((shape) => `
-                    <button type="button" data-shape="${shape}" class="px-3 py-1.5 rounded-full text-xs font-bold ${playlistCoverDraft.shape === shape ? 'bg-[var(--accent-color)] text-black' : 'bg-white/10 text-gray-200'} transition">${shape}</button>
+                    <button type="button" data-shape="${shape}" class="px-3 py-1.5 rounded-full text-xs font-bold ${playlistCoverDraft.shape === shape ? 'bg-white text-black font-bold' : 'bg-white/10 text-gray-200'} transition">${shape}</button>
                 `).join('');
 
                 colorEl.querySelectorAll('button').forEach((btn) => {
@@ -1169,7 +1184,7 @@
 
                 const isFollowing = state.likedArtists.some(a => (a.id || a.name) === artistId || a.name === fallbackName);
                 if (followText) followText.textContent = isFollowing ? 'Following' : 'Follow';
-                if (followBtn) followBtn.className = isFollowing ? 'px-5 py-2.5 rounded-full bg-[var(--accent-color)] text-black text-xs font-bold transition flex items-center gap-1.5' : 'px-5 py-2.5 rounded-full border border-white/20 bg-white/5 text-white text-xs font-bold hover:bg-white/15 transition flex items-center gap-1.5';
+                if (followBtn) followBtn.className = isFollowing ? 'px-5 py-2.5 rounded-full bg-white text-black font-bold text-xs font-bold transition flex items-center gap-1.5' : 'px-5 py-2.5 rounded-full border border-white/20 bg-white/5 text-white text-xs font-bold hover:bg-white/15 transition flex items-center gap-1.5';
 
                 try {
                     let artistData = null;
@@ -1200,7 +1215,7 @@
                             ui.toggleArtistLike({ id: artistId || name, name, img, type: 'artist' });
                             const nowFollowing = state.likedArtists.some(a => (a.id || a.name) === (artistId || name));
                             if (followText) followText.textContent = nowFollowing ? 'Following' : 'Follow';
-                            followBtn.className = nowFollowing ? 'px-5 py-2.5 rounded-full bg-[var(--accent-color)] text-black text-xs font-bold transition flex items-center gap-1.5' : 'px-5 py-2.5 rounded-full border border-white/20 bg-white/5 text-white text-xs font-bold hover:bg-white/15 transition flex items-center gap-1.5';
+                            followBtn.className = nowFollowing ? 'px-5 py-2.5 rounded-full bg-white text-black font-bold text-xs font-bold transition flex items-center gap-1.5' : 'px-5 py-2.5 rounded-full border border-white/20 bg-white/5 text-white text-xs font-bold hover:bg-white/15 transition flex items-center gap-1.5';
                         };
                     }
 
@@ -1248,7 +1263,7 @@
                                     <div class="relative aspect-square rounded-lg overflow-hidden mb-3 bg-gray-800 shadow-md">
                                         <img src="${albImg}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" loading="lazy">
                                         <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
-                                            <span class="bg-[var(--accent-color)] text-black p-3 rounded-full shadow-xl transform scale-75 group-hover:scale-100 transition"><svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+                                            <span class="bg-white text-black font-bold p-3 rounded-full shadow-xl transform scale-75 group-hover:scale-100 transition"><svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
                                         </div>
                                     </div>
                                     <div class="w-full min-w-0 flex-1">
@@ -1274,7 +1289,7 @@
                     <div class="relative aspect-square rounded-lg overflow-hidden mb-3 shadow-md flex items-center justify-center text-4xl ${likedStyle.bg}">
                         ${(likedStyle.customHtml || likedStyle.icon).replace('w-20 h-20', 'w-12 h-12')}
                         <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
-                            <span class="bg-[var(--accent-color)] text-black p-3 rounded-full shadow-xl transform scale-75 group-hover:scale-100 transition"><svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+                            <span class="bg-white text-black font-bold p-3 rounded-full shadow-xl transform scale-75 group-hover:scale-100 transition"><svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
                         </div>
                     </div>
                     <button class="absolute top-4 right-4 p-1.5 bg-black/60 backdrop-blur-md rounded-full text-white opacity-100 md:opacity-0 md:group-hover:opacity-100 transition shadow-lg hover:bg-white/20 z-10" onclick="event.stopPropagation(); ctxMenu.showPlaylist(event, 'Liked Songs')">
@@ -1290,7 +1305,7 @@
                 <div class="scroll-card glass-panel p-3 rounded-xl transition hover-pause group relative flex flex-col w-40 cursor-pointer create-playlist-card" onclick="ui.toggleModal(true)">
                     <div class="relative aspect-square rounded-lg overflow-hidden mb-3 shadow-md flex items-center justify-center liked-songs-art bg-gradient-to-br from-zinc-800/80 to-zinc-950 border border-white/10 transition">
                         <div class="absolute inset-0" style="background: radial-gradient(circle at 30% 20%, rgba(255,255,255,0.08), transparent 34%);"></div>
-                        <span class="relative w-14 h-14 rounded-full bg-[var(--accent-color)]/15 border border-[var(--accent-color)]/30 text-[var(--accent-color)] flex items-center justify-center group-hover:scale-105 transition">
+                        <span class="relative w-14 h-14 rounded-full bg-white/15 border border-[var(--accent-color)]/30 text-white flex items-center justify-center group-hover:scale-105 transition">
                             <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
                         </span>
                     </div>
@@ -1305,7 +1320,7 @@
                 <div class="scroll-card glass-panel p-3 rounded-xl transition hover-pause group relative flex flex-col w-40 cursor-pointer border border-white/10 hover:border-white/20 bg-white/[0.02]" onclick="ui.toggleVibeMixModal(true)">
                     <div class="relative aspect-square rounded-lg overflow-hidden mb-3 shadow-md flex items-center justify-center bg-gradient-to-br from-zinc-800/80 to-zinc-950 border border-white/10 group-hover:border-white/20 transition">
                         <div class="absolute inset-0" style="background: radial-gradient(circle at 70% 30%, rgba(255, 255, 255, 0.06), transparent 60%);"></div>
-                        <span class="relative w-14 h-14 rounded-full bg-[var(--accent-color)]/15 border border-[var(--accent-color)]/30 text-[var(--accent-color)] flex items-center justify-center group-hover:scale-105 transition">
+                        <span class="relative w-14 h-14 rounded-full bg-white/15 border border-[var(--accent-color)]/30 text-white flex items-center justify-center group-hover:scale-105 transition">
                             <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                         </span>
                     </div>
@@ -1334,7 +1349,7 @@
                         <div class="relative aspect-square rounded-lg overflow-hidden mb-3 shadow-md flex items-center justify-center text-4xl font-bold ${style.bg}">
                             ${style.customHtml || style.icon}
                             <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
-                                <span class="bg-[var(--accent-color)] text-black p-3 rounded-full shadow-xl transform scale-75 group-hover:scale-100 transition"><svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+                                <span class="bg-white text-black font-bold p-3 rounded-full shadow-xl transform scale-75 group-hover:scale-100 transition"><svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
                             </div>
                         </div>
                         <button class="absolute top-4 right-4 p-1.5 bg-black/60 backdrop-blur-md rounded-full text-white opacity-100 md:opacity-0 md:group-hover:opacity-100 transition shadow-lg hover:bg-white/20 z-10" onclick="event.stopPropagation(); ctxMenu.showPlaylist(event, '${utils.escapeJs(name)}')">
@@ -1591,7 +1606,7 @@
                     <div class="relative aspect-square rounded-lg overflow-hidden mb-3 bg-gray-800 shadow-md cursor-pointer" onclick="${clickHandler}">
                         <img src="${item.img}" onerror="this.src='${FALLBACK_ART}'" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" decoding="async">
                         <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
-                            <span class="bg-[var(--accent-color)] text-black p-3 rounded-full shadow-xl transform scale-75 group-hover:scale-100 transition"><svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+                            <span class="bg-white text-black font-bold p-3 rounded-full shadow-xl transform scale-75 group-hover:scale-100 transition"><svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
                         </div>
                     </div>
                     ${menuBtn}
@@ -1640,7 +1655,7 @@
                             <span class="swipe-reveal-text font-bold text-xs tracking-wide">Play Next</span>
                         </div>
                     </div>
-                    <div class="swipe-reveal-right absolute inset-y-0 right-0 flex items-center justify-end overflow-hidden pointer-events-none rounded-full z-0 bg-[var(--accent-color)] text-black font-bold text-xs" style="width:0px;">
+                    <div class="swipe-reveal-right absolute inset-y-0 right-0 flex items-center justify-end overflow-hidden pointer-events-none rounded-full z-0 bg-white/20 text-white font-bold text-xs" style="width:0px;">
                         <div class="swipe-reveal-content flex items-center justify-end gap-2 px-4 whitespace-nowrap min-w-max h-full">
                             <span class="swipe-reveal-text font-bold text-xs tracking-wide">Add to Queue</span>
                             <svg class="swipe-reveal-icon w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h10m-10 4h6"/></svg>
@@ -1708,7 +1723,7 @@
                             <span class="swipe-reveal-text font-bold text-xs tracking-wide">Play Next</span>
                         </div>
                     </div>
-                    <div class="swipe-reveal-right absolute inset-y-0 right-0 flex items-center justify-end overflow-hidden pointer-events-none rounded-2xl z-0 bg-[var(--accent-color)] text-black font-bold text-xs" style="width:0px;">
+                    <div class="swipe-reveal-right absolute inset-y-0 right-0 flex items-center justify-end overflow-hidden pointer-events-none rounded-2xl z-0 bg-white/20 text-white font-bold text-xs" style="width:0px;">
                         <div class="swipe-reveal-content flex items-center justify-end gap-2 px-4 whitespace-nowrap min-w-max h-full">
                             <span class="swipe-reveal-text font-bold text-xs tracking-wide">Add to Queue</span>
                             <svg class="swipe-reveal-icon w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h10m-10 4h6"/></svg>
@@ -1754,7 +1769,7 @@
                             <span class="swipe-reveal-text font-bold text-xs tracking-wide">Play Next</span>
                         </div>
                     </div>
-                    <div class="swipe-reveal-right absolute inset-y-0 right-0 flex items-center justify-end overflow-hidden pointer-events-none rounded-2xl z-0 bg-[var(--accent-color)] text-black font-bold text-xs" style="width:0px;">
+                    <div class="swipe-reveal-right absolute inset-y-0 right-0 flex items-center justify-end overflow-hidden pointer-events-none rounded-2xl z-0 bg-white/20 text-white font-bold text-xs" style="width:0px;">
                         <div class="swipe-reveal-content flex items-center justify-end gap-2 px-4 whitespace-nowrap min-w-max h-full">
                             <span class="swipe-reveal-text font-bold text-xs tracking-wide">Add to Queue</span>
                             <svg class="swipe-reveal-icon w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h10m-10 4h6"/></svg>
@@ -1798,11 +1813,11 @@
                 <div class="for-you-card glass-panel rounded-3xl overflow-hidden relative flex-shrink-0 w-64 h-80 group cursor-pointer hover-pause" onclick="playSongById('${storeId}')">
                     <img src="${song.img}" class="absolute inset-0 w-full h-full object-cover transition duration-700 group-hover:scale-110" decoding="async">
                     <div class="absolute inset-0 bg-gradient-to-t from-black via-black/45 to-transparent"></div>
-                    <button class="absolute top-4 right-4 w-10 h-10 rounded-full bg-[var(--accent-color)] text-black flex items-center justify-center shadow-xl opacity-95 group-hover:scale-110 transition" onclick="event.stopPropagation(); playSongById('${storeId}')">
+                    <button class="absolute top-4 right-4 w-10 h-10 rounded-full bg-white text-black font-bold flex items-center justify-center shadow-xl opacity-95 group-hover:scale-110 transition" onclick="event.stopPropagation(); playSongById('${storeId}')">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
                     </button>
                     <div class="absolute bottom-0 left-0 right-0 p-5">
-                        <div class="inline-flex px-2 py-1 rounded-full bg-white/10 text-[10px] uppercase tracking-wider text-[var(--accent-color)] mb-3">For You</div>
+                        <div class="inline-flex px-2 py-1 rounded-full bg-white/10 text-[10px] uppercase tracking-wider text-white mb-3">For You</div>
                         <div class="marquee-container"><h3 class="text-xl font-bold text-white marquee-text">${utils.escapeHtml(song.name)}</h3></div>
                         <div class="marquee-container mt-1"><p class="text-sm text-gray-300 marquee-text">${utils.escapeHtml(song.artist)}</p></div>
                     </div>
@@ -1839,13 +1854,13 @@
                     
                     ${collageHtml}
                     
-                    <button class="absolute bottom-5 right-5 w-12 h-12 rounded-full bg-[var(--accent-color)] text-black flex items-center justify-center shadow-2xl opacity-90 group-hover:scale-110 transition z-30" onclick="event.stopPropagation(); homeView.playDiscoverMix('${mix.key}')">
+                    <button class="absolute bottom-5 right-5 w-12 h-12 rounded-full bg-white text-black font-bold flex items-center justify-center shadow-2xl opacity-90 group-hover:scale-110 transition z-30" onclick="event.stopPropagation(); homeView.playDiscoverMix('${mix.key}')">
                         <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
                     </button>
                     
                     <div class="absolute bottom-0 left-0 right-16 p-5 z-20 pointer-events-none">
-                        <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-[10px] font-extrabold tracking-wider uppercase text-[var(--accent-color)] mb-2 shadow-lg">
-                            <span class="w-1.5 h-1.5 rounded-full bg-[var(--accent-color)] animate-pulse"></span>
+                        <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-[10px] font-extrabold tracking-wider uppercase text-white mb-2 shadow-lg">
+                            <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
                             ${utils.escapeHtml(mix.badgeText || 'MADE FOR YOU')}
                         </div>
                         <div class="marquee-container"><h3 class="text-xl font-bold text-white marquee-text tracking-tight drop-shadow-md">${utils.escapeHtml(mix.title)}</h3></div>
@@ -1872,7 +1887,7 @@
                     <div class="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.25),transparent_75%)] pointer-events-none"></div>
                     <div class="absolute inset-0 bg-black/30 backdrop-blur-[2px]"></div>
                     <div class="relative z-10 w-full h-full p-4 flex flex-col justify-between">
-                        <div class="text-[10px] font-extrabold uppercase tracking-widest text-[var(--accent-color)] bg-black/50 backdrop-blur-md px-2.5 py-1 rounded-full w-max border border-white/10 shadow-lg">${utils.escapeHtml(mix.badgeText || 'D\'TUNES MIX')}</div>
+                        <div class="text-[10px] font-extrabold uppercase tracking-widest text-white bg-black/50 backdrop-blur-md px-2.5 py-1 rounded-full w-max border border-white/10 shadow-lg">${utils.escapeHtml(mix.badgeText || 'D\'TUNES MIX')}</div>
                         <div class="w-28 h-28 mx-auto rounded-2xl overflow-hidden shadow-2xl border border-white/20">${inner}</div>
                         <div class="text-center font-bold text-white text-base tracking-tight truncate drop-shadow-md">${utils.escapeHtml(mix.title)}</div>
                     </div>
@@ -2196,9 +2211,13 @@
                 const queueExpand = document.getElementById('queue-expandable-area');
                 if (!queueWrap || !queueExpand) return;
 
-                const headerBottom = header ? header.getBoundingClientRect().bottom : 82;
-                const playerCardTop = playerCard ? playerCard.getBoundingClientRect().top : (window.innerHeight - 82);
-                const infoIslandHeight = infoIsland ? infoIsland.offsetHeight : 58;
+                const vh = window.innerHeight;
+                const headerBottom = (header && header.offsetHeight > 0) ? header.getBoundingClientRect().bottom : 82;
+                let playerCardTop = (playerCard && playerCard.offsetHeight > 0) ? playerCard.getBoundingClientRect().top : (vh - 82);
+                if (playerCardTop > vh - 40 || playerCardTop < 200) {
+                    playerCardTop = vh - 82;
+                }
+                const infoIslandHeight = (infoIsland && infoIsland.offsetHeight > 0) ? infoIsland.offsetHeight : 58;
 
                 // Full sidebar height from 16px below top header down to 8px above player card:
                 const wrapFullH = Math.max(260, Math.floor((playerCardTop - 8) - (headerBottom + 16)));
@@ -2470,6 +2489,7 @@
                 if (hList) hList.classList.toggle('hidden', isUpNext);
                 if (clearQ) clearQ.classList.toggle('hidden', !isUpNext);
                 if (clearH) clearH.classList.toggle('hidden', isUpNext);
+                ui.adjustQueueMaxHeight();
 
                 if (deviceMode.isMobileUI() && document.body.classList.contains('mobile-player-open')) {
                     const targetMobileTab = isUpNext ? 'queue' : 'history';
@@ -2569,7 +2589,7 @@
                 let html = '';
                 for (const [label, songs] of Object.entries(groups)) {
                     html += `<div class="queue-section-label queue-section-date">${utils.escapeHtml(label)}</div>`;
-                    html += songs.map(song => ui.createSongPill(song, `playSongById('${songStore.add(song)}')`)).join('');
+                    html += songs.map(song => ui.createPlayerListPill(song, `playSongById('${songStore.add(song)}')`, 'history')).join('');
                 }
                 
                 histEl.innerHTML = html;
@@ -2841,12 +2861,12 @@
                             <span class="text-[11px] font-mono text-zinc-500 w-5 text-center group-hover:text-white transition-colors">${idx + 1}</span>
                             <img src="${sanitizeImageUrl(s.img || 'DTunes.svg')}" class="w-10 h-10 rounded-xl object-cover shadow-md flex-shrink-0" alt="">
                             <div class="min-w-0">
-                                <div class="text-xs font-semibold text-white truncate group-hover:text-[var(--accent-color)] transition-colors">${utils.escapeHtml(s.name || s.title || '')}</div>
+                                <div class="text-xs font-semibold text-white truncate group-hover:text-white transition-colors">${utils.escapeHtml(s.name || s.title || '')}</div>
                                 <div class="text-[11px] text-zinc-400 truncate mt-0.5">${utils.escapeHtml(s.artist || '')}</div>
                             </div>
                         </div>
                         <div class="flex items-center gap-3 flex-shrink-0">
-                            <button onclick="player.toggleLike('${s.id}'); event.stopPropagation();" class="text-zinc-500 hover:text-white p-1 rounded-full transition active:scale-90 ${isLiked ? 'text-[var(--accent-color)]' : ''}" title="Like">
+                            <button onclick="player.toggleLike('${s.id}'); event.stopPropagation();" class="text-zinc-500 hover:text-white p-1 rounded-full transition active:scale-90 ${isLiked ? 'text-white' : ''}" title="Like">
                                 <svg class="heart-glyph" width="15" height="15" viewBox="0 0 24 24" fill="${isLiked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
                             </button>
                             <span class="text-[11px] font-mono text-zinc-500">${utils.formatTime(s.duration || 0)}</span>
@@ -3315,3 +3335,14 @@
         if (typeof module !== 'undefined' && module.exports) {
             module.exports = { ui, aiReportManager, reviewsManager };
         }
+
+// Outside click dismiss for profile dropdown
+if (typeof document !== 'undefined') {
+    document.addEventListener('pointerdown', (e) => {
+        const acc = document.getElementById('header-account');
+        const dd = document.getElementById('profile-dropdown');
+        if (dd && !dd.classList.contains('hidden') && acc && !acc.contains(e.target)) {
+            dd.classList.add('hidden');
+        }
+    });
+}

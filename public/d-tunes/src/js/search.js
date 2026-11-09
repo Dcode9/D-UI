@@ -68,12 +68,25 @@
                     if (q.length >= 2 && results.innerHTML !== '') dropWrapper.classList.add('active'); 
                 });
                 
-                input.addEventListener('blur', () => {
-                    setTimeout(() => {
-                        if (!dropWrapper.contains(document.activeElement)) {
-                            dropWrapper.classList.remove('active');
+                // Outside click dismiss that never breaks when interacting with search result actions (e.g. like, swipe)
+                document.addEventListener('pointerdown', (e) => {
+                    const shell = document.getElementById('search-shell') || document.getElementById('search-positioner');
+                    const drop = document.getElementById('search-dropdown');
+                    if (drop && drop.classList.contains('active')) {
+                        const hitInside = (shell && shell.contains(e.target)) || drop.contains(e.target);
+                        if (!hitInside) {
+                            drop.classList.remove('active');
                         }
-                    }, 250);
+                    }
+                });
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        const drop = document.getElementById('search-dropdown');
+                        if (drop && drop.classList.contains('active')) {
+                            drop.classList.remove('active');
+                            document.getElementById('search-input')?.blur();
+                        }
+                    }
                 });
                 
                 input.addEventListener('input', (e) => {
@@ -113,7 +126,7 @@
                         }
                         results.innerHTML = '<div class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1 pl-2 drop-shadow-md">Songs</div>' + songs.map(song => {
                             const storeId = songStore.add(song);
-                            return ui.createSongPill(song, `ui.playFromQuickSearch('${storeId}')`, 'quicksearch');
+                            return ui.createPlayerListPill(song, `ui.playFromQuickSearch('${storeId}')`, 'quicksearch');
                         }).join('');
                         stripTouchHoverClasses();
                         updateMarquees();
@@ -220,7 +233,7 @@
                                 <span class="swipe-reveal-text font-bold text-xs tracking-wide">Play Next</span>
                             </div>
                         </div>
-                        <div class="swipe-reveal-right absolute inset-y-0 right-0 flex items-center justify-end overflow-hidden pointer-events-none rounded-2xl z-0 bg-[var(--accent-color)] text-black font-bold text-xs" style="width:0px;">
+                        <div class="swipe-reveal-right absolute inset-y-0 right-0 flex items-center justify-end overflow-hidden pointer-events-none rounded-2xl z-0 bg-white/20 text-white font-bold text-xs" style="width:0px;">
                             <div class="swipe-reveal-content flex items-center justify-end gap-2 px-4 whitespace-nowrap min-w-max h-full">
                                 <span class="swipe-reveal-text font-bold text-xs tracking-wide">Add to Queue</span>
                                 <svg class="swipe-reveal-icon w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h10m-10 4h6"/></svg>
@@ -280,7 +293,7 @@
                         ${topBlocked
                             ? `<div class="mt-2">${ui.notDownloadedBadge('px-3 py-1.5 text-[10px]')}</div>`
                             : `<div class="mt-2 flex items-center gap-3">
-                            <button class="bg-[var(--accent-color)] text-black px-6 py-2.5 rounded-full font-bold hover:brightness-110 transition flex items-center gap-2" onclick="event.stopPropagation(); ui.playFromQuickSearch('${topStoreId}')">
+                            <button class="bg-white text-black px-6 py-2.5 rounded-full font-semibold hover:bg-white/90 active:scale-95 transition flex items-center gap-2" onclick="event.stopPropagation(); ui.playFromQuickSearch('${topStoreId}')">
                                 <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> Play
                             </button>
                             <button class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition" title="Play next" onclick="event.stopPropagation(); player.addNext(songStore.get('${topStoreId}'))">
