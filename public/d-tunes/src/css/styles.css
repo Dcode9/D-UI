@@ -139,28 +139,81 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            cursor: pointer;
         }
         .eq-zero-line {
             position: absolute;
             top: 50%;
-            left: 4px;
-            right: 4px;
+            left: 2px;
+            right: 2px;
             height: 1px;
             background: rgba(255, 255, 255, 0.22);
             pointer-events: none;
             z-index: 1;
         }
-        .eq-slider {
+        .eq-track-bg {
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            transform: translateX(-50%);
+            width: 3px;
+            background-color: rgba(255, 255, 255, 0.18);
+            border-radius: 9999px;
+            pointer-events: none;
+            transition: background-color 0.2s ease;
+        }
+        .eq-slider-container:hover .eq-track-bg {
+            background-color: rgba(255, 255, 255, 0.28);
+        }
+        .eq-fill {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 3px;
+            background: #ffffff;
+            border-radius: 9999px;
+            pointer-events: none;
+            z-index: 2;
+            transition: none;
+        }
+        .eq-rounded-edge {
+            position: absolute;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 14px;
+            height: 3px;
+            border-radius: 9999px;
+            background: #ffffff;
+            box-shadow: none;
+            pointer-events: none;
+            z-index: 6;
+            transition: width 0.16s cubic-bezier(0.22, 1, 0.36, 1), height 0.16s ease;
+        }
+        .eq-slider-container:hover .eq-rounded-edge {
+            width: 18px;
+            height: 3px;
+        }
+        .eq-slider-container:active .eq-rounded-edge,
+        .eq-slider-container.is-pressed .eq-rounded-edge,
+        .eq-custom-input:active ~ .eq-rounded-edge {
+            width: 14px !important;
+        }
+        .eq-custom-input {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+            z-index: 10;
+            margin: 0;
+            padding: 0;
             writing-mode: vertical-lr;
             direction: rtl;
-            width: 22px;
-            height: 150px;
-            background: transparent;
-            cursor: pointer;
-            accent-color: #ffffff;
-            position: relative;
-            z-index: 2;
             -webkit-appearance: slider-vertical;
+            appearance: none;
+            background: transparent;
         }
         .eq-label {
             font-size: 0.72rem;
@@ -3845,4 +3898,67 @@ body.queue-sidebar-active #ai-hub-container div.md\:p-8 > button {
     max-height: 800px;
     opacity: 1;
     padding: 0.25rem 1rem 1rem 1rem;
+}
+
+
+/* Redesigned Library Workspace */
+.library-hero {
+    background: var(--mezzotint-bg);
+    backdrop-filter: var(--dtunes-optical-filter);
+    -webkit-backdrop-filter: var(--dtunes-optical-filter);
+    border: 1px solid var(--mezzotint-border);
+}
+.library-filter-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.45rem 0.95rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.65);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+    cursor: pointer;
+    white-space: nowrap;
+    user-select: none;
+}
+.library-filter-tab:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.16);
+}
+.library-filter-tab.is-active {
+    color: #000000;
+    background: #ffffff;
+    font-weight: 700;
+    border-color: #ffffff;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
+}
+.library-filter-tab.is-active .lib-tab-badge {
+    background: rgba(0, 0, 0, 0.15);
+    color: #000000;
+}
+.lib-tab-badge {
+    font-size: 0.6875rem;
+    font-family: monospace;
+    font-weight: 700;
+    padding: 0.1rem 0.4rem;
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.85);
+    transition: all 0.18s ease;
+}
+.library-featured-tile {
+    background: var(--mezzotint-bg);
+    backdrop-filter: var(--dtunes-optical-filter);
+    -webkit-backdrop-filter: var(--dtunes-optical-filter);
+    border: 1px solid var(--mezzotint-border);
+    transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.library-featured-tile:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.22);
+    box-shadow: 0 16px 36px -10px rgba(0, 0, 0, 0.7);
 }

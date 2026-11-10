@@ -111,6 +111,7 @@
                 document.getElementById('main-container')?.scrollTo({ top: 0, behavior: 'smooth' });
 
                 if (view === 'stats') statsView.render();
+                if (view === 'library') ui.renderLibrary();
                 if (view === 'reviews' && window.reviewsManager) reviewsManager.render();
                 if (view === 'search') {
                     const input = document.getElementById('search-input');
@@ -637,9 +638,12 @@
                             bandsContainer.innerHTML = EQ_BANDS.map((band) => `
                                 <div class="eq-band">
                                     <span id="${prefix}-${band.key}-value" class="eq-value">0 dB</span>
-                                    <div class="eq-slider-container">
+                                    <div class="eq-slider-container custom-slider-container group" id="${prefix}-${band.key}-container">
+                                        <div class="eq-track-bg"></div>
                                         <div class="eq-zero-line"></div>
-                                        <input id="${prefix}-${band.key}" type="range" min="-12" max="12" step="1" value="0" orient="vertical" aria-label="${band.label}" oninput="ui.updateEqualizer('${band.key}', this.value)" class="eq-slider">
+                                        <div id="${prefix}-${band.key}-fill" class="eq-fill" style="top: 50%; height: 0;"></div>
+                                        <div id="${prefix}-${band.key}-marker" class="eq-rounded-edge" style="top: 50%;"></div>
+                                        <input id="${prefix}-${band.key}" type="range" min="-12" max="12" step="1" value="0" orient="vertical" aria-label="${band.label}" oninput="ui.updateEqualizer('${band.key}', this.value)" class="eq-custom-input">
                                     </div>
                                     <div class="flex flex-col items-center leading-none">
                                         <span class="eq-label">${band.label}</span>
@@ -654,8 +658,23 @@
                             const val = Number(state.equalizer[band.key] || 0);
                             const input = document.getElementById(`${prefix}-${band.key}`);
                             const label = document.getElementById(`${prefix}-${band.key}-value`);
+                            const fill = document.getElementById(`${prefix}-${band.key}-fill`);
+                            const marker = document.getElementById(`${prefix}-${band.key}-marker`);
                             if (input) input.value = val;
                             if (label) label.textContent = `${val > 0 ? '+' : ''}${val} dB`;
+
+                            const pct = (val - (-12)) / 24;
+                            const topPercent = (1 - pct) * 100;
+                            if (marker) marker.style.top = `${topPercent}%`;
+                            if (fill) {
+                                if (val >= 0) {
+                                    fill.style.top = `${topPercent}%`;
+                                    fill.style.height = `${(pct - 0.5) * 100}%`;
+                                } else {
+                                    fill.style.top = '50%';
+                                    fill.style.height = `${(0.5 - pct) * 100}%`;
+                                }
+                            }
                         });
                     }
                 });
@@ -1287,73 +1306,86 @@
                     if (subtitleEl) subtitleEl.textContent = 'Error loading artist details.';
                 }
             },
+            activeLibraryTab: 'all',
+            switchLibraryTab: (tab) => {
+                ui.activeLibraryTab = tab || 'all';
+                document.querySelectorAll('.library-filter-tab').forEach(btn => {
+                    btn.classList.toggle('is-active', btn.getAttribute('data-tab') === ui.activeLibraryTab);
+                });
+                document.querySelectorAll('.library-tab-panel').forEach(panel => {
+                    panel.classList.add('hidden');
+                });
+                const activePanel = document.getElementById(`library-tab-content-${ui.activeLibraryTab}`);
+                if (activePanel) {
+                    activePanel.classList.remove('hidden');
+                }
+                ui.renderLibrary();
+            },
+            filterLibraryContent: (query) => {
+                const q = (query || '').trim().toLowerCase();
+                const activePanel = document.getElementById(`library-tab-content-${ui.activeLibraryTab || 'all'}`);
+                if (!activePanel) return;
+                const items = activePanel.querySelectorAll('.scroll-card, .np-row, .swipe-song');
+                items.forEach(el => {
+                    if (!q) {
+                        el.style.display = '';
+                    } else {
+                        const txt = el.textContent.toLowerCase();
+                        el.style.display = txt.includes(q) ? '' : 'none';
+                    }
+                });
+            },
             renderPlaylists: () => {
                 const grid = document.getElementById('playlists-grid');
-                if (!grid) return;
-                const likedStyle = ui.getPlaylistStyle('Liked Songs');
-                let html = `
-                <div class="scroll-card glass-panel p-3 rounded-xl transition hover-pause group relative flex flex-col w-40 cursor-pointer" onclick="ui.openPlaylist('Liked Songs')">
-                    <div class="relative aspect-square rounded-lg overflow-hidden mb-3 shadow-md flex items-center justify-center text-4xl ${likedStyle.bg}">
-                        ${(likedStyle.customHtml || likedStyle.icon).replace('w-20 h-20', 'w-12 h-12')}
-                        <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
-                            <span class="bg-white text-black font-bold p-3 rounded-full shadow-xl transform scale-75 group-hover:scale-100 transition"><svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
-                        </div>
-                    </div>
-                    <button class="absolute top-4 right-4 p-1.5 bg-black/60 backdrop-blur-md rounded-full text-white opacity-100 md:opacity-0 md:group-hover:opacity-100 transition shadow-lg hover:bg-white/20 z-10" onclick="event.stopPropagation(); ctxMenu.showPlaylist(event, 'Liked Songs')">
-                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M3 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/></svg>
-                    </button>
-                    <div class="w-full min-w-0 flex-1">
-                        <div class="marquee-container w-full"><h3 class="font-bold text-white text-sm marquee-text">Liked Songs</h3></div>
-                        <p class="text-xs text-gray-400 mt-1">${state.likedIds.length} tracks</p>
-                    </div>
-                </div>`;
+                const fullGrid = document.getElementById('full-playlists-grid');
+                if (!grid && !fullGrid) return;
+                let html = '';
 
+                // Create Playlist Action Card
                 html += `
-                <div class="scroll-card glass-panel p-3 rounded-xl transition hover-pause group relative flex flex-col w-40 cursor-pointer create-playlist-card" onclick="ui.toggleModal(true)">
-                    <div class="relative aspect-square rounded-lg overflow-hidden mb-3 shadow-md flex items-center justify-center liked-songs-art bg-gradient-to-br from-zinc-800/80 to-zinc-950 border border-white/10 transition">
-                        <div class="absolute inset-0" style="background: radial-gradient(circle at 30% 20%, rgba(255,255,255,0.08), transparent 34%);"></div>
-                        <span class="relative w-14 h-14 rounded-full bg-white/15 border border-[var(--accent-color)]/30 text-white flex items-center justify-center group-hover:scale-105 transition">
-                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                <div class="scroll-card glass-panel p-3 rounded-2xl transition hover-pause group relative flex flex-col w-full cursor-pointer border border-dashed border-white/20 hover:border-white/40 bg-white/[0.02]" onclick="ui.toggleModal(true)">
+                    <div class="relative aspect-square rounded-xl overflow-hidden mb-3 shadow-md flex items-center justify-center bg-white/5 border border-white/10 group-hover:bg-white/10 transition">
+                        <span class="w-12 h-12 rounded-full bg-white text-black flex items-center justify-center group-hover:scale-110 transition shadow-lg">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
                         </span>
                     </div>
                     <div class="w-full min-w-0 flex-1">
                         <div class="marquee-container w-full"><h3 class="font-bold text-white text-sm marquee-text">Create Playlist</h3></div>
-                        <p class="text-xs text-gray-400 mt-1">New mix</p>
+                        <p class="text-xs text-zinc-400 mt-0.5">New mix</p>
                     </div>
                 </div>`;
 
                 // Vibe Mix Card
                 html += `
-                <div class="scroll-card glass-panel p-3 rounded-xl transition hover-pause group relative flex flex-col w-40 cursor-pointer border border-white/10 hover:border-white/20 bg-white/[0.02]" onclick="ui.toggleVibeMixModal(true)">
-                    <div class="relative aspect-square rounded-lg overflow-hidden mb-3 shadow-md flex items-center justify-center bg-gradient-to-br from-zinc-800/80 to-zinc-950 border border-white/10 group-hover:border-white/20 transition">
-                        <div class="absolute inset-0" style="background: radial-gradient(circle at 70% 30%, rgba(255, 255, 255, 0.06), transparent 60%);"></div>
-                        <span class="relative w-14 h-14 rounded-full bg-white/15 border border-[var(--accent-color)]/30 text-white flex items-center justify-center group-hover:scale-105 transition">
-                            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                <div class="scroll-card glass-panel p-3 rounded-2xl transition hover-pause group relative flex flex-col w-full cursor-pointer border border-white/10 hover:border-white/20 bg-white/[0.02]" onclick="ui.toggleVibeMixModal(true)">
+                    <div class="relative aspect-square rounded-xl overflow-hidden mb-3 shadow-md flex items-center justify-center bg-gradient-to-br from-zinc-800/80 to-zinc-950 border border-white/10 group-hover:border-white/20 transition">
+                        <span class="relative w-12 h-12 rounded-full bg-white/15 border border-white/20 text-white flex items-center justify-center group-hover:scale-110 transition">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                         </span>
                     </div>
                     <div class="w-full min-w-0 flex-1">
                         <div class="marquee-container w-full"><h3 class="font-bold text-white text-sm marquee-text">Vibe Mix</h3></div>
-                        <p class="text-xs text-gray-400 mt-1">Curate any mood</p>
+                        <p class="text-xs text-zinc-400 mt-0.5">Curate any mood</p>
                     </div>
                 </div>`;
-                
+
                 // Spotify Import Card
                 html += `
-                <div class="scroll-card glass-panel p-3 rounded-xl transition hover-pause group relative flex flex-col w-40 cursor-pointer" onclick="ui.toggleSpotifyModal(true)">
-                    <div class="relative aspect-square rounded-lg overflow-hidden mb-3 shadow-md flex items-center justify-center bg-[#181818] border border-[#1DB954]/20 group-hover:border-[#1DB954]/50 transition">
-                        <svg viewBox="0 0 24 24" width="48" height="48" fill="#1DB954" class="opacity-80 group-hover:opacity-100 group-hover:scale-110 transition"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.24 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.6.18-1.2.72-1.38 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.239.54-.959.72-1.56.3z"/></svg>
+                <div class="scroll-card glass-panel p-3 rounded-2xl transition hover-pause group relative flex flex-col w-full cursor-pointer border border-white/10 hover:border-white/20" onclick="ui.toggleSpotifyModal(true)">
+                    <div class="relative aspect-square rounded-xl overflow-hidden mb-3 shadow-md flex items-center justify-center bg-[#181818] border border-[#1DB954]/20 group-hover:border-[#1DB954]/50 transition">
+                        <svg viewBox="0 0 24 24" width="44" height="44" fill="#1DB954" class="opacity-80 group-hover:opacity-100 group-hover:scale-110 transition"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.24 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.6.18-1.2.72-1.38 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.239.54-.959.72-1.56.3z"/></svg>
                     </div>
                     <div class="w-full min-w-0 flex-1">
                         <div class="marquee-container w-full"><h3 class="font-bold text-[#1DB954] text-sm marquee-text">Import Spotify</h3></div>
-                        <p class="text-xs text-gray-400 mt-1">Connect Account</p>
+                        <p class="text-xs text-zinc-400 mt-0.5">Connect Account</p>
                     </div>
                 </div>`;
 
                 Object.keys(state.playlists).forEach(name => {
                     const style = ui.getPlaylistStyle(name);
                     html += `
-                    <div class="scroll-card glass-panel p-3 rounded-xl transition hover-pause group relative flex flex-col w-40 cursor-pointer" onclick="ui.openPlaylist('${utils.escapeJs(name)}')">
-                        <div class="relative aspect-square rounded-lg overflow-hidden mb-3 shadow-md flex items-center justify-center text-4xl font-bold ${style.bg}">
+                    <div class="scroll-card glass-panel p-3 rounded-2xl transition hover-pause group relative flex flex-col w-full cursor-pointer border border-white/10 hover:border-white/20" onclick="ui.openPlaylist('${utils.escapeJs(name)}')">
+                        <div class="relative aspect-square rounded-xl overflow-hidden mb-3 shadow-md flex items-center justify-center text-4xl font-bold ${style.bg}">
                             ${style.customHtml || style.icon}
                             <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
                                 <span class="bg-white text-black font-bold p-3 rounded-full shadow-xl transform scale-75 group-hover:scale-100 transition"><svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
@@ -1364,11 +1396,12 @@
                         </button>
                         <div class="w-full min-w-0 flex-1">
                             <div class="marquee-container w-full"><h3 class="font-bold text-white text-sm marquee-text">${utils.escapeHtml(name)}</h3></div>
-                            <p class="text-xs text-gray-400 mt-1">${state.playlists[name].length} tracks</p>
+                            <p class="text-xs text-zinc-400 mt-0.5">${state.playlists[name].length} tracks</p>
                         </div>
                     </div>`;
                 });
-                grid.innerHTML = html;
+                if (grid) grid.innerHTML = html;
+                if (fullGrid) fullGrid.innerHTML = html;
                 ui.renderLibraryLists();
                 updateMarquees();
             },
@@ -1389,14 +1422,24 @@
             },
             renderLibraryLists: () => {
                 const librarySongs = document.getElementById('library-songs');
+                const fullLikedList = document.getElementById('full-liked-list');
                 const likedArtists = document.getElementById('library-liked-artists');
+                const fullArtistsGrid = document.getElementById('full-artists-grid');
                 const history = document.getElementById('library-history');
                 const goSearch = "ui.switchView('search'); setTimeout(() => document.getElementById('search-input')?.focus(), 60)";
                 if (librarySongs) {
                     const songs = state.libraryIds.map(item => typeof item === 'object' ? item : state.playHistory.find(song => song.id === item) || state.likedIds.find(item2 => (typeof item2 === 'object' ? item2.id : item2) === item)).filter(Boolean);
-                    librarySongs.innerHTML = songs.length
+                    const songsHtml = songs.length
                         ? songs.map(song => ui.createSongPill(song, `playSongById('${songStore.add(song)}')`, 'library')).join('')
-                        : ui.libraryEmptyState({
+                        : null;
+                    if (fullLikedList) fullLikedList.innerHTML = songsHtml || ui.libraryEmptyState({
+                        icon: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>',
+                        title: 'No liked songs yet',
+                        message: 'Double-click any song or click the heart icon to save favorites.',
+                        actionLabel: 'Discover songs',
+                        action: goSearch
+                    });
+                    librarySongs.innerHTML = songsHtml || ui.libraryEmptyState({
                             icon: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 19V6l12-2v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z"/></svg>',
                             title: 'Your library is empty',
                             message: 'Use “Add to Library” on any song to keep it handy here.',
@@ -1405,9 +1448,17 @@
                         });
                 }
                 if (likedArtists) {
-                    likedArtists.innerHTML = state.likedArtists.length
+                    const artistsHtml = state.likedArtists.length
                         ? state.likedArtists.map(artist => ui.createArtistCard(artist)).join('')
-                        : ui.libraryEmptyState({
+                        : null;
+                    if (fullArtistsGrid) fullArtistsGrid.innerHTML = artistsHtml || ui.libraryEmptyState({
+                        icon: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>',
+                        title: 'No liked artists yet',
+                        message: 'Like artists from search or album pages and they will appear here.',
+                        actionLabel: 'Search artists',
+                        action: goSearch
+                    });
+                    likedArtists.innerHTML = artistsHtml || ui.libraryEmptyState({
                             icon: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>',
                             title: 'No liked artists yet',
                             message: 'Like artists from search and they’ll gather here.',
@@ -1520,20 +1571,58 @@
             },
             updateLibraryStats: () => {
                 const statEl = document.getElementById('library-stats-text');
-                if (!statEl) return;
                 const playlistCount = Object.keys(state.playlists).length;
                 const likedCount = state.likedIds.length;
                 const artistCount = state.likedArtists.length;
-                if (playlistCount + likedCount + artistCount === 0) {
-                    statEl.textContent = 'Playlists, liked songs and artists all live here once you start collecting.';
-                    return;
+                let downloadCount = 0;
+                let downloadBytes = 0;
+                if (typeof offlineStore !== 'undefined' && offlineStore.usage) {
+                    const u = offlineStore.usage();
+                    downloadCount = u.count || 0;
+                    downloadBytes = u.bytes || 0;
                 }
-                const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
-                statEl.textContent = [
-                    plural(playlistCount, 'playlist'),
-                    plural(likedCount, 'liked song'),
-                    plural(artistCount, 'artist')
-                ].join('  •  ');
+
+                // Update tab badges
+                const bP = document.getElementById('lib-count-playlists');
+                const bL = document.getElementById('lib-count-liked');
+                const bA = document.getElementById('lib-count-artists');
+                const bD = document.getElementById('lib-count-downloads');
+                if (bP) bP.textContent = playlistCount;
+                if (bL) bL.textContent = likedCount;
+                if (bA) bA.textContent = artistCount;
+                if (bD) bD.textContent = downloadCount;
+
+                // Update featured cards
+                const cardLiked = document.getElementById('card-liked-count');
+                const cardDown = document.getElementById('card-downloads-count');
+                const cardDownStorage = document.getElementById('card-downloads-storage');
+                if (cardLiked) cardLiked.textContent = `${likedCount} track${likedCount === 1 ? '' : 's'}`;
+                if (cardDown) cardDown.textContent = `${downloadCount} offline track${downloadCount === 1 ? '' : 's'}`;
+                if (cardDownStorage && typeof offlineStore !== 'undefined' && offlineStore.formatBytes) {
+                    cardDownStorage.textContent = offlineStore.formatBytes(downloadBytes);
+                }
+
+                // Update section badges
+                const sP = document.getElementById('section-playlists-count');
+                const sL = document.getElementById('section-liked-count');
+                const sA = document.getElementById('section-artists-count');
+                if (sP) sP.textContent = `${playlistCount} playlists`;
+                if (sL) sL.textContent = `${likedCount} songs`;
+                if (sA) sA.textContent = `${artistCount} artists`;
+
+                if (statEl) {
+                    if (playlistCount + likedCount + artistCount + downloadCount === 0) {
+                        statEl.textContent = 'Playlists, liked songs and artists all live here once you start collecting.';
+                    } else {
+                        const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+                        statEl.textContent = [
+                            plural(playlistCount, 'playlist'),
+                            plural(likedCount, 'liked song'),
+                            plural(artistCount, 'artist'),
+                            plural(downloadCount, 'offline track')
+                        ].join('  •  ');
+                    }
+                }
             },
             createArtistCard: (artist) => {
                 const id = utils.escapeJs(artist.id || artist.name);
@@ -1732,7 +1821,44 @@
                 if (next) next.innerHTML = render(getUpcomingTrack(), 'Next');
                 updateMarquees();
             },
-            createQueuePill: (song, section, index) => ui.createPlayerListPill(song, null, 'queue', { section, index }),
+            createQueuePill: (song, section, index) => {
+                const storeId = songStore.add(song);
+                const title = utils.escapeHtml(song.name || song.title || 'Unknown');
+                const artist = utils.escapeHtml(song.artist || 'Unknown');
+                const img = song.img || FALLBACK_ART;
+                const safeSection = utils.escapeJs(section);
+                const safeIndex = Number(index);
+
+                return `
+                <div class="queue-reorder-row swipe-song np-row relative overflow-hidden group select-none flex-shrink-0 w-full" draggable="true" data-queue-section="${safeSection}" data-queue-index="${safeIndex}" data-store-id="${storeId}">
+                    <div class="swipe-song-card np-pill cursor-pointer relative z-10 flex items-center w-full" onclick="playSongById('${storeId}')" ondblclick="player.likeSong('${utils.escapeJs(song.id)}')">
+                        <!-- Drag Handle -->
+                        <button class="queue-drag-handle np-drag text-zinc-500 hover:text-white transition p-1 flex-shrink-0 cursor-grab active:cursor-grabbing ml-0.5 mr-1" title="Drag to rearrange" aria-label="Rearrange track" onclick="event.stopPropagation()" type="button">
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M9 5a2 2 0 1 1-4 0 2 2 0 0 1 4 0Zm10 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0ZM9 12a2 2 0 1 1-4 0 2 2 0 0 1 4 0Zm10 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0ZM9 19a2 2 0 1 1-4 0 2 2 0 0 1 4 0Zm10 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z"/>
+                            </svg>
+                        </button>
+
+                        <!-- Album Art -->
+                        <div class="np-art flex-shrink-0">
+                            <img src="${img}" onerror="this.src='${FALLBACK_ART}'" alt="" class="np-art-img" decoding="async">
+                        </div>
+
+                        <!-- Track Info -->
+                        <div class="np-copy flex-1 min-w-0 ml-2.5">
+                            <div class="marquee-container w-full"><div class="np-title marquee-text">${title}</div></div>
+                            <div class="marquee-container w-full"><div class="np-artist marquee-text">${artist}</div></div>
+                        </div>
+
+                        <!-- Cross button to remove from queue -->
+                        <button type="button" class="np-action-btn w-7 h-7 rounded-full flex items-center justify-center text-zinc-400 hover:text-white hover:bg-white/10 transition active:scale-90 flex-shrink-0 ml-auto mr-1" title="Remove from queue" aria-label="Remove from queue" onclick="event.stopPropagation(); player.removeFromQueue('${safeSection}', ${safeIndex})">
+                            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M18 6L6 18M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>`;
+            },
             createSongPill: (song, clickHandlerStr, context = 'queue') => {
                 if (context === 'queue' || context === 'history') {
                     return ui.createPlayerListPill(song, clickHandlerStr, context);

@@ -996,6 +996,7 @@
                         const uniqueToAdd = hydrated.filter(h => !state.queue.some(q => q.id === h.id));
                         const songsToAdd = uniqueToAdd.length > 0 ? uniqueToAdd : hydrated;
                         
+                        songsToAdd.forEach(s => { if (s) { s.isAutoplay = true; s.origin = 'autoplay'; } });
                         state.queue.push(...songsToAdd);
                         ui.renderQueue();
                         primeNextTrack();
@@ -1008,6 +1009,36 @@
                 }
                 if (window.ui?.showToast) ui.showToast("Could not find autoplay tracks", "error");
                 return false;
+            },
+            removeFromQueue: (section, index) => {
+                index = Number(index);
+                if (section === 'manual') {
+                    if (state.userQueue && index >= 0 && index < state.userQueue.length) {
+                        state.userQueue.splice(index, 1);
+                    }
+                } else {
+                    if (state.shuffle && state.shuffledOrder) {
+                        const targetPos = state.shufflePointer + 1 + index;
+                        if (targetPos < state.shuffledOrder.length) {
+                            const qIdx = state.shuffledOrder[targetPos];
+                            state.shuffledOrder.splice(targetPos, 1);
+                            state.queue.splice(qIdx, 1);
+                            for (let i = 0; i < state.shuffledOrder.length; i++) {
+                                if (state.shuffledOrder[i] > qIdx) {
+                                    state.shuffledOrder[i]--;
+                                }
+                            }
+                        }
+                    } else {
+                        const qIdx = state.idx + 1 + index;
+                        if (qIdx < state.queue.length) {
+                            state.queue.splice(qIdx, 1);
+                        }
+                    }
+                }
+                ui.renderQueue();
+                primeNextTrack();
+                persist.save();
             },
             clearQueue: () => {
                 state.userQueue = [];
