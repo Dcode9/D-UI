@@ -83,7 +83,18 @@
                     dislikeLabel.textContent = (player.isDisliked && player.isDisliked(song.id)) ? 'Remove from hidden' : "Don't recommend this";
                 }
                 document.getElementById('cm-song-options').classList.remove('hidden'); document.getElementById('cm-playlist-options').classList.add('hidden');
-                menu.classList.remove('hidden'); const x = Math.min(event.clientX, window.innerWidth - 200); const y = Math.min(event.clientY, window.innerHeight - 150);
+                menu.classList.remove('hidden');
+                let cx = (event && typeof event.clientX === 'number') ? event.clientX : 0;
+                let cy = (event && typeof event.clientY === 'number') ? event.clientY : 0;
+                if ((!cx && !cy) && event && event.currentTarget && event.currentTarget.getBoundingClientRect) {
+                    const rect = event.currentTarget.getBoundingClientRect();
+                    cx = rect.right - 220;
+                    cy = rect.bottom + 6;
+                }
+                const menuW = 220;
+                const menuH = menu.offsetHeight || 320;
+                const x = Math.max(12, Math.min(cx, window.innerWidth - menuW - 16));
+                const y = Math.max(12, Math.min(cy, window.innerHeight - menuH - 16));
                 menu.style.left = `${x}px`; menu.style.top = `${y}px`;
             },
             showPlaylist: (event, playlistName) => {

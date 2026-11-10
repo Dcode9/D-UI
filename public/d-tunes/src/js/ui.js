@@ -273,6 +273,13 @@
                 document.getElementById('profile-dropdown')?.classList.add('hidden');
             },
 
+            toggleChangelogAccordion: (id) => {
+                const item = document.getElementById(`changelog-item-${id}`);
+                if (!item) return;
+                const wasOpen = item.classList.contains('is-open');
+                item.classList.toggle('is-open', !wasOpen);
+            },
+
             toggleModal: (show) => {
                 const modal = document.getElementById('playlist-modal');
                 if(show) { 
@@ -1597,9 +1604,17 @@
                     <button class="absolute top-4 right-4 p-1.5 ${artistLiked ? 'bg-red-500 text-white' : 'bg-black/60 text-white'} backdrop-blur-md rounded-full opacity-100 md:opacity-0 md:group-hover:opacity-100 transition shadow-lg hover:bg-red-500 z-10" onclick="event.stopPropagation(); ui.toggleArtistLike({ id: '${utils.escapeJs(item.id)}', name: '${utils.escapeJs(item.name)}', artist: '${utils.escapeJs(item.artist || 'Artist')}', img: '${utils.escapeJs(item.img || FALLBACK_ART)}', type: 'artist' })" title="${artistLiked ? 'Unlike artist' : 'Like artist'}">
                         <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
                     </button>` : (isContext ? "" : `
-                    <button class="absolute top-4 right-4 p-1.5 bg-black/60 backdrop-blur-md rounded-full text-white opacity-100 md:opacity-0 md:group-hover:opacity-100 transition shadow-lg hover:bg-white/20 z-10" onclick="event.stopPropagation(); ctxMenu.showSong(event, '${storeId}')">
-                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M3 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/></svg>
-                    </button>`);
+                    <div class="absolute top-3 right-3 flex items-center gap-0.5 bg-black/80 backdrop-blur-md rounded-full p-1 border border-white/10 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-200 shadow-xl z-10" onclick="event.stopPropagation()">
+                        <button type="button" class="np-action-btn w-6 h-6 rounded-full flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition active:scale-90" title="Play Next" aria-label="Play Next" onclick="event.stopPropagation(); player.addNext(songStore.get('${storeId}'))">
+                            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 5l7 7-7 7M5 5l7 7-7 7"/></svg>
+                        </button>
+                        <button type="button" class="np-action-btn w-6 h-6 rounded-full flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition active:scale-90" title="Add to Queue" aria-label="Add to Queue" onclick="event.stopPropagation(); player.addToQueue(songStore.get('${storeId}'))">
+                            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h7"/><path d="M18 15v6m-3-3h6"/></svg>
+                        </button>
+                        <button type="button" class="np-action-btn w-6 h-6 rounded-full flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition active:scale-90" title="More Options" aria-label="More Options" onclick="event.stopPropagation(); ctxMenu.showSong(event, '${storeId}')">
+                            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
+                        </button>
+                    </div>`);
 
                 return `
                 <div class="scroll-card glass-panel p-3 rounded-xl transition hover-pause group relative flex flex-col w-40" ${dblClickHandler}>
@@ -1617,12 +1632,32 @@
                 </div>`;
             },
             heartMarkup: () => `<svg class="heart-glyph" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>`,
-            createNowPlayingInner: (song, artistSuffix = '') => {
+            createNowPlayingInner: (song, artistSuffix = '', storeId = null, context = 'island') => {
                 const title = utils.escapeHtml(song.name || song.title || 'Unknown');
                 const artist = utils.escapeHtml(song.artist || 'Unknown');
                 const img = song.img || FALLBACK_ART;
                 const liked = typeof player !== 'undefined' && player.isLiked && player.isLiked(song.id);
                 const safeId = utils.escapeJs(song.id);
+
+                let rightControls = '';
+                if (context === 'island') {
+                    rightControls = `<button type="button" class="np-heart ${liked ? 'is-liked text-red-500' : ''}" aria-label="${liked ? 'Unlike' : 'Like'}" onclick="event.stopPropagation(); player.likeSong('${safeId}')">${ui.heartMarkup()}</button>`;
+                } else {
+                    const sid = storeId || songStore.add(song);
+                    rightControls = `
+                        <div class="np-actions flex items-center gap-0.5 ml-2 mr-0.5 flex-shrink-0" onclick="event.stopPropagation()">
+                            <button type="button" class="np-action-btn" title="Play Next" aria-label="Play Next" onclick="event.stopPropagation(); player.addNext(songStore.get('${sid}'))">
+                                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 5l7 7-7 7M5 5l7 7-7 7"/></svg>
+                            </button>
+                            <button type="button" class="np-action-btn" title="Add to Queue" aria-label="Add to Queue" onclick="event.stopPropagation(); player.addToQueue(songStore.get('${sid}'))">
+                                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h7"/><path d="M18 15v6m-3-3h6"/></svg>
+                            </button>
+                            <button type="button" class="np-action-btn" title="More Options" aria-label="More Options" onclick="event.stopPropagation(); ctxMenu.showSong(event, '${sid}')">
+                                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
+                            </button>
+                        </div>
+                    `;
+                }
                 return `
                     <div class="np-art">
                         <img src="${img}" onerror="this.src='${FALLBACK_ART}'" alt="" class="np-art-img" decoding="async">
@@ -1631,14 +1666,14 @@
                         <div class="marquee-container w-full"><div class="np-title marquee-text">${title}</div></div>
                         <div class="marquee-container w-full"><div class="np-artist marquee-text">${artist}${artistSuffix}</div></div>
                     </div>
-                    <button type="button" class="np-heart ${liked ? 'is-liked text-red-500' : ''}" aria-label="${liked ? 'Unlike' : 'Like'}" onclick="event.stopPropagation(); player.likeSong('${safeId}')">${ui.heartMarkup()}</button>
+                    ${rightControls}
                 `;
             },
             createPlayerListPill: (song, clickHandlerStr, context = 'queue', reorder = null) => {
                 const storeId = songStore.add(song);
                 const click = clickHandlerStr || `playSongById('${storeId}')`;
                 const suffix = (context === 'history' && song.playedAt) ? ` · ${utils.escapeHtml(ui.formatRelativeTime(song.playedAt))}` : '';
-                const inner = ui.createNowPlayingInner(song, suffix);
+                const inner = ui.createNowPlayingInner(song, suffix, storeId, context);
                 if (ui.isOfflineUnavailable(song)) {
                     return `<div class="np-row" data-store-id="${storeId}"><div class="np-pill is-disabled" aria-disabled="true" title="Not downloaded — unavailable offline">${inner}${ui.notDownloadedBadge('ml-2')}</div></div>`;
                 }
@@ -1732,9 +1767,16 @@
                     <div class="swipe-song-card glass-panel rounded-2xl p-2 pr-4 flex items-center shadow-2xl w-full border border-white/10 transition-colors bg-[#121212]/95 cursor-pointer relative z-10" onclick="${clickHandlerStr}" ondblclick="player.likeSong('${utils.escapeJs(song.id)}')">
                         ${ui.createSongPillInner(song)}
                         ${timeBadge}
-                        <div class="flex items-center ${hoverBtnVis} transition-opacity duration-200 mr-1">
-                            <button class="p-1.5 text-gray-400 hover:text-white rounded-full hover:bg-white/10 transition hidden md:flex" title="Play Next" onclick="event.stopPropagation(); player.addNext(songStore.get('${storeId}'))"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"/></svg></button>
-                            <button class="p-1.5 text-gray-400 hover:text-white rounded-full hover:bg-white/10 transition hidden md:flex" title="Add to Queue" onclick="event.stopPropagation(); player.addToQueue(songStore.get('${storeId}'))"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h10m-10 4h6"/></svg></button>
+                        <div class="flex items-center gap-0.5 ml-auto mr-1 flex-shrink-0" onclick="event.stopPropagation()">
+                            <button type="button" class="np-action-btn" title="Play Next" aria-label="Play Next" onclick="event.stopPropagation(); player.addNext(songStore.get('${storeId}'))">
+                                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 5l7 7-7 7M5 5l7 7-7 7"/></svg>
+                            </button>
+                            <button type="button" class="np-action-btn" title="Add to Queue" aria-label="Add to Queue" onclick="event.stopPropagation(); player.addToQueue(songStore.get('${storeId}'))">
+                                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h7"/><path d="M18 15v6m-3-3h6"/></svg>
+                            </button>
+                            <button type="button" class="np-action-btn" title="More Options" aria-label="More Options" onclick="event.stopPropagation(); ctxMenu.showSong(event, '${storeId}')">
+                                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
+                            </button>
                         </div>
                     </div>
                 </div>`;
@@ -2594,6 +2636,7 @@
                 
                 histEl.innerHTML = html;
                 updateMarquees();
+                ui.adjustQueueMaxHeight();
             },
             initQueuePointerReorder: () => {
                 const list = document.getElementById('queue-list');

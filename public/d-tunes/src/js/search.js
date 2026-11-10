@@ -117,14 +117,14 @@
                     results.classList.add('is-updating');
                     const requestedQuery = query;
                     state.searchDebounce = setTimeout(async () => {
-                        const songs = await jiosaavnAPI.searchSongs(requestedQuery, 6);
+                        const songs = await jiosaavnAPI.searchSongs(requestedQuery, 5);
                         if (input.value.trim() !== requestedQuery) return;
                         results.classList.remove('is-updating');
                         if(songs.length === 0) {
-                            results.innerHTML = '<div class="p-4 text-center text-gray-400 text-sm">No songs found</div>';
+                            results.innerHTML = '<div class="p-4 text-center text-zinc-400 text-sm font-medium">No songs found</div>';
                             return;
                         }
-                        results.innerHTML = '<div class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1 pl-2 drop-shadow-md">Songs</div>' + songs.map(song => {
+                        results.innerHTML = songs.map(song => {
                             const storeId = songStore.add(song);
                             return ui.createPlayerListPill(song, `ui.playFromQuickSearch('${storeId}')`, 'quicksearch');
                         }).join('');
