@@ -19,6 +19,7 @@ export default defineConfig({
         main: resolve(__dirname, 'index.html'),
         components: resolve(__dirname, 'components.html'),
         studio: resolve(__dirname, 'studio.html'),
+        d_tunes_logo: resolve(__dirname, 'd-tunes_logo.html'),
       },
     },
   },

@@ -1,4 +1,103 @@
 (function () {
+    function festiveDateParts(now) {
+        const parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Kolkata', month: 'numeric', day: 'numeric' }).formatToParts(now);
+        return { month: Number(parts.find(part => part.type === 'month').value) - 1, date: Number(parts.find(part => part.type === 'day').value) };
+    }
+
+    function forceFestivePreview() {
+        try { return typeof localStorage !== 'undefined' && localStorage.getItem('dtunes_force_diwali') === 'true'; }
+        catch (_) { return false; }
+    }
+
+    function isFestiveSeasonActive() {
+        if (forceFestivePreview()) return true;
+        const now = new Date();
+        return now >= new Date('2026-11-05T00:00:00+05:30') && now < new Date('2026-11-12T00:00:00+05:30');
+    }
+
+    const FESTIVE_PLAYLISTS = {
+        dhanteras: {
+            categoryTitle: "Dhanteras: Auspicious Prosperity & Beats",
+            title: "Golden Blessings & Joy",
+            description: "Divine auspicious start to the festive season with energetic celebration anthems",
+            styleIndex: 2,
+            songs: [
+                { id: "diwali_dhan_1", title: "Shubhaarambh", artist: "Amit Trivedi & Shruti Pathak", url: "https://aac.saavncdn.com/393/8a688fbba8a6b22557169ee38bcae2b0_320.mp4", img: "https://c.saavncdn.com/393/Kai-Po-Che-Hindi-2013-20221124115124-500x500.jpg" },
+                { id: "diwali_dhan_2", title: "Nagada Sang Dhol", artist: "Shreya Ghoshal & Osman Mir", url: "https://aac.saavncdn.com/264/3cbe665e7834fc3e421035ce675c9603_320.mp4", img: "https://c.saavncdn.com/264/Goliyon-Ki-Raasleela-Ram-leela-Hindi-2013-20231206123004-500x500.jpg" },
+                { id: "diwali_dhan_3", title: "Ghoomar", artist: "Shreya Ghoshal & Swaroop Khan", url: "https://aac.saavncdn.com/712/f47a6d80ff368fe0fa1b6cf05dd85df3_320.mp4", img: "https://c.saavncdn.com/712/Padmaavat-Hindi-2018-20200814144342-500x500.jpg" },
+                { id: "diwali_dhan_4", title: "Chogada", artist: "Darshan Raval & Asees Kaur", url: "https://aac.saavncdn.com/152/4998492e8a1d7f644b1c83ec3f7e8a94_320.mp4", img: "https://c.saavncdn.com/152/Loveyatri-A-Journey-Of-Love-Hindi-2018-20181003-500x500.jpg" },
+                { id: "diwali_dhan_5", title: "London Thumakda", artist: "Labh Janjua & Sonu Kakkar", url: "https://aac.saavncdn.com/112/57c2a7a40b904df97b98292857e4e138_320.mp4", img: "https://c.saavncdn.com/112/Queen-Hindi-2014-500x500.jpg" }
+            ]
+        },
+        kali_chaudas: {
+            categoryTitle: "Kali Chaudas: Triumph of Light & Energy",
+            title: "Fierce Beats & Radiant Power",
+            description: "High-octane energetic anthems celebrating the triumph of good over darkness on Choti Diwali",
+            styleIndex: 2,
+            songs: [
+                { id: "diwali_kc_1", title: "Malhari", artist: "Vishal Dadlani", url: "https://aac.saavncdn.com/282/25a9ff735c345d31191599a0e676d1ef_320.mp4", img: "https://c.saavncdn.com/282/Bajirao-Mastani-Hindi-2015-500x500.jpg" },
+                { id: "diwali_kc_2", title: "Aarambh Hai Prachand", artist: "Piyush Mishra", url: "https://aac.saavncdn.com/001/a3e5c9424e69b0faee5c9faad3ea348a_320.mp4", img: "https://c.saavncdn.com/001/Gulaal-Hindi-2009-20190516132714-500x500.jpg" },
+                { id: "diwali_kc_3", title: "Zinda", artist: "Siddharth Mahadevan", url: "https://aac.saavncdn.com/669/7ad4b97ce1c798782a7f058cf2546a16_320.mp4", img: "https://c.saavncdn.com/669/Bhaag-Milkha-Bhaag-Hindi-2013-20221124115124-500x500.jpg" },
+                { id: "diwali_kc_4", title: "Deva Deva", artist: "Arijit Singh & Jonita Gandhi", url: "https://aac.saavncdn.com/390/6938221b6d92634fbda6a7db76cae70c_320.mp4", img: "https://c.saavncdn.com/390/Brahmastra-Hindi-2022-20220909180706-500x500.jpg" },
+                { id: "diwali_kc_5", title: "Sultan", artist: "Sukhwinder Singh & Shadab Faridi", url: "https://aac.saavncdn.com/544/8ffea1d8ae0a8276f578dfad5b3bb935_320.mp4", img: "https://c.saavncdn.com/544/Sultan-Hindi-2016-500x500.jpg" }
+            ]
+        },
+        diwali: {
+            categoryTitle: "Diwali Everyday: Grand Festival of Lights",
+            title: "Joyous Sparkle, Dhol & Light",
+            description: "Magnificent celebration hits, festive dhol grooves, and joy crafted to brighten your celebration",
+            styleIndex: 2,
+            songs: [
+                { id: "diwali_1", title: "Nagada Sang Dhol", artist: "Shreya Ghoshal & Osman Mir", url: "https://aac.saavncdn.com/264/3cbe665e7834fc3e421035ce675c9603_320.mp4", img: "https://c.saavncdn.com/264/Goliyon-Ki-Raasleela-Ram-leela-Hindi-2013-20231206123004-500x500.jpg" },
+                { id: "diwali_2", title: "Chogada", artist: "Darshan Raval & Asees Kaur", url: "https://aac.saavncdn.com/152/4998492e8a1d7f644b1c83ec3f7e8a94_320.mp4", img: "https://c.saavncdn.com/152/Loveyatri-A-Journey-Of-Love-Hindi-2018-20181003-500x500.jpg" },
+                { id: "diwali_3", title: "Gallan Goodiyaan", artist: "Yashita Sharma & Shankar Mahadevan", url: "https://aac.saavncdn.com/109/20b084931aeb7c458140db7fdf9a34bc_320.mp4", img: "https://c.saavncdn.com/109/Dil-Dhadakne-Do-Hindi-2015-500x500.jpg" },
+                { id: "diwali_4", title: "London Thumakda", artist: "Labh Janjua & Sonu Kakkar", url: "https://aac.saavncdn.com/112/57c2a7a40b904df97b98292857e4e138_320.mp4", img: "https://c.saavncdn.com/112/Queen-Hindi-2014-500x500.jpg" },
+                { id: "diwali_5", title: "Dholida", artist: "Jahnvi Shrimankar & Shail Hada", url: "https://aac.saavncdn.com/978/d96e5797f267926941ca6096538421d0_320.mp4", img: "https://c.saavncdn.com/978/Gangubai-Kathiawadi-Hindi-2022-20220210161005-500x500.jpg" }
+            ]
+        },
+        gujarati_new_year: {
+            categoryTitle: "Gujarati New Year: Saal Mubarak & Garba Hits",
+            title: "Bestu Varas Festive Grooves",
+            description: "Nutun Varshabhinandan! High-energy Gujarati folk anthems, vibrant dhol raas, and festive celebration",
+            styleIndex: 2,
+            songs: [
+                { id: "diwali_gny_1", title: "Khalasi", artist: "Aditya Gadhvi & Achint", url: "https://aac.saavncdn.com/786/ebca28b030e62d47da2f1d93ebff18f1_320.mp4", img: "https://c.saavncdn.com/786/Coke-Studio-Bharat-Season-1-Hindi-2023-20231010151128-500x500.jpg" },
+                { id: "diwali_gny_2", title: "Mor Bani Thanghat Kare", artist: "Osman Mir & Aditi Paul", url: "https://aac.saavncdn.com/264/3cbe665e7834fc3e421035ce675c9603_320.mp4", img: "https://c.saavncdn.com/264/Goliyon-Ki-Raasleela-Ram-leela-Hindi-2013-20231206123004-500x500.jpg" },
+                { id: "diwali_gny_3", title: "Kamariya", artist: "Darshan Raval", url: "https://aac.saavncdn.com/624/60ba10bca0db2f7bc19a3b2b41983ee2_320.mp4", img: "https://c.saavncdn.com/624/Mitron-Hindi-2018-20180907-500x500.jpg" },
+                { id: "diwali_gny_4", title: "Chogada", artist: "Darshan Raval & Asees Kaur", url: "https://aac.saavncdn.com/152/4998492e8a1d7f644b1c83ec3f7e8a94_320.mp4", img: "https://c.saavncdn.com/152/Loveyatri-A-Journey-Of-Love-Hindi-2018-20181003-500x500.jpg" },
+                { id: "diwali_gny_5", title: "Udi Udi Jaye", artist: "Sukhwinder Singh & Bhoomi Trivedi", url: "https://aac.saavncdn.com/832/779c13b2e53faea5bc920f35be96f156_320.mp4", img: "https://c.saavncdn.com/832/Raees-Hindi-2017-500x500.jpg" }
+            ]
+        },
+        bhai_dooj: {
+            categoryTitle: "Bhai Dooj: Celebration of Love & Bonds",
+            title: "Sweet Melodies & Family Joy",
+            description: "Heartwarming celebration melodies and joyous family festive dance tracks for Bhai Beej",
+            styleIndex: 2,
+            songs: [
+                { id: "diwali_bd_1", title: "Nachde Ne Saare", artist: "Jasleen Royal & Harshdeep Kaur", url: "https://aac.saavncdn.com/393/d12c1e793910c74fb91dfcb1a3a41efb_320.mp4", img: "https://c.saavncdn.com/393/Baar-Baar-Dekho-Hindi-2016-500x500.jpg" },
+                { id: "diwali_bd_2", title: "Gallan Goodiyaan", artist: "Yashita Sharma & Shankar Mahadevan", url: "https://aac.saavncdn.com/109/20b084931aeb7c458140db7fdf9a34bc_320.mp4", img: "https://c.saavncdn.com/109/Dil-Dhadakne-Do-Hindi-2015-500x500.jpg" },
+                { id: "diwali_bd_3", title: "Sweetie Tera Drama", artist: "Dev Negi & Pawni Pandey", url: "https://aac.saavncdn.com/182/b9b9423c92dfecdfaebe38531bf58448_320.mp4", img: "https://c.saavncdn.com/182/Bareilly-Ki-Barfi-Hindi-2017-500x500.jpg" },
+                { id: "diwali_bd_4", title: "London Thumakda", artist: "Labh Janjua & Sonu Kakkar", url: "https://aac.saavncdn.com/112/57c2a7a40b904df97b98292857e4e138_320.mp4", img: "https://c.saavncdn.com/112/Queen-Hindi-2014-500x500.jpg" },
+                { id: "diwali_bd_5", title: "Malhari", artist: "Vishal Dadlani", url: "https://aac.saavncdn.com/282/25a9ff735c345d31191599a0e676d1ef_320.mp4", img: "https://c.saavncdn.com/282/Bajirao-Mastani-Hindi-2015-500x500.jpg" }
+            ]
+        }
+    };
+
+    function getTodayFestivePlaylist() {
+        const now = new Date();
+        const { month, date } = festiveDateParts(now);
+        if (month === 10) {
+            if (date <= 6) return FESTIVE_PLAYLISTS.dhanteras;
+            if (date === 7) return FESTIVE_PLAYLISTS.kali_chaudas;
+            if (date === 8 || date === 9) return FESTIVE_PLAYLISTS.diwali;
+            if (date === 10) return FESTIVE_PLAYLISTS.gujarati_new_year;
+            if (date >= 11) return FESTIVE_PLAYLISTS.bhai_dooj;
+        }
+        return FESTIVE_PLAYLISTS.diwali;
+    }
+
+    const DIWALI_EVERYDAY_PLAYLIST = FESTIVE_PLAYLISTS.diwali;
+
     const COVER_STYLES = [
         { bg: "from-purple-900 to-black", blend: "mix-blend-overlay", textPos: "justify-end items-start" },
         { bg: "from-emerald-800 to-gray-900", blend: "mix-blend-luminosity", textPos: "justify-center items-center text-center" },
@@ -242,28 +341,41 @@
         `;
     }
 
-    // Render clean prompt when user is not signed in
+    // Render clean prompt when user is not signed in with Diwali Celebration Mix
     function renderSignedOutState(container) {
-        container.innerHTML = `
-            <div class="pt-2 animate-fade-in px-4 md:px-8">
-                <div class="p-6 md:p-8 rounded-2xl glass-panel border border-white/10 flex flex-col md:flex-row items-center justify-between gap-6 bg-white/[0.02]">
-                    <div class="max-w-xl">
-                        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-white text-xs font-semibold mb-3">
-                            <span>Daily Mixes</span>
+        const initialMixes = isFestiveSeasonActive() ? [getTodayFestivePlaylist()] : [];
+        renderPlaylistView(container, initialMixes, {
+            prependHtml: `
+                <div class="pt-2 animate-fade-in px-4 md:px-8 mb-6">
+                    <div class="p-6 md:p-8 rounded-2xl glass-panel border border-white/10 flex flex-col md:flex-row items-center justify-between gap-6 bg-white/[0.02]">
+                        <div class="max-w-xl">
+                            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-white text-xs font-semibold mb-3">
+                                <span>Daily Mixes</span>
+                            </div>
+                            <h2 class="text-2xl md:text-3xl font-bold font-display text-white tracking-tight">Your Music, Tailored For You</h2>
+                            <p class="text-sm text-neutral-300 mt-2 leading-relaxed">Sign in to unlock personalized daily mixes based on your listening history, favorite tracks, and custom playlists.</p>
                         </div>
-                        <h2 class="text-2xl md:text-3xl font-bold font-display text-white tracking-tight">Your Music, Tailored For You</h2>
-                        <p class="text-sm text-neutral-300 mt-2 leading-relaxed">Sign in to unlock personalized daily mixes based on your listening history, favorite tracks, and custom playlists.</p>
+                        <button onclick="if(window.dverse && dverse.signInWithGoogle) dverse.signInWithGoogle();" class="px-6 py-3 rounded-full bg-[var(--accent-color)] text-black font-bold text-sm hover:brightness-110 active:scale-[0.98] transition flex-shrink-0 cursor-pointer flex items-center gap-2">
+                            <span>Sign In to D-Tunes</span>
+                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                        </button>
                     </div>
-                    <button onclick="if(window.dverse && dverse.signInWithGoogle) dverse.signInWithGoogle();" id="home-signin-banner-btn" class="home-signin-banner-btn px-6 py-3 rounded-full bg-[var(--accent-color)] text-black font-bold text-sm hover:brightness-110 active:scale-[0.98] transition flex-shrink-0 cursor-pointer flex items-center gap-2">
-                        <span>Sign In to D-Tunes</span>
-                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
-                    </button>
                 </div>
-            </div>
-        `;
+            `,
+            description: "Celebrate every day like Diwali with festive celebration anthems. Sign in to unlock your full personal daily mixes."
+        });
     }
 
     function renderPlaylistView(container, playlists, options = {}) {
+        if (Array.isArray(playlists) && !options.offline && (playlists.length > 0 || !options.emptyMessage)) {
+            if (isFestiveSeasonActive()) {
+                const todayFestive = getTodayFestivePlaylist();
+                const hasFestive = playlists.some(p => /diwali|festive|celebration|chaudas|dhanteras|new year|bhai dooj|bestu varas/i.test(p.title || p.categoryTitle || ''));
+                if (!hasFestive) {
+                    playlists = [todayFestive, ...playlists];
+                }
+            }
+        }
         const {
             userId = null,
             todayKey = localDateKey(),
@@ -387,6 +499,8 @@
             `;
         }
 
+        
+
         const emptyHtml = !sectionsHtml && emptyMessage
             ? `<div class="px-4 md:px-8 mb-10">
                     <div class="glass-panel rounded-xl px-5 py-6 text-sm text-neutral-400 leading-relaxed">${utils.escapeHtml(emptyMessage)}</div>
@@ -397,18 +511,18 @@
             ${prependHtml}
             ${(playlists && playlists.length > 0) ? `
             <div class="pt-2 animate-fade-in">
-                <!-- Clean Editorial Header -->
-                <div class="flex items-center justify-between px-4 md:px-8 mb-6 pb-2 border-b border-white/10">
-                    <div>
+                <!-- Keep recommendation controls on their own row on small screens. -->
+                <div class="flex flex-col items-start gap-3 md:flex-row md:items-center md:justify-between md:gap-4 px-4 md:px-8 mb-6 pb-2 border-b border-white/10">
+                    <div class="min-w-0">
                         <h2 class="text-2xl md:text-3xl font-bold font-display text-white tracking-tight">Made For You</h2>
                         <p class="text-xs md:text-sm text-neutral-400 mt-1">${utils.escapeHtml(description)}${expiresAt ? ` <span class="text-xs text-brand-primary font-medium ml-2 bg-brand-primary/10 border border-brand-primary/20 px-2 py-0.5 rounded-full">Expires at ${formatDailyExpiry(expiresAt)}</span>` : ""}</p>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <button onclick="if(window.aiReportManager) window.aiReportManager.openReportModal({ feature: 'Made For You (Daily Recommendations)' })" class="text-xs text-amber-400/90 hover:text-amber-300 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 transition hover:bg-amber-500/20 cursor-pointer" title="Report issue with AI-generated recommendations (Policy 11.16)">
+                    <div class="flex items-center gap-2 shrink-0">
+                        <button onclick="if(window.aiReportManager) window.aiReportManager.openReportModal({ feature: 'Made For You (Daily Recommendations)' })" class="text-xs text-amber-400/90 hover:text-amber-300 flex items-center gap-1.5 whitespace-nowrap min-h-[44px] md:min-h-0 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 transition hover:bg-amber-500/20 cursor-pointer" title="Report issue with AI-generated recommendations (Policy 11.16)">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                             <span>Report AI Content</span>
                         </button>
-                        ${offline ? '' : `<button onclick="window.aiHome.renderAIHome(true)" title="Refresh Daily Mixes" class="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition hover:rotate-180 duration-500 shadow-md">
+                        ${offline ? '' : `<button onclick="window.aiHome.renderAIHome(true)" title="Refresh Daily Mixes" class="p-2 min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition hover:rotate-180 duration-500 shadow-md">
                             <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                         </button>`}
                     </div>
@@ -789,6 +903,33 @@ async function renderOfflineHome(container) {
         }
     }
 
+    async function playDiwaliEverydayMix() {
+        if (window.ui && window.ui.showToast) window.ui.showToast('Playing Diwali Everyday Celebration Mix! 🪔✨');
+        
+        for (const [key, pl] of aiPlaylistsStore.entries()) {
+            if (/diwali|festive|celebration/i.test(pl.title || pl.categoryTitle || '')) {
+                playEntirePlaylist(key);
+                return;
+            }
+        }
+
+        const todayFestive = getTodayFestivePlaylist();
+        const celebrationTracks = todayFestive.songs;
+        celebrationTracks.forEach(s => {
+            if (s && window.songStore && window.songStore.add) window.songStore.add(s);
+        });
+
+        if (window.player && player.playDirect) {
+            player.playDirect(celebrationTracks[0]);
+            state.queue = celebrationTracks.slice(1);
+            state.idx = 0;
+            state.shuffledOrder = [];
+            state.shufflePointer = 0;
+            if (window.ui && ui.renderQueue) ui.renderQueue();
+        }
+    }
+    window.playDiwaliEverydayMix = playDiwaliEverydayMix;
+
     function playEntirePlaylist(playlistId) {
         const item = aiPlaylistsStore.get(playlistId);
         if (!item || !item.songs || item.songs.length === 0) return;
@@ -919,6 +1060,7 @@ async function renderOfflineHome(container) {
         readTrendingCache,
         renderOfflineHome,
         playEntirePlaylist,
+        playDiwaliEverydayMix,
         addPlaylistToQueue,
         savePlaylistToLibrary,
         loadTrendingHits,
