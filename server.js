@@ -252,7 +252,12 @@ async function handleApi(req, res, url) {
 }
 
 function serveStatic(req, res, url) {
-  const ALIASES = { '/download': '/downloads/index.html', '/downloads': '/downloads/index.html' };
+  const ALIASES = {
+    '/download': '/downloads/index.html',
+    '/downloads': '/downloads/index.html',
+    '/components': '/components.html',
+    '/studio': '/studio.html',
+  };
   const requested = url.pathname === '/'
     ? '/index.html'
     : (ALIASES[url.pathname] || decodeURIComponent(url.pathname));

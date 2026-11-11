@@ -751,20 +751,86 @@
             user-select: none;
             transform: translateZ(0);
             backface-visibility: hidden;
-            contain: layout style;
-            transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.22s ease;
+            border-radius: 1.25rem !important;
+            position: relative;
+            overflow: hidden;
+            background: rgba(14, 14, 18, 0.65) !important;
+            border: 1px solid rgba(255, 255, 255, 0.08) !important;
+            box-shadow: 0 10px 28px -6px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            transition: border-color 0.24s ease, box-shadow 0.26s ease, transform 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
         @media (min-width: 768px) { .scroll-card { flex-basis: calc((100% - (4 * 1rem)) / 4.5); } }
         @media (min-width: 1024px) { .scroll-card { flex-basis: calc((100% - (6 * 1rem)) / 6.5); } }
 
         .scroll-card:hover {
-            box-shadow: 0 10px 24px -4px rgba(0, 0, 0, 0.55);
-            border-color: rgba(255, 255, 255, 0.25);
-            background-color: rgba(255, 255, 255, 0.04);
+            box-shadow: 0 16px 36px -6px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+            border-color: rgba(255, 255, 255, 0.22) !important;
             transform: none !important;
         }
         .scroll-card:active {
             transform: none !important;
+        }
+
+        /* Ambient Mezzotint Blur Album Art Expansion */
+        .scroll-card-ambient {
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+            border-radius: inherit;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .scroll-card-ambient-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: blur(28px) saturate(1.8) brightness(0.5);
+            transform: scale(1.35);
+            opacity: 0.85;
+            transition: filter 0.4s ease, transform 0.4s ease, opacity 0.4s ease;
+        }
+        .scroll-card:hover .scroll-card-ambient-img {
+            filter: blur(32px) saturate(2) brightness(0.62);
+            transform: scale(1.45);
+            opacity: 0.95;
+        }
+        .scroll-card-ambient::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, rgba(8, 8, 12, 0.4) 0%, rgba(10, 10, 14, 0.75) 55%, rgba(6, 6, 8, 0.95) 100%);
+            backdrop-filter: var(--dtunes-optical-filter);
+            -webkit-backdrop-filter: var(--dtunes-optical-filter);
+        }
+        .scroll-card-menu-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 9999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.45);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: rgba(255, 255, 255, 0.75);
+            cursor: pointer;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease, transform 0.18s ease, background-color 0.18s ease, border-color 0.18s ease;
+        }
+        .scroll-card:hover .scroll-card-menu-btn,
+        .scroll-card.is-hovered .scroll-card-menu-btn,
+        .scroll-card:focus-within .scroll-card-menu-btn {
+            opacity: 1 !important;
+            pointer-events: auto !important;
+        }
+        .scroll-card-menu-btn:hover {
+            background: rgba(255, 255, 255, 0.18);
+            color: #ffffff;
+            border-color: rgba(255, 255, 255, 0.3);
+            transform: scale(1.08);
+        }
+        .scroll-card-menu-btn:active {
+            transform: scale(0.92);
         }
         .for-you-card:hover,
         .discover-card:hover,
@@ -788,32 +854,48 @@
             width: 38px;
             height: 38px;
             border-radius: 9999px;
-            background: rgba(12, 12, 16, 0.82);
+            background: rgba(10, 10, 14, 0.88);
             backdrop-filter: var(--dtunes-optical-filter);
             -webkit-backdrop-filter: var(--dtunes-optical-filter);
             border: 1px solid var(--mezzotint-border);
-            box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.7), inset 0 1px 0 var(--mezzotint-ridge);
+            box-shadow: 0 10px 24px -4px rgba(0, 0, 0, 0.7), inset 0 1px 0 var(--mezzotint-ridge);
             color: #ffffff;
             display: flex;
             align-items: center;
             justify-content: center;
             z-index: 30;
             cursor: pointer;
-            box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.7);
             opacity: 0;
             pointer-events: none;
-            transition: opacity 0.22s ease, transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), background-color 0.2s ease, border-color 0.2s ease;
+            transition: opacity 0.22s ease, transform 0.42s cubic-bezier(0.2, 0.8, 0.2, 1), background-color 0.2s ease, border-color 0.2s ease;
         }
         .shelf-nav-btn:hover {
-            background: rgba(32, 32, 44, 0.95);
-            border-color: rgba(255, 255, 255, 0.4);
-            transform: translateY(-50%) scale(1.1);
+            background: rgba(28, 28, 38, 0.95);
+            border-color: rgba(255, 255, 255, 0.35);
+            color: #ffffff;
+            transform: translateY(-50%) scale(1.08);
         }
         .shelf-nav-btn:active {
-            transform: translateY(-50%) scale(0.94);
+            transform: translateY(-50%) scale(0.92);
         }
         .shelf-nav-prev { left: 0.5rem; }
         .shelf-nav-next { right: 0.5rem; }
+
+        /* When Queue Sidebar is active, .shelf-nav-next shifts left just like the sign-in button */
+        body.queue-sidebar-active .shelf-nav-next {
+            transform: translateY(-50%) translateX(calc(-1 * (var(--queue-sidebar-width, 384px) + 0.75rem)));
+        }
+        body.queue-sidebar-active .shelf-nav-next:hover {
+            transform: translateY(-50%) translateX(calc(-1 * (var(--queue-sidebar-width, 384px) + 0.75rem))) scale(1.08);
+        }
+        body.queue-sidebar-active .shelf-nav-next:active {
+            transform: translateY(-50%) translateX(calc(-1 * (var(--queue-sidebar-width, 384px) + 0.75rem))) scale(0.92);
+        }
+
+        /* Clearance for shelf rows so items can scroll without being hidden behind sidebar */
+        body.queue-sidebar-active .horizontal-scroll {
+            padding-right: calc(var(--queue-sidebar-width, 384px) + 2rem) !important;
+        }
 
         @media (hover: hover) and (pointer: fine) {
             .group\/track:hover .shelf-nav-btn.is-visible {
@@ -3284,9 +3366,9 @@ html[data-ui-mode="desktop"] #queue-expandable-area {
 
 /* State: Queue Expanded (Single expanded state for both buttons) */
 html[data-ui-mode="desktop"] #queue-wrapper.queue-expanded {
-    height: var(--queue-full-height, calc(100vh - 188px));
-    height: var(--queue-full-height, calc(100dvh - 188px));
-    max-height: calc(100vh - 188px);
+    height: var(--queue-full-height, calc(100vh - 176px));
+    height: var(--queue-full-height, calc(100dvh - 176px));
+    max-height: calc(100vh - 140px);
 }
 
 html[data-ui-mode="desktop"] #queue-wrapper.queue-expanded #player-active-area {
@@ -3961,4 +4043,31 @@ body.queue-sidebar-active #ai-hub-container div.md\:p-8 > button {
     transform: translateY(-2px);
     border-color: rgba(255, 255, 255, 0.22);
     box-shadow: 0 16px 36px -10px rgba(0, 0, 0, 0.7);
+}
+
+/* Search Filter Segmented Tabs */
+.search-filter-pill {
+    padding: 0.45rem 1rem;
+    border-radius: 9999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.6);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+    cursor: pointer;
+    white-space: nowrap;
+    user-select: none;
+}
+.search-filter-pill:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.18);
+}
+.search-filter-pill.is-active {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-weight: 700 !important;
+    border-color: #ffffff !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
 }

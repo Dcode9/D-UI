@@ -13,7 +13,7 @@
     }
   ],
   "rewrites": [
-    { "source": "/components", "destination": "/index.html" },
+    { "source": "/components", "destination": "/components.html" },
     { "source": "/studio", "destination": "/studio.html" },
     { "source": "/studio.html", "destination": "/studio.html" },
     { "source": "/d-tunes", "destination": "/d-tunes/index.html" },

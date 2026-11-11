@@ -4,7 +4,7 @@
     <base href="/d-tunes/">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
-    <title>D'Tunes (Beta 1.4)</title>
+    <title>D'Tunes</title>
     <link rel="icon" type="image/svg+xml" href="DTunes.svg">
     <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon.png">
     <link rel="shortcut icon" href="favicon.ico">
@@ -576,37 +576,37 @@
 
                 <!-- Custom Interactive Accordion for Previous Releases -->
                 <div class="flex flex-col gap-2">
-                    <!-- Version 0.1.3.1 (Beta 1.3.1) -->
-                    <div id="changelog-item-0-1-3-1" class="changelog-accordion-item">
-                        <button type="button" class="changelog-accordion-btn" onclick="ui.toggleChangelogAccordion('0-1-3-1')">
+                    <!-- Version 0.1.3.1 (Beta 1.3.1) Collapsible -->
+                    <details class="group rounded-2xl bg-white/5 border border-white/10 overflow-hidden transition-all duration-200">
+                        <summary class="p-3.5 flex items-center justify-between cursor-pointer select-none hover:bg-white/5 transition list-none">
                             <div class="flex items-center gap-2.5 min-w-0">
                                 <span class="px-2 py-0.5 rounded-full bg-white/10 text-white text-xs font-mono font-bold">0.1.3.1</span>
                                 <span class="text-xs font-semibold text-white">Beta 1.3.1</span>
-                                <span class="text-xs text-zinc-400 truncate hidden sm:inline">• Tab Stability & Vibe Mix</span>
+                                <span class="text-xs text-zinc-400 truncate hidden sm:inline ml-1">• Tab Stability & Vibe Mix</span>
                             </div>
-                            <svg class="w-4 h-4 changelog-accordion-chevron flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-                        </button>
-                        <div class="changelog-accordion-body">
-                            <ul class="text-xs text-zinc-300 space-y-1.5 leading-relaxed pt-2 border-t border-white/5">
+                            <svg class="w-4 h-4 text-zinc-400 group-open:rotate-180 transition-transform duration-200 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        </summary>
+                        <div class="px-4 pb-4 pt-1 border-t border-white/5">
+                            <ul class="text-xs text-zinc-300 space-y-1.5 leading-relaxed">
                                 <li>• <strong class="text-white">Stable Tab Switching</strong>: AI recommendations remain locked in place without flickering, reloading, or showing skeletons when you switch tabs or minimize the browser.</li>
                                 <li>• <strong class="text-white">Vibe Mix Playlist Generator</strong>: Create custom curated playlists from any mood, prompt, or nostalgic <em>Time Capsule</em>, tuned directly to your personal listening taste.</li>
                                 <li>• <strong class="text-white">Organized Release Notes</strong>: Compact, categorized changelog navigation with collapsible historical archives to keep updates clear and non-overwhelming.</li>
                             </ul>
                         </div>
-                    </div>
+                    </details>
 
-                    <!-- Version 0.1.3 (Beta 1.3) -->
-                    <div id="changelog-item-0-1-3" class="changelog-accordion-item">
-                        <button type="button" class="changelog-accordion-btn" onclick="ui.toggleChangelogAccordion('0-1-3')">
+                    <!-- Version 0.1.3 (Beta 1.3) Collapsible -->
+                    <details class="group rounded-2xl bg-white/5 border border-white/10 overflow-hidden transition-all duration-200">
+                        <summary class="p-3.5 flex items-center justify-between cursor-pointer select-none hover:bg-white/5 transition list-none">
                             <div class="flex items-center gap-2.5 min-w-0">
                                 <span class="px-2 py-0.5 rounded-full bg-white/10 text-white text-xs font-mono font-bold">0.1.3</span>
                                 <span class="text-xs font-semibold text-white">Beta 1.3</span>
-                                <span class="text-xs text-zinc-400 truncate hidden sm:inline">• Swipe Gestures & Daily Mixes</span>
+                                <span class="text-xs text-zinc-400 truncate hidden sm:inline ml-1">• Swipe Gestures & Daily Mixes</span>
                             </div>
-                            <svg class="w-4 h-4 changelog-accordion-chevron flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-                        </button>
-                        <div class="changelog-accordion-body">
-                            <ul class="text-xs text-zinc-300 space-y-1.5 leading-relaxed pt-2 border-t border-white/5">
+                            <svg class="w-4 h-4 text-zinc-400 group-open:rotate-180 transition-transform duration-200 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        </summary>
+                        <div class="px-4 pb-4 pt-1 border-t border-white/5">
+                            <ul class="text-xs text-zinc-300 space-y-1.5 leading-relaxed">
                                 <li>• <strong class="text-white">Android-Style Swipe Gestures</strong>: Cards physically move in your swipe direction with expanding action panels for "Play Next" and "Add to Queue".</li>
                                 <li>• <strong class="text-white">Redesigned Full-Screen Mobile Player</strong>: Album art on top, clean song details with like button, audio controls, and separate Queue, History & Lyrics tabs - controls always visible.</li>
                                 <li>• <strong class="text-white">Personalised Daily Mixes</strong>: Daily listening recommendations curated from your taste and listening patterns, cached and refreshed once per day.</li>
@@ -619,20 +619,20 @@
                                 <li>• <strong class="text-white">Queue & History</strong>: Full scrollable queue and playback history available right from the player.</li>
                             </ul>
                         </div>
-                    </div>
+                    </details>
 
-                    <!-- Version 0.1.2 (Beta 1.2) -->
-                    <div id="changelog-item-0-1-2" class="changelog-accordion-item">
-                        <button type="button" class="changelog-accordion-btn" onclick="ui.toggleChangelogAccordion('0-1-2')">
+                    <!-- Version 0.1.2 (Beta 1.2) Collapsible -->
+                    <details class="group rounded-2xl bg-white/5 border border-white/10 overflow-hidden transition-all duration-200">
+                        <summary class="p-3.5 flex items-center justify-between cursor-pointer select-none hover:bg-white/5 transition list-none">
                             <div class="flex items-center gap-2.5 min-w-0">
                                 <span class="px-2 py-0.5 rounded-full bg-white/10 text-white text-xs font-mono font-bold">0.1.2</span>
                                 <span class="text-xs font-semibold text-white">Beta 1.2</span>
-                                <span class="text-xs text-zinc-400 truncate hidden sm:inline">• Lyrics & Audio Resilience</span>
+                                <span class="text-xs text-zinc-400 truncate hidden sm:inline ml-1">• Lyrics & Audio Resilience</span>
                             </div>
-                            <svg class="w-4 h-4 changelog-accordion-chevron flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-                        </button>
-                        <div class="changelog-accordion-body">
-                            <ul class="text-xs text-zinc-300 space-y-1.5 leading-relaxed pt-2 border-t border-white/5">
+                            <svg class="w-4 h-4 text-zinc-400 group-open:rotate-180 transition-transform duration-200 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        </summary>
+                        <div class="px-4 pb-4 pt-1 border-t border-white/5">
+                            <ul class="text-xs text-zinc-300 space-y-1.5 leading-relaxed">
                                 <li>• <strong class="text-white">Real-Time Synchronized Lyrics Engine</strong>: Live lyrics drawer with auto-scrolling line highlight and tap-to-seek playback.</li>
                                 <li>• <strong class="text-white">Cross-Platform Audio Resilience</strong>: Audio playback optimizations across Windows desktop, iOS Safari, and Android Chrome.</li>
                                 <li>• <strong class="text-white">Isolated Scrolling</strong>: Clean separation of vertical page scrolling and horizontal music shelves without scroll hijacking.</li>
@@ -641,20 +641,20 @@
                                 <li>• <strong class="text-white">Web & Desktop Sign-In</strong>: Isolated web sign-in and automated desktop redirection via deep links.</li>
                             </ul>
                         </div>
-                    </div>
+                    </details>
 
-                    <!-- Version 0.1.1 (Beta 1.1) -->
-                    <div id="changelog-item-0-1-1" class="changelog-accordion-item">
-                        <button type="button" class="changelog-accordion-btn" onclick="ui.toggleChangelogAccordion('0-1-1')">
+                    <!-- Version 0.1.1 (Beta 1.1) Collapsible -->
+                    <details class="group rounded-2xl bg-white/5 border border-white/10 overflow-hidden transition-all duration-200">
+                        <summary class="p-3.5 flex items-center justify-between cursor-pointer select-none hover:bg-white/5 transition list-none">
                             <div class="flex items-center gap-2.5 min-w-0">
                                 <span class="px-2 py-0.5 rounded-full bg-white/10 text-white text-xs font-mono font-bold">0.1.1</span>
                                 <span class="text-xs font-semibold text-white">Beta 1.1</span>
-                                <span class="text-xs text-zinc-400 truncate hidden sm:inline">• Sleep Timer & Procedural Editor</span>
+                                <span class="text-xs text-zinc-400 truncate hidden sm:inline ml-1">• Sleep Timer & Procedural Editor</span>
                             </div>
-                            <svg class="w-4 h-4 changelog-accordion-chevron flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-                        </button>
-                        <div class="changelog-accordion-body">
-                            <ul class="text-xs text-zinc-300 space-y-1.5 leading-relaxed pt-2 border-t border-white/5">
+                            <svg class="w-4 h-4 text-zinc-400 group-open:rotate-180 transition-transform duration-200 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        </summary>
+                        <div class="px-4 pb-4 pt-1 border-t border-white/5">
+                            <ul class="text-xs text-zinc-300 space-y-1.5 leading-relaxed">
                                 <li>• ⏱ <strong class="text-white">Sleep Timer with Volume Fadeout</strong>: Automatic smooth 10s audio fade and pause.</li>
                                 <li>• <strong class="text-white">Dedicated Album & Artist Pages</strong>: Discography, top songs, track numbers, and direct queueing.</li>
                                 <li>• <strong class="text-white">Playlist Viewer & Procedural Editor</strong>: Total duration calculations, drag reordering, and custom cover geometries.</li>
@@ -664,7 +664,7 @@
                                 <li>• <strong class="text-white">Clean Auth & Account Switcher</strong>: Deep sign-out protocol that wipes all cached storage for a 100% fresh guest slate.</li>
                             </ul>
                         </div>
-                    </div>
+                    </details>
                 </div>
 
                 <!-- Attribution -->
@@ -1175,15 +1175,23 @@
 
         <!-- ================= FULL SEARCH VIEW ================= -->
         <div id="view-search" class="hidden pb-12">
-            <div class="flex items-center justify-between px-4 md:px-8 mb-6">
+            <div class="flex items-center justify-between px-4 md:px-8 mb-4">
                 <h2 class="text-2xl md:text-3xl font-medium text-white" id="search-title">Search</h2>
                 <div class="flex items-center gap-3">
-                    <button id="btn-report-search" onclick="if(window.aiReportManager) window.aiReportManager.openReportModal({ feature: 'Search & AI Autocomplete' })" class="text-xs text-amber-400/90 hover:text-amber-300 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 transition hover:bg-amber-500/20 cursor-pointer" title="Report issue with search output">
+                    <button id="btn-report-search" onclick="if(window.aiReportManager) window.aiReportManager.openReportModal({ feature: 'Search & AI Autocomplete' })" class="text-xs text-zinc-400 hover:text-white flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 transition hover:bg-white/10 cursor-pointer" title="Report issue with search output">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                        <span>Report Content</span>
+                        <span>Report</span>
                     </button>
-                    <button id="btn-clear-search-history" onclick="searchManager.clearSearchHistory()" class="text-xs font-semibold text-white hover:underline active:scale-95 transition hidden">Clear All</button>
+                    <button id="btn-clear-search-history" onclick="searchManager.clearSearchHistory()" class="text-xs font-medium text-zinc-400 hover:text-white active:scale-95 transition hidden">Clear History</button>
                 </div>
+            </div>
+
+            <!-- Search Category Filter Pills -->
+            <div id="search-filter-bar" class="flex items-center gap-2 px-4 md:px-8 mb-6 overflow-x-auto no-scrollbar">
+                <button type="button" class="search-filter-pill is-active" data-filter="all" onclick="searchManager.setFilter('all')">All</button>
+                <button type="button" class="search-filter-pill" data-filter="songs" onclick="searchManager.setFilter('songs')">Songs</button>
+                <button type="button" class="search-filter-pill" data-filter="albums" onclick="searchManager.setFilter('albums')">Albums</button>
+                <button type="button" class="search-filter-pill" data-filter="artists" onclick="searchManager.setFilter('artists')">Artists</button>
             </div>
 
             <!-- Recent Searches Section (Android style) -->
@@ -1377,6 +1385,7 @@
         </div>
 
         <!-- ================= SETTINGS VIEW ================= -->
+        <button id="btn-report-settings" onclick="if(window.aiReportManager) window.aiReportManager.openReportModal({ feature: 'Settings' })" class="hidden">Report Inappropriate AI Content</button>
         <div id="view-settings" class="hidden pb-12 px-4 md:px-8">
             <h2 class="text-2xl md:text-3xl font-bold text-white mb-8 tracking-tight relative z-20">Settings</h2>
             <div class="changelog-glass-card p-6 md:p-8 rounded-3xl max-w-2xl relative z-10 border border-white/10 flex flex-col gap-6">

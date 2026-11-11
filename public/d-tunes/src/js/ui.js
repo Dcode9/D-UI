@@ -1669,54 +1669,55 @@
                 const storeId = songStore.add(item);
                 const isContext = item.type === 'album' || item.type === 'artist';
                 const offlineBlocked = !isContext && ui.isOfflineUnavailable(item);
+                const fallbackArt = typeof FALLBACK_ART !== 'undefined' ? FALLBACK_ART : 'DTunes.svg';
+                const rawImg = item.img || fallbackArt;
+                const safeImg = typeof sanitizeImageUrl === 'function' ? sanitizeImageUrl(rawImg) : (typeof utils !== 'undefined' && typeof utils.sanitizeImageUrl === 'function' ? utils.sanitizeImageUrl(rawImg) : rawImg);
                 if (offlineBlocked) {
                     const blockedArtist = utils.escapeHtml(item.artist);
                     return `
-                    <div class="scroll-card glass-panel p-3 rounded-xl flex flex-col w-40 opacity-45 grayscale cursor-not-allowed select-none" aria-disabled="true" title="Not downloaded — unavailable offline">
-                        <div class="relative aspect-square rounded-lg overflow-hidden mb-3 bg-gray-800 shadow-md">
-                            <img src="${item.img}" onerror="this.src='${FALLBACK_ART}'" class="w-full h-full object-cover" decoding="async">
+                    <div class="scroll-card glass-panel p-3 rounded-2xl flex flex-col w-40 opacity-45 grayscale cursor-not-allowed select-none relative overflow-hidden" aria-disabled="true" title="Not downloaded — unavailable offline">
+                        <div class="scroll-card-ambient" aria-hidden="true"><img src="${safeImg}" class="scroll-card-ambient-img" alt="" onerror="this.src='${FALLBACK_ART}'"></div>
+                        <div class="relative aspect-square rounded-xl overflow-hidden mb-2.5 bg-zinc-900 shadow-md z-10">
+                            <img src="${safeImg}" onerror="this.src='${FALLBACK_ART}'" class="w-full h-full object-cover" decoding="async">
                             <div class="absolute inset-0 bg-black/55 flex flex-col items-center justify-center gap-1.5">
                                 <svg class="w-5 h-5 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/></svg>
                                 <span class="text-[9px] font-bold text-white/85 uppercase tracking-wide">Not downloaded</span>
                             </div>
                         </div>
-                        <div class="w-full min-w-0 flex-1">
+                        <div class="w-full min-w-0 flex-1 z-10 relative">
                             <div class="marquee-container w-full"><h3 class="font-bold text-gray-400 text-sm marquee-text">${utils.escapeHtml(item.name)}</h3></div>
-                            <div class="marquee-container w-full mt-1"><p class="text-xs text-gray-500 marquee-text">${blockedArtist}</p></div>
+                            <div class="marquee-container w-full mt-0.5"><p class="text-xs text-gray-500 marquee-text">${blockedArtist}</p></div>
                         </div>
                     </div>`;
                 }
                 const clickHandler = item.type === 'album' ? `ui.openAlbum('${utils.escapeJs(item.id)}')` : (isContext ? `playContext('${item.type}', '${utils.escapeJs(item.id)}')` : `playSongById('${storeId}')`);
                 const dblClickHandler = isContext ? "" : `ondblclick="player.likeSong('${utils.escapeJs(item.id)}')"`;
                 const artistLiked = item.type === 'artist' && state.likedArtists.some(artist => (artist.id || artist.name) === item.id);
-                const menuBtn = item.type === 'artist' ? `
-                    <button class="absolute top-4 right-4 p-1.5 ${artistLiked ? 'bg-red-500 text-white' : 'bg-black/60 text-white'} backdrop-blur-md rounded-full opacity-100 md:opacity-0 md:group-hover:opacity-100 transition shadow-lg hover:bg-red-500 z-10" onclick="event.stopPropagation(); ui.toggleArtistLike({ id: '${utils.escapeJs(item.id)}', name: '${utils.escapeJs(item.name)}', artist: '${utils.escapeJs(item.artist || 'Artist')}', img: '${utils.escapeJs(item.img || FALLBACK_ART)}', type: 'artist' })" title="${artistLiked ? 'Unlike artist' : 'Like artist'}">
-                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-                    </button>` : (isContext ? "" : `
-                    <div class="absolute top-3 right-3 flex items-center gap-0.5 bg-black/80 backdrop-blur-md rounded-full p-1 border border-white/10 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-200 shadow-xl z-10" onclick="event.stopPropagation()">
-                        <button type="button" class="np-action-btn w-6 h-6 rounded-full flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition active:scale-90" title="Play Next" aria-label="Play Next" onclick="event.stopPropagation(); player.addNext(songStore.get('${storeId}'))">
-                            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 5l7 7-7 7M5 5l7 7-7 7"/></svg>
-                        </button>
-                        <button type="button" class="np-action-btn w-6 h-6 rounded-full flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition active:scale-90" title="Add to Queue" aria-label="Add to Queue" onclick="event.stopPropagation(); player.addToQueue(songStore.get('${storeId}'))">
-                            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h7"/><path d="M18 15v6m-3-3h6"/></svg>
-                        </button>
-                        <button type="button" class="np-action-btn w-6 h-6 rounded-full flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition active:scale-90" title="More Options" aria-label="More Options" onclick="event.stopPropagation(); ctxMenu.showSong(event, '${storeId}')">
-                            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
-                        </button>
-                    </div>`);
+                
+                // Three-dot menu button at bottom-right corner beside song name, ONLY appears on hover
+                const bottomMenuBtn = isContext && item.type === 'artist' ? `
+                    <button class="scroll-card-menu-btn opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1.5 rounded-full hover:bg-white/10 text-zinc-400 hover:text-white flex-shrink-0" onclick="event.stopPropagation(); ui.toggleArtistLike({ id: '${utils.escapeJs(item.id)}', name: '${utils.escapeJs(item.name)}', artist: '${utils.escapeJs(item.artist || 'Artist')}', img: '${utils.escapeJs(item.img || FALLBACK_ART)}', type: 'artist' })" title="${artistLiked ? 'Unlike artist' : 'Like artist'}" aria-label="Like artist">
+                        <svg class="w-4 h-4 ${artistLiked ? 'text-red-500 fill-current' : ''}" viewBox="0 0 24 24" fill="${artistLiked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54z"/></svg>
+                    </button>` : `
+                    <button type="button" class="scroll-card-menu-btn opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1.5 rounded-full hover:bg-white/10 text-zinc-400 hover:text-white flex-shrink-0" onclick="event.stopPropagation(); ctxMenu.showSong(event, '${storeId}')" title="More Options" aria-label="More Options">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
+                    </button>`;
 
                 return `
-                <div class="scroll-card glass-panel p-3 rounded-xl transition hover-pause group relative flex flex-col w-40" ${dblClickHandler}>
-                    <div class="relative aspect-square rounded-lg overflow-hidden mb-3 bg-gray-800 shadow-md cursor-pointer" onclick="${clickHandler}">
-                        <img src="${item.img}" onerror="this.src='${FALLBACK_ART}'" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" decoding="async">
+                <div class="scroll-card glass-panel p-3 rounded-2xl transition hover-pause group relative flex flex-col w-40 overflow-hidden" ${dblClickHandler}>
+                    <div class="scroll-card-ambient" aria-hidden="true"><img src="${safeImg}" class="scroll-card-ambient-img" alt="" onerror="this.src='${FALLBACK_ART}'"></div>
+                    <div class="relative aspect-square rounded-xl overflow-hidden mb-2.5 bg-zinc-900 shadow-md cursor-pointer z-10" onclick="${clickHandler}">
+                        <img src="${safeImg}" onerror="this.src='${FALLBACK_ART}'" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" decoding="async">
                         <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
                             <span class="bg-white text-black font-bold p-3 rounded-full shadow-xl transform scale-75 group-hover:scale-100 transition"><svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
                         </div>
                     </div>
-                    ${menuBtn}
-                    <div class="w-full min-w-0 flex-1">
-                        <div class="marquee-container w-full"><h3 class="font-bold text-white text-sm marquee-text">${utils.escapeHtml(item.name)}</h3></div>
-                        <div class="marquee-container w-full mt-1"><p class="text-xs text-gray-400 marquee-text">${utils.escapeHtml(item.artist)}</p></div>
+                    <div class="w-full min-w-0 flex items-center justify-between gap-1.5 z-10 relative mt-0.5">
+                        <div class="min-w-0 flex-1">
+                            <div class="marquee-container w-full"><h3 class="font-bold text-white text-sm marquee-text">${utils.escapeHtml(item.name)}</h3></div>
+                            <div class="marquee-container w-full mt-0.5"><p class="text-xs text-zinc-400 marquee-text">${utils.escapeHtml(item.artist)}</p></div>
+                        </div>
+                        ${bottomMenuBtn}
                     </div>
                 </div>`;
             },
@@ -2187,36 +2188,35 @@
                 const isLiked = state.likedIds.some(item => (typeof item === 'string' ? item === track.id : item.id === track.id));
                 likeBtn.className = isLiked ? 'np-like is-liked text-red-500' : 'np-like text-gray-400 hover:text-white';
 
-                if ('mediaSession' in navigator) {
-                    navigator.mediaSession.metadata = new MediaMetadata({
-                        title: track.name || track.title || 'Unknown Track',
-                        artist: options.loading ? `Loading • ${track.artist || ''}` : (track.artist || 'Unknown Artist'),
-                        album: track.album || 'D\'Tunes',
-                        artwork: [
-                            { src: safeArt, sizes: '96x96', type: 'image/jpeg' },
-                            { src: safeArt, sizes: '128x128', type: 'image/jpeg' },
-                            { src: safeArt, sizes: '192x192', type: 'image/jpeg' },
-                            { src: safeArt, sizes: '256x256', type: 'image/jpeg' },
-                            { src: safeArt, sizes: '384x384', type: 'image/jpeg' },
-                            { src: safeArt, sizes: '512x512', type: 'image/jpeg' }
-                        ]
-                    });
-                    const safeSetHandler = (action, handler) => {
-                        try { navigator.mediaSession.setActionHandler(action, handler); } catch (e) {}
-                    };
-                    safeSetHandler('play', requestPlay);
-                    safeSetHandler('pause', requestPause);
-                    safeSetHandler('previoustrack', player.prev);
-                    safeSetHandler('nexttrack', () => player.next(true));
-                    safeSetHandler('seekbackward', (details) => { audio.currentTime = Math.max(audio.currentTime - (details.seekOffset || 10), 0); updateMediaPosition(); });
-                    safeSetHandler('seekforward', (details) => { audio.currentTime = Math.min(audio.currentTime + (details.seekOffset || 10), audio.duration || 0); updateMediaPosition(); });
-                    safeSetHandler('seekto', (details) => {
-                        if (!details || !Number.isFinite(details.seekTime)) return;
-                        audio.currentTime = Math.max(0, Math.min(details.seekTime, audio.duration || details.seekTime)); updateMediaPosition();
-                    });
-                }
-                
-                const mPlayBtn = document.getElementById('m-icon-play');
+                if ('mediaSession' in navigator && typeof MediaMetadata !== 'undefined') {
+                    try {
+                        let artUrl = safeArt;
+                        if (!artUrl || typeof artUrl !== 'string' || artUrl.endsWith('.svg') || artUrl.includes('.svg?')) {
+                            artUrl = 'assets/icon.png';
+                        }
+                        if (typeof window !== 'undefined' && window.location) {
+                            try { artUrl = new URL(artUrl, window.location.href).href; } catch (_) {}
+                        }
+                        const artworkList = [
+                            { src: artUrl, sizes: '96x96', type: 'image/png' },
+                            { src: artUrl, sizes: '128x128', type: 'image/png' },
+                            { src: artUrl, sizes: '192x192', type: 'image/png' },
+                            { src: artUrl, sizes: '256x256', type: 'image/png' },
+                            { src: artUrl, sizes: '384x384', type: 'image/png' },
+                            { src: artUrl, sizes: '512x512', type: 'image/png' }
+                        ];
+                        navigator.mediaSession.metadata = new MediaMetadata({
+                            title: track.name || track.title || 'Unknown Track',
+                            artist: options.loading ? `Loading • ${track.artist || ''}` : (track.artist || 'Unknown Artist'),
+                            album: track.album || "D'Tunes",
+                            artwork: artworkList
+                        });
+                        navigator.mediaSession.playbackState = (state.playing || !document.getElementById('audio-el')?.paused) ? 'playing' : 'paused';
+                    } catch (e) {
+                        console.warn('[MediaSession] Metadata update error:', e);
+                    }
+                    }
+const mPlayBtn = document.getElementById('m-icon-play');
                 const mPauseBtn = document.getElementById('m-icon-pause');
                 if(mPlayBtn && mPauseBtn) {
                     mPlayBtn.className = state.playing ? 'hidden' : 'flex';
@@ -2388,7 +2388,7 @@
                 const infoIslandHeight = (infoIsland && infoIsland.offsetHeight > 0) ? infoIsland.offsetHeight : 58;
 
                 // Full sidebar height from 16px below top header down to 8px above player card:
-                const wrapFullH = Math.max(260, Math.floor((playerCardTop - 8) - (headerBottom + 16)));
+                const wrapFullH = Math.max(260, Math.floor((playerCardTop - 8) - (headerBottom + 12)));
                 const maxQueueH = Math.max(140, Math.floor(wrapFullH - infoIslandHeight - 8));
 
                 queueWrap.style.setProperty('--queue-full-height', wrapFullH + 'px');
@@ -2457,6 +2457,14 @@
                 wrap.classList.remove('sidebar-show-lyrics');
                 wrap.classList.add('queue-expanded');
                 ui.adjustQueueMaxHeight();
+                setTimeout(() => {
+                    document.querySelectorAll('.horizontal-scroll').forEach(shelf => {
+                        const maxScroll = shelf.scrollWidth - shelf.clientWidth;
+                        if (maxScroll > 10 && shelf.scrollLeft >= maxScroll - 20) {
+                            shelf.scrollBy({ left: -400, behavior: 'smooth' });
+                        }
+                    });
+                }, 60);
                 document.getElementById('btn-queue-desktop')?.classList.add('active-state', 'is-active');
                 document.getElementById('btn-lyrics')?.classList.remove('is-active');
                 document.body.classList.add('queue-sidebar-active');
@@ -2490,6 +2498,14 @@
                 state.queueExpanded = true;
                 wrap.classList.add('queue-expanded', 'sidebar-show-lyrics');
                 ui.adjustQueueMaxHeight();
+                setTimeout(() => {
+                    document.querySelectorAll('.horizontal-scroll').forEach(shelf => {
+                        const maxScroll = shelf.scrollWidth - shelf.clientWidth;
+                        if (maxScroll > 10 && shelf.scrollLeft >= maxScroll - 20) {
+                            shelf.scrollBy({ left: -400, behavior: 'smooth' });
+                        }
+                    });
+                }, 60);
                 document.getElementById('btn-lyrics')?.classList.add('is-active');
                 document.getElementById('btn-queue-desktop')?.classList.remove('active-state', 'is-active');
                 document.body.classList.add('queue-sidebar-active');
@@ -3506,7 +3522,7 @@
         }
 
 // Outside click dismiss for profile dropdown
-if (typeof document !== 'undefined') {
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
     document.addEventListener('pointerdown', (e) => {
         const acc = document.getElementById('header-account');
         const dd = document.getElementById('profile-dropdown');
